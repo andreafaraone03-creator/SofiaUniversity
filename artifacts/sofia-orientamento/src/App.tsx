@@ -191,11 +191,6 @@ function TourForm() {
 }
 
 function Home() {
-  const [active, setActive] = useState<'orientation' | 'tour'>('orientation');
-  const openBooking = (service: 'orientation' | 'tour') => {
-    setActive(service);
-    requestAnimationFrame(() => document.getElementById('prenota')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-  };
   return <div className="grain min-h-[100dvh]"><SiteHeader /><main>
     <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-14 md:grid-cols-[1.1fr_.9fr] md:items-end md:px-8 md:pb-24 md:pt-24">
       <div className="page-in"><SectionKicker>una scelta, finalmente tua</SectionKicker><h1 className="max-w-3xl font-serif text-5xl leading-[.98] tracking-[-.04em] sm:text-7xl md:text-[6.3rem]">L’università<br /><em className="text-[hsl(var(--primary))]">giusta per te.</em></h1><p className="mt-8 max-w-lg font-serif text-2xl leading-snug text-[hsl(var(--foreground))] sm:text-3xl">Il tuo futuro universitario inizia qui: scegli la strada giusta con una consulenza personalizzata.</p><p className="mt-4 max-w-lg text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Sono Sofia. Ti aiuto a capire cosa vuoi, a trovare il percorso più adatto e a iniziare senza sentirti solo.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#servizi" className="btn-primary" data-testid="link-discover-services">Scopri come posso aiutarti <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 px-3 py-3 text-sm underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4" data-testid="link-meet-sofia">Conosci Sofia</Link></div></div>
