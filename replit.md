@@ -1,45 +1,36 @@
-# [Project name]
+# Sofia | Consulenza universitaria
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Portale responsive per richieste di orientamento universitario, prenotazione tour Meet e gestione riservata delle richieste.
 
-## Run & Operate
+## Avvio e controlli
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Web: workflow `artifacts/sofia-orientamento: web`
+- API: workflow `artifacts/api-server: API Server`
+- `pnpm run typecheck` — verifica TypeScript dell'intero workspace
+- `pnpm --filter @workspace/api-spec run codegen` — rigenera client e validatori dopo ogni modifica a OpenAPI
 
-## Stack
+## Struttura
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- `artifacts/sofia-orientamento/src/App.tsx` — pagine Home, Chi sono, Contatti e Area riservata
+- `artifacts/sofia-orientamento/src/index.css` — tema e stili responsive
+- `lib/api-spec/openapi.yaml` — contratto API, fonte unica per i tipi generati
+- `artifacts/api-server/src/routes/sofia-public.ts` — corsi, richieste e slot/prenotazioni
+- `artifacts/api-server/src/routes/sofia-admin.ts` — accesso e dashboard riservata
+- `artifacts/api-server/data/courses.json` — 50 corsi distinti ricavati dai cataloghi pubblici ufficiali dei tre atenei; ricontrollare periodicamente l'offerta
+- `artifacts/api-server/data/sofia.sqlite` — database SQLite creato automaticamente, escluso da Git
 
-## Where things live
+## Configurazione
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `SESSION_SECRET` — segreto necessario per firmare la sessione amministrativa; deve avere almeno 24 caratteri
+- `SOFIA_DB_PATH` — percorso facoltativo per il file SQLite; per impostazione predefinita usa `artifacts/api-server/data/sofia.sqlite`
+- `VITE_TIKTOK_URL` — link facoltativo al profilo TikTok di Sofia
+- `VITE_WHATSAPP_NUMBER` — numero WhatsApp facoltativo, con prefisso internazionale
+- `VITE_CONTACT_EMAIL` — email pubblica facoltativa
 
-## Architecture decisions
+Al primo accesso ad `/admin`, Sofia crea l'unico account amministratore; farlo prima di condividere l'anteprima. La password è salvata come hash scrypt con salt; la sessione usa un cookie firmato HttpOnly.
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+## Nota sulla pubblicazione
 
-## Product
+SQLite è stato usato perché richiesto nel brief. Il file locale **non è persistente nelle app pubblicate su Replit**: su riavvio o nuova pubblicazione, richieste, prenotazioni e account amministratore potrebbero andare persi. Prima di usare il sito pubblicato con dati reali, spostare le tre tabelle su un database persistente come PostgreSQL gestito da Replit, oppure definire un'infrastruttura con volume persistente.
 
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+La prenotazione registra lo slot ma non genera automaticamente un link Google Meet né invia una email: Sofia deve concordare e condividere i dettagli con il cliente.

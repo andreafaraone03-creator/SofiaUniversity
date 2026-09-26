@@ -1,0 +1,402 @@
+[
+  {
+    "id": "pegaso-triennale-scienze-motorie",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Scienze Motorie",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/scienze-motorie"
+  },
+  {
+    "id": "pegaso-triennale-economia-aziendale",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Economia Aziendale",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/economia-aziendale"
+  },
+  {
+    "id": "pegaso-triennale-scienze-educazione-e-formazione",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Scienze dell'Educazione e della Formazione",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/scienze-educazione-e-formazione"
+  },
+  {
+    "id": "pegaso-triennale-informatica-per-le-aziende-digitali",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Informatica per le Aziende Digitali",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/informatica-per-le-aziende-digitali"
+  },
+  {
+    "id": "pegaso-triennale-ingegneria-civile",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Ingegneria Civile",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/ingegneria-civile"
+  },
+  {
+    "id": "pegaso-triennale-lettere-sapere-umanistico-e-formazione",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Lettere, Arti e Umanesimo",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/lettere-sapere-umanistico-e-formazione"
+  },
+  {
+    "id": "pegaso-triennale-filosofia-ed-etica",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Filosofia ed Etica",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/filosofia-ed-etica"
+  },
+  {
+    "id": "pegaso-triennale-scienze-turistiche",
+    "university": "Pegaso",
+    "category": "Triennale",
+    "name": "Scienze Turistiche",
+    "duration": "3 anni",
+    "source": "https://www.unipegaso.it/lauree-triennali/scienze-turistiche"
+  },
+  {
+    "id": "pegaso-magistrale-management-sport-attivita-motorie",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Management dello Sport e delle Attività Motorie",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/management-sport-attivita-motorie"
+  },
+  {
+    "id": "pegaso-magistrale-linguistica-moderna",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Linguistica Moderna",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/linguistica-moderna"
+  },
+  {
+    "id": "pegaso-magistrale-scienze-pedagogiche",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Scienze Pedagogiche",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/scienze-pedagogiche"
+  },
+  {
+    "id": "pegaso-magistrale-scienze-economiche",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Economia, Digital Data Analysis, Amministrazioni Pubbliche",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/scienze-economiche"
+  },
+  {
+    "id": "pegaso-magistrale-ingegneria-della-sicurezza",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Ingegneria della Sicurezza",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/ingegneria-della-sicurezza"
+  },
+  {
+    "id": "pegaso-magistrale-filologia-moderna-e-comparata",
+    "university": "Pegaso",
+    "category": "Magistrale",
+    "name": "Filologia Moderna e Comparata",
+    "duration": "2 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali/filologia-moderna-e-comparata"
+  },
+  {
+    "id": "pegaso-ciclo-unico-giurisprudenza",
+    "university": "Pegaso",
+    "category": "Ciclo unico",
+    "name": "Giurisprudenza",
+    "duration": "5 anni",
+    "source": "https://www.unipegaso.it/lauree-magistrali-ciclo-unico/giurisprudenza"
+  },
+  {
+    "id": "mercatorum-triennale-scienze-giuridiche",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Scienze Giuridiche",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/scienze-giuridiche"
+  },
+  {
+    "id": "mercatorum-triennale-scienze-e-tecniche-psicologiche",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Scienze e Tecniche Psicologiche",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/scienze-e-tecniche-psicologiche"
+  },
+  {
+    "id": "mercatorum-triennale-gestione-di-impresa",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Gestione d'Impresa",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/gestione-di-impresa"
+  },
+  {
+    "id": "mercatorum-triennale-ingegneria-gestionale",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Ingegneria Gestionale",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/ingegneria-gestionale"
+  },
+  {
+    "id": "mercatorum-triennale-ingegneria-informatica",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Ingegneria Informatica",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/ingegneria-informatica"
+  },
+  {
+    "id": "mercatorum-triennale-lingue-e-mercati",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Lingue e Mercati",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/lingue-e-mercati"
+  },
+  {
+    "id": "mercatorum-triennale-comunicazione-e-multimedialita",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Comunicazione e Multimedialità",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/comunicazione-e-multimedialita"
+  },
+  {
+    "id": "mercatorum-triennale-gastronomia-ospitalita-e-territori",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Gastronomia, Ospitalità e Territori",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/gastronomia-ospitalita-e-territori"
+  },
+  {
+    "id": "mercatorum-triennale-ingegneria-delle-infrastrutture-per-una-mobilita-sostenibile",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Ingegneria, Infrastrutture, Trasporti",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/ingegneria-delle-infrastrutture-per-una-mobilita-sostenibile"
+  },
+  {
+    "id": "mercatorum-triennale-design-del-prodotto-e-della-moda",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Design del Prodotto e della Moda",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/design-del-prodotto-e-della-moda"
+  },
+  {
+    "id": "mercatorum-triennale-statistica-e-big-data",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Statistica e Big Data",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/statistica-e-big-data"
+  },
+  {
+    "id": "mercatorum-triennale-scienze-politiche-e-relazioni-internazionali",
+    "university": "Mercatorum",
+    "category": "Triennale",
+    "name": "Scienze Politiche e Relazioni Internazionali",
+    "duration": "3 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/scienze-politiche-e-relazioni-internazionali"
+  },
+  {
+    "id": "mercatorum-magistrale-comunicazione-digitale-e-marketing",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Comunicazione Digitale e Marketing",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/comunicazione-digitale-e-marketing"
+  },
+  {
+    "id": "mercatorum-magistrale-ingegneria-gestionale-magistrale",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Ingegneria Gestionale",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/ingegneria-gestionale-magistrale"
+  },
+  {
+    "id": "mercatorum-magistrale-sicurezza-informatica",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Sicurezza Informatica",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/sicurezza-informatica"
+  },
+  {
+    "id": "mercatorum-magistrale-management",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Management",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/management"
+  },
+  {
+    "id": "mercatorum-magistrale-psicologia-del-lavoro-e-delle-organizzazioni",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Psicologia",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/psicologia-del-lavoro-e-delle-organizzazioni"
+  },
+  {
+    "id": "mercatorum-magistrale-lingue-per-la-comunicazione-internazionale",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Lingue per la Comunicazione Internazionale",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/lingue-per-la-comunicazione-internazionale"
+  },
+  {
+    "id": "mercatorum-magistrale-relazioni-internazionali-per-lo-sviluppo-economico",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Relazioni Internazionali per lo Sviluppo Economico",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/relazioni-internazionali-per-lo-sviluppo-economico"
+  },
+  {
+    "id": "mercatorum-magistrale-ingegneria-industriale-e-innovazione",
+    "university": "Mercatorum",
+    "category": "Magistrale",
+    "name": "Ingegneria Industriale e dell'Innovazione",
+    "duration": "2 anni",
+    "source": "https://www.unimercatorum.it/corsi-di-laurea/ingegneria-industriale-e-innovazione"
+  },
+  {
+    "id": "san-raffaele-triennale-triennale-scienze-dellalimentazione-e-gastronomia-l26",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Scienze dell'Alimentazione e Gastronomia",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/triennale-scienze-dellalimentazione-e-gastronomia-l26.html"
+  },
+  {
+    "id": "san-raffaele-triennale-patrimonio-culturale-in-era-digitale",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Patrimonio Culturale in Era Digitale",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/patrimonio-culturale-in-era-digitale"
+  },
+  {
+    "id": "san-raffaele-triennale-scienze-motorie",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Scienze Motorie",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/scienze-motorie.html"
+  },
+  {
+    "id": "san-raffaele-triennale-scienze-dellamministrazione-e-dellorganizzazione-l16",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Scienze dell'Amministrazione e dell'Organizzazione",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/scienze-dellamministrazione-e-dellorganizzazione-l16.html"
+  },
+  {
+    "id": "san-raffaele-triennale-triennale-corso-di-studio-in-moda-e-design-industriale-l-4",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Moda e Design Industriale",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/triennale-corso-di-studio-in-moda-e-design-industriale-l-4.html"
+  },
+  {
+    "id": "san-raffaele-triennale-triennale-scienze-biologiche-l13",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Scienze Biologiche",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/triennale-scienze-biologiche-l13.html"
+  },
+  {
+    "id": "san-raffaele-triennale-lingue-e-culture-straniere-per-lera-digitale",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Lingue e Culture Straniere per l'Era Digitale",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/lingue-e-culture-straniere-per-lera-digitale"
+  },
+  {
+    "id": "san-raffaele-triennale-ingegneria-biomedica",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Ingegneria Biomedica",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/ingegneria-biomedica"
+  },
+  {
+    "id": "san-raffaele-triennale-ingegneria-informatica-e-intelligenza-artificiale",
+    "university": "San Raffaele",
+    "category": "Triennale",
+    "name": "Ingegneria Informatica e Intelligenza artificiale",
+    "duration": "3 anni",
+    "source": "https://www.uniroma5.it/triennale/ingegneria-informatica-e-intelligenza-artificiale"
+  },
+  {
+    "id": "san-raffaele-magistrale-magistrale-scienze-della-nutrizione-umana-lm61",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Scienze della Nutrizione Umana",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/magistrale-scienze-della-nutrizione-umana-lm61.html"
+  },
+  {
+    "id": "san-raffaele-magistrale-scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Scienze e Tecniche delle Attività Motorie Preventive e Adattate",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/scienze-e-tecniche-delle-attivita-motorie-preventive-e-adattate.html"
+  },
+  {
+    "id": "san-raffaele-magistrale-management-e-consulenza-aziendale",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Management e Consulenza Aziendale",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/management-e-consulenza-aziendale.html"
+  },
+  {
+    "id": "san-raffaele-magistrale-lingue-e-culture-straniere-per-lera-digitale-scuola-societa-e-professioni",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Lingue e culture straniere per l'era digitale: scuola, società e professioni",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/lingue-e-culture-straniere-per-lera-digitale-scuola-societa-e-professioni"
+  },
+  {
+    "id": "san-raffaele-magistrale-management-diritto-e-governance-della-pubblica-amministrazione",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Management, Diritto e Governance della Pubblica Amministrazione",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/management-diritto-e-governance-della-pubblica-amministrazione"
+  },
+  {
+    "id": "san-raffaele-magistrale-ingegneria-informatica-e-intelligenza-artificiale-applicata",
+    "university": "San Raffaele",
+    "category": "Magistrale",
+    "name": "Ingegneria Informatica e dell’Intelligenza Artificiale Applicata",
+    "duration": "2 anni",
+    "source": "https://www.uniroma5.it/magistrale/ingegneria-informatica-e-intelligenza-artificiale-applicata"
+  }
+]

@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API per il portale di orientamento universitario di Sofia
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: public
+    description: Orientamento e prenotazioni pubbliche
+  - name: admin
+    description: Accesso e gestione delle richieste
 paths:
   /healthz:
     get:
@@ -24,6 +28,214 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [public]
+      summary: Elenco dei corsi di laurea
+      parameters:
+        - name: university
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Corsi disponibili
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+  /orientation-requests:
+    post:
+      operationId: createOrientationRequest
+      tags: [public]
+      summary: Invia una richiesta di orientamento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrientationRequestInput"
+      responses:
+        "201":
+          description: Richiesta registrata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrientationRequest"
+  /tour-slots:
+    get:
+      operationId: listTourSlots
+      tags: [public]
+      summary: Elenca gli orari disponibili per una data
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Fasce orarie, con disponibilità
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TourSlot"
+  /tour-bookings:
+    post:
+      operationId: createTourBooking
+      tags: [public]
+      summary: Prenota un tour della piattaforma
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TourBookingInput"
+      responses:
+        "201":
+          description: Prenotazione registrata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourBooking"
+  /admin/status:
+    get:
+      operationId: getAdminStatus
+      tags: [admin]
+      summary: Verifica configurazione e sessione amministrativa
+      responses:
+        "200":
+          description: Stato di accesso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+  /admin/setup:
+    post:
+      operationId: setupAdmin
+      tags: [admin]
+      summary: Crea il primo account amministratore
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCredentials"
+      responses:
+        "201":
+          description: Account creato e sessione avviata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+  /admin/login:
+    post:
+      operationId: loginAdmin
+      tags: [admin]
+      summary: Accede all'area amministrativa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminCredentials"
+      responses:
+        "200":
+          description: Accesso effettuato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStatus"
+  /admin/logout:
+    post:
+      operationId: logoutAdmin
+      tags: [admin]
+      summary: Chiude la sessione amministrativa
+      responses:
+        "200":
+          description: Sessione chiusa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      tags: [admin]
+      summary: Riepilogo delle richieste
+      responses:
+        "200":
+          description: Totali e appuntamenti prossimi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSummary"
+  /admin/orientation-requests:
+    get:
+      operationId: listAdminOrientationRequests
+      tags: [admin]
+      summary: Elenca le richieste di orientamento
+      responses:
+        "200":
+          description: Richieste in ordine cronologico inverso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrientationRequest"
+  /admin/tour-bookings:
+    get:
+      operationId: listAdminTourBookings
+      tags: [admin]
+      summary: Elenca le prenotazioni dei tour
+      responses:
+        "200":
+          description: Prenotazioni in ordine cronologico
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TourBooking"
+  /admin/tour-bookings/{id}:
+    patch:
+      operationId: updateTourBookingStatus
+      tags: [admin]
+      summary: Modifica lo stato di una prenotazione
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TourBookingStatusInput"
+      responses:
+        "200":
+          description: Prenotazione aggiornata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourBooking"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +245,99 @@ components:
           type: string
       required:
         - status
+    Course:
+      type: object
+      properties:
+        id: { type: string }
+        university: { type: string }
+        category: { type: string }
+        name: { type: string }
+        duration: { type: string }
+      required: [id, university, category, name, duration]
+    ContactInput:
+      type: object
+      properties:
+        firstName: { type: string, minLength: 1, maxLength: 80 }
+        lastName: { type: string, minLength: 1, maxLength: 80 }
+        email: { type: string, format: email, maxLength: 254 }
+        province: { type: string, minLength: 2, maxLength: 60 }
+        phone: { type: string, minLength: 6, maxLength: 30 }
+      required: [firstName, lastName, email, province, phone]
+    OrientationRequestInput:
+      allOf:
+        - $ref: "#/components/schemas/ContactInput"
+        - type: object
+          properties:
+            university: { type: string, minLength: 1 }
+            courseId: { type: string, minLength: 1 }
+          required: [university, courseId]
+    OrientationRequest:
+      allOf:
+        - $ref: "#/components/schemas/ContactInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            university: { type: string }
+            courseId: { type: string }
+            courseName: { type: string }
+            createdAt: { type: string, format: date-time }
+          required: [id, university, courseId, courseName, createdAt]
+    TourBookingInput:
+      allOf:
+        - $ref: "#/components/schemas/ContactInput"
+        - type: object
+          properties:
+            date: { type: string, format: date }
+            time: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+          required: [date, time]
+    TourBooking:
+      allOf:
+        - $ref: "#/components/schemas/ContactInput"
+        - type: object
+          properties:
+            id: { type: integer }
+            date: { type: string, format: date }
+            time: { type: string }
+            status: { type: string, enum: [confirmed, cancelled, completed] }
+            createdAt: { type: string, format: date-time }
+          required: [id, date, time, status, createdAt]
+    TourSlot:
+      type: object
+      properties:
+        time: { type: string }
+        available: { type: boolean }
+      required: [time, available]
+    AdminCredentials:
+      type: object
+      properties:
+        username: { type: string, minLength: 3, maxLength: 80 }
+        password: { type: string, minLength: 10, maxLength: 128 }
+      required: [username, password]
+    AdminStatus:
+      type: object
+      properties:
+        setupComplete: { type: boolean }
+        authenticated: { type: boolean }
+      required: [setupComplete, authenticated]
+    AdminSummary:
+      type: object
+      properties:
+        orientationRequests: { type: integer }
+        tourBookings: { type: integer }
+        upcomingBookings: { type: integer }
+        nextBooking:
+          oneOf:
+            - $ref: "#/components/schemas/TourBooking"
+            - type: "null"
+      required: [orientationRequests, tourBookings, upcomingBookings, nextBooking]
+    TourBookingStatusInput:
+      type: object
+      properties:
+        status: { type: string, enum: [confirmed, cancelled, completed] }
+      required: [status]
+    Success:
+      type: object
+      properties:
+        success: { type: boolean }
+      required: [success]
 

@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Sofia | Consulenza universitaria"
+description = "Portale di Sofia per l’orientamento universitario e la prenotazione di tour personalizzati della piattaforma Meet, con area amministrativa riservata."
+version = "1.0.0"
+id = "artifacts/sofia-orientamento"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19223
+
+[services.development]
+run = "pnpm --filter @workspace/sofia-orientamento run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sofia-orientamento", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/sofia-orientamento/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19223"
+BASE_PATH = "/"
