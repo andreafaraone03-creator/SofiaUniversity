@@ -26,19 +26,19 @@
 }
 
 :root {
-  --background: 30 33% 97%;
-  --foreground: 222 24% 22%;
+  --background: 348 100% 98.04%;
+  --foreground: 217.78 23.08% 22.94%;
   --border: 345 26% 87%;
-  --card: 30 33% 99%;
-  --card-foreground: 222 24% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 217.78 23.08% 22.94%;
   --primary: 344 45% 68%;
-  --primary-foreground: 222 24% 22%;
-  --secondary: 345 59% 89%;
-  --secondary-foreground: 222 24% 22%;
+  --primary-foreground: 217.78 23.08% 22.94%;
+  --secondary: 0 69.44% 85.88%;
+  --secondary-foreground: 217.78 23.08% 22.94%;
   --muted: 345 24% 92%;
   --muted-foreground: 222 12% 45%;
-  --accent: 12 52% 84%;
-  --accent-foreground: 222 24% 22%;
+  --accent: 339.34 81.33% 85.29%;
+  --accent-foreground: 217.78 23.08% 22.94%;
   --destructive: 4 63% 52%;
   --destructive-foreground: 30 33% 99%;
   --input: 345 26% 82%;

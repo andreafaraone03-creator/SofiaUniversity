@@ -23,8 +23,8 @@ Portale responsive per richieste di orientamento universitario, prenotazione tou
 
 - `SESSION_SECRET` — segreto necessario per firmare la sessione amministrativa; deve avere almeno 24 caratteri
 - `SOFIA_DB_PATH` — percorso facoltativo per il file SQLite; per impostazione predefinita usa `artifacts/api-server/data/sofia.sqlite`
-- `VITE_TIKTOK_URL` — link facoltativo al profilo TikTok di Sofia
-- `VITE_WHATSAPP_NUMBER` — numero WhatsApp facoltativo, con prefisso internazionale
+- `VITE_TIKTOK_URL` — sovrascrive il link pubblico predefinito al profilo TikTok di Sofia, se impostato
+- `VITE_WHATSAPP_NUMBER` — sovrascrive il numero WhatsApp pubblico predefinito, se impostato; usare il prefisso internazionale
 - `VITE_CONTACT_EMAIL` — email pubblica facoltativa
 
 Al primo accesso ad `/admin`, Sofia crea l'unico account amministratore; farlo prima di condividere l'anteprima. La password è salvata come hash scrypt con salt; la sessione usa un cookie firmato HttpOnly.

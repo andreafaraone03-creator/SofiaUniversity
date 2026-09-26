@@ -221,7 +221,7 @@ function About() {
         </div>
       </section>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:items-center md:px-8 md:py-24">
-        <div className="md:order-1"><SectionKicker>02 / il percorso</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Perché ho iniziato un percorso all’università telematica.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Studiare online può offrire flessibilità a chi concilia formazione, lavoro e vita quotidiana. Ma capire se è la soluzione giusta richiede informazioni chiare e un confronto attento.</p><p className="mt-4 border-l-2 border-[hsl(var(--primary))] pl-4 text-sm italic leading-relaxed text-[hsl(var(--muted-foreground))]">Testo da personalizzare: questo spazio è riservato alle motivazioni e all’esperienza reale di Sofia. Nessun dettaglio personale viene pubblicato senza la sua conferma.</p></div>
+        <div className="md:order-1"><SectionKicker>02 / il percorso</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Perché ho iniziato un percorso all’università telematica.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Lavoravo in un negozio e avevo ottenuto un contratto a tempo indeterminato. Eppure continuavo a chiedermi: sono davvero soddisfatta di quello che sto facendo? Dentro di me c’era un sogno più grande e non volevo fare la commessa per tutta la vita.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Lavorando a tempo pieno, la presenza obbligatoria e gli spostamenti richiesti da un’università tradizionale non erano compatibili con la mia vita. Ho scelto l’università telematica: non la strada più semplice, ma quella più adatta a me.</p><p className="mt-4 border-l-2 border-[hsl(var(--primary))] pl-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Dopo aver confrontato diversi atenei, ho scelto Scienze e Tecniche Psicologiche (L-24) alla Mercatorum. Per ciò che cercavo, mi convinceva il rapporto tra qualità, prezzo e opportunità offerte. Oggi sono felice di aver fatto questa scelta.</p></div>
         <div className="md:order-2"><AboutImage label="Il percorso universitario online" tone="ivory" /></div>
       </section>
       <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.38)]">
@@ -248,8 +248,9 @@ function AboutImage({ label, tone }: { label: string; tone: 'rose' | 'ivory' | '
 }
 
 function Contacts() {
-  const tiktok = import.meta.env.VITE_TIKTOK_URL as string | undefined;
-  const whatsapp = import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined;
+  // These are public contact details; environment values can override them later.
+  const tiktok = (import.meta.env.VITE_TIKTOK_URL as string | undefined) || 'https://www.tiktok.com/@studentessauni_sofia';
+  const whatsapp = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) || '+39 3420662333';
   const email = import.meta.env.VITE_CONTACT_EMAIL as string | undefined;
   const cards = [
     { name: 'WhatsApp', icon: <MessageCircle size={25} strokeWidth={1.5} />, href: whatsapp ? `https://wa.me/${normalizeItalianPhone(whatsapp)}` : undefined, description: 'Scrivimi direttamente, senza formalità.', config: 'Il numero di Sofia sarà disponibile qui a breve.' },
