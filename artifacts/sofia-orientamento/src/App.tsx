@@ -199,19 +199,38 @@ function Home() {
     <section id="servizi" className="mx-auto max-w-7xl scroll-mt-20 px-5 py-16 md:px-8 md:py-24"><div className="max-w-xl"><SectionKicker>da dove vuoi partire?</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Facciamo ordine,<br /><em>insieme.</em></h2><p className="mt-5 text-[hsl(var(--muted-foreground))]">Scegli il momento che ti serve. Non c’è un percorso predefinito: c’è il tuo.</p></div>
       <div className="mt-10"><PartnerTicker /></div>
         <div className="mt-5 grid gap-3 md:grid-cols-2">
-          <button type="button" onClick={() => openBooking('orientation')} data-testid="button-open-orientation" aria-label="Vai alla prenotazione per l'orientamento del corso di laurea" aria-pressed={active === 'orientation'} className={`group border p-6 text-left transition-colors md:p-8 ${active === 'orientation' ? 'border-[hsl(var(--foreground))] bg-[hsl(var(--card))]' : 'border-[hsl(var(--border))] hover:bg-[hsl(var(--secondary)/.45)]'}`}>
-            <span className="mb-9 flex h-10 w-10 items-center justify-center bg-[hsl(var(--secondary))] text-lg">01</span><span className="eyebrow">Orientamento</span><h3 className="mt-2 font-serif text-3xl">Orientamento Corso di Laurea</h3><p className="mt-3 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Confrontiamo atenei, corsi e possibilità per capire quale strada ti somiglia davvero.</p><span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4">Vai alla prenotazione <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
-          </button>
-          <button type="button" onClick={() => openBooking('tour')} data-testid="button-open-tour" aria-label="Vai alla prenotazione del tour online della piattaforma" aria-pressed={active === 'tour'} className={`group border p-6 text-left transition-colors md:p-8 ${active === 'tour' ? 'border-[hsl(var(--foreground))] bg-[hsl(var(--card))]' : 'border-[hsl(var(--border))] hover:bg-[hsl(var(--secondary)/.45)]'}`}>
-            <span className="mb-9 flex h-10 w-10 items-center justify-center bg-[hsl(var(--accent))] text-lg">02</span><span className="eyebrow">Meet tour</span><h3 className="mt-2 font-serif text-3xl">Prenota Tour della Piattaforma (Meet)</h3><p className="mt-3 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Ti accompagno dentro la piattaforma con un tour online, semplice e senza tecnicismi.</p><span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4">Vai alla prenotazione <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
-          </button>
-        </div>
-        <div id="prenota" data-testid="booking-section" className="mt-5 scroll-mt-24 border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 md:p-9">
-          <div className="grid gap-10 md:grid-cols-[.7fr_1.3fr]"><div className="border-b border-[hsl(var(--border))] pb-6 md:border-b-0 md:border-r md:pb-0 md:pr-9"><span className="eyebrow">{active === 'orientation' ? '01 / orientamento corso' : '02 / tour della piattaforma'}</span><h3 id="booking-title" aria-live="polite" className="mt-4 font-serif text-3xl">{active === 'orientation' ? 'Raccontami cosa stai cercando.' : 'Troviamo un’ora per te.'}</h3><p className="mt-4 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{active === 'orientation' ? 'Compila il modulo di prenotazione: ti ricontatterò per una prima chiacchierata.' : 'Scegli data e ora per prenotare il tuo tour online di un’ora.'}</p><div className="mt-8 flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]"><Clock3 size={15} /> Risposta personale, non automatica</div></div><div className="pt-1">{active === 'orientation' ? <OrientationForm /> : <TourForm />}</div></div>
+          <Link href="/prenota-orientamento" data-testid="link-booking-orientation" className="group block border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 transition-colors hover:border-[hsl(var(--foreground))] md:p-8">
+            <span className="mb-9 flex h-10 w-10 items-center justify-center bg-[hsl(var(--secondary))] text-lg">01</span><span className="eyebrow">Orientamento</span><h3 className="mt-2 font-serif text-3xl">Orientamento Corso di Laurea</h3><p className="mt-3 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Confrontiamo atenei, corsi e possibilità per capire quale strada ti somiglia davvero.</p><span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4">Prenota un orientamento <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
+          </Link>
+          <Link href="/prenota-tour" data-testid="link-booking-tour" className="group block border border-[hsl(var(--border))] p-6 transition-colors hover:border-[hsl(var(--foreground))] md:p-8">
+            <span className="mb-9 flex h-10 w-10 items-center justify-center bg-[hsl(var(--accent))] text-lg">02</span><span className="eyebrow">Meet tour</span><h3 className="mt-2 font-serif text-3xl">Prenota Tour della Piattaforma (Meet)</h3><p className="mt-3 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Ti accompagno dentro la piattaforma con un tour online, semplice e senza tecnicismi.</p><span className="mt-6 inline-flex items-center gap-2 text-sm font-semibold underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4">Prenota il tour <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" /></span>
+          </Link>
         </div>
     </section>
     <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)]"><div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-[.8fr_1.2fr] md:px-8 md:py-20"><div><SectionKicker>come lavoriamo</SectionKicker><p className="font-serif text-3xl leading-tight">La tua situazione<br />è il punto di partenza.</p></div><div className="grid gap-8 sm:grid-cols-3"><div><span className="mono text-sm text-[hsl(var(--primary))]">01</span><h3 className="mt-3 font-semibold">Ascolto</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Partiamo da te, non da un catalogo.</p></div><div><span className="mono text-sm text-[hsl(var(--primary))]">02</span><h3 className="mt-3 font-semibold">Chiarezza</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Mettiamo a confronto le opzioni.</p></div><div><span className="mono text-sm text-[hsl(var(--primary))]">03</span><h3 className="mt-3 font-semibold">Presenza</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Ci sono anche dopo la scelta.</p></div></div></div></section>
   </main><SiteFooter /></div>;
+}
+
+function BookingPageLayout({ step, title, description, children }: { step: string; title: string; description: string; children: ReactNode }) {
+  return <div className="grain min-h-[100dvh]"><SiteHeader /><main className="page-in">
+    <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 md:px-8 md:pb-24 md:pt-12">
+      <Link href="/" data-testid="link-back-to-services" className="inline-flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))] underline decoration-[hsl(var(--primary))] underline-offset-4"><ArrowRight className="rotate-180" size={15} />Torna alla scelta dei servizi</Link>
+      <div className="mt-10 max-w-3xl"><SectionKicker>{step}</SectionKicker><h1 className="font-serif text-4xl leading-tight md:text-6xl">{title}</h1><p className="mt-5 max-w-2xl leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p></div>
+      <section aria-label={title} className="mt-9 border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 md:p-9">{children}</section>
+    </section>
+  </main><SiteFooter /></div>;
+}
+
+function OrientationBookingPage() {
+  return <BookingPageLayout step="01 / orientamento corso" title="Prenota un orientamento" description="Scegli l’ateneo e il corso che ti interessano, poi lasciami i tuoi recapiti. Ti ricontatterò per parlarne insieme.">
+    <h2 className="mb-6 font-serif text-2xl">La tua richiesta</h2><OrientationForm />
+  </BookingPageLayout>;
+}
+
+function TourBookingPage() {
+  return <BookingPageLayout step="02 / tour della piattaforma" title="Prenota il tour della piattaforma" description="Scegli una data e un orario disponibile per incontrarci online. Il tour dura un’ora.">
+    <h2 className="mb-6 font-serif text-2xl">Scegli data e orario</h2><TourForm />
+  </BookingPageLayout>;
 }
 
 function About() {
@@ -398,6 +417,8 @@ function Router() {
   useEffect(() => {
     const pages: Record<string, { title: string; description: string }> = {
       '/': { title: 'Sofia | Orientamento universitario personalizzato', description: 'Trova il corso di laurea adatto a te tra Pegaso, Mercatorum e San Raffaele. Richiedi una consulenza con Sofia o prenota un tour online della piattaforma.' },
+      '/prenota-orientamento': { title: 'Prenota un orientamento | Sofia', description: 'Scegli l’ateneo e il corso di laurea e invia a Sofia la tua richiesta di orientamento.' },
+      '/prenota-tour': { title: 'Prenota il tour della piattaforma | Sofia', description: 'Scegli la data e l’orario per prenotare il tour online della piattaforma con Sofia.' },
       '/chi-sono': { title: 'Chi sono | Sofia, consulente universitaria', description: 'Conosci Sofia e scopri come un supporto personale può aiutarti a scegliere il tuo percorso universitario online.' },
       '/contatti': { title: 'Contatti | Parla con Sofia', description: 'Contatta Sofia per una consulenza universitaria personalizzata e inizia a valutare le tue possibilità di studio.' },
       '/admin': { title: 'Area riservata | Sofia', description: 'Accesso riservato alla gestione delle richieste e delle prenotazioni.' },
@@ -416,7 +437,7 @@ function Router() {
       document.querySelector(selector)?.setAttribute('content', content);
     }
   }, [location]);
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/chi-sono" component={About} /><Route path="/contatti" component={Contacts} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/prenota-orientamento" component={OrientationBookingPage} /><Route path="/prenota-tour" component={TourBookingPage} /><Route path="/chi-sono" component={About} /><Route path="/contatti" component={Contacts} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {
