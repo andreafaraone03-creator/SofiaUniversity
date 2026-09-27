@@ -89,7 +89,7 @@ function SiteHeader() {
   );
 }
 
-function ServiceCard({ href, number, label, title, description, detail, cta, Icon, testId }: {
+function BookingChoiceRow({ href, number, label, title, description, detail, cta, Icon, testId }: {
   href: string;
   number: string;
   label: string;
@@ -100,21 +100,22 @@ function ServiceCard({ href, number, label, title, description, detail, cta, Ico
   Icon: typeof GraduationCap;
   testId: string;
 }) {
-  return <Link href={href} data-testid={testId} className="group flex h-full min-h-[300px] flex-col border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 transition-all hover:-translate-y-1 hover:border-[hsl(var(--primary))] hover:shadow-[0_18px_48px_hsl(var(--foreground)/.08)] md:p-8">
-    <div className="flex items-center justify-between">
-      <span className="eyebrow">{number} / {label}</span>
-      <span className="flex h-11 w-11 items-center justify-center bg-[hsl(var(--secondary)/.55)] text-[hsl(var(--foreground))] transition-colors group-hover:bg-[hsl(var(--primary)/.35)]"><Icon size={21} strokeWidth={1.6} /></span>
+  return <Link href={href} data-testid={testId} className="group grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-5 border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] hover:shadow-[0_14px_38px_hsl(var(--foreground)/.07)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))] sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-0 sm:px-6 sm:py-6 md:px-8">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-[hsl(var(--secondary)/.55)] text-[hsl(var(--foreground))] transition-colors group-hover:bg-[hsl(var(--primary)/.35)] sm:h-14 sm:w-14">
+      <Icon size={21} strokeWidth={1.6} />
+    </span>
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="mono text-xs font-medium text-[hsl(var(--primary))]">{number}</span>
+        <span className="eyebrow !text-[.6rem]">{label}</span>
+      </div>
+      <h3 className="mt-1.5 font-serif text-2xl leading-tight md:text-[1.8rem]">{title}</h3>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p>
+      <span className="mt-3 inline-flex text-[.66rem] font-semibold tracking-[.1em] text-[hsl(var(--muted-foreground))]">{detail}</span>
     </div>
-    <div className="mt-7">
-      <h3 className="max-w-sm font-serif text-3xl leading-tight">{title}</h3>
-      <p className="mt-3 max-w-md text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p>
-    </div>
-    <div className="mt-auto flex flex-wrap items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-5">
-      <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">{detail}</span>
-      <span className="inline-flex min-h-11 items-center gap-2 bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold text-[hsl(var(--background))] transition-colors group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--foreground))]">
-        {cta}<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-      </span>
-    </div>
+    <span className="col-span-2 inline-flex min-h-11 w-full items-center justify-between gap-2 bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold text-[hsl(var(--background))] transition-colors group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--foreground))] sm:col-span-1 sm:w-fit sm:justify-start sm:whitespace-nowrap">
+      {cta}<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+    </span>
   </Link>;
 }
 
@@ -229,13 +230,16 @@ function Home() {
       <div className="page-in delay-2 relative min-h-[310px] overflow-hidden bg-[hsl(var(--secondary))] p-7 md:min-h-[430px] md:p-10"><div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-[hsl(var(--accent)/.65)] blur-2xl" /><div className="relative flex h-full flex-col justify-between"><div className="flex justify-between"><span className="eyebrow">01 / il primo passo</span><Sparkles size={20} strokeWidth={1.5} /></div><div><p className="max-w-xs font-serif text-3xl leading-tight md:text-4xl">Non devi avere già tutte le risposte.</p><p className="mt-4 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Basta una domanda sincera. Da lì, costruiamo una direzione.</p></div><div className="flex items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]"><span className="h-px w-10 bg-[hsl(var(--primary))]" />consulenza personale · online</div></div></div>
     </section>
     <section id="servizi" className="mx-auto max-w-7xl scroll-mt-20 px-5 pb-12 pt-12 md:px-8 md:pb-20 md:pt-16">
-      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-        <div className="max-w-2xl"><SectionKicker>il tuo prossimo passo</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Scegli il supporto<br /><em>che ti serve.</em></h2><p className="mt-4 max-w-xl text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Due modi per iniziare, ognuno con la sua prenotazione dedicata.</p></div>
-        <span className="inline-flex w-fit items-center gap-2 border border-[hsl(var(--border))] px-3 py-2 text-xs text-[hsl(var(--muted-foreground))]"><span className="h-2 w-2 rounded-full bg-[hsl(var(--primary))]" />Ogni servizio ha il suo modulo dedicato</span>
-      </div>
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <ServiceCard href="/prenota-orientamento" number="01" label="ORIENTAMENTO" title="Consulenza sul corso di laurea" description="Confrontiamo atenei e corsi in base ai tuoi obiettivi, per capire quale percorso è più adatto a te." detail="ATENEO · CORSO DI LAUREA" cta="Prenota la consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
-        <ServiceCard href="/prenota-tour" number="02" label="TOUR DELLA PIATTAFORMA" title="Scopri la piattaforma con Sofia" description="Un incontro guidato online per vedere come funziona e fare tutte le tue domande." detail="MEET · 1 ORA" cta="Prenota il tour" Icon={Video} testId="link-booking-tour" />
+      <div className="grid gap-8 md:grid-cols-[.72fr_1.28fr] md:items-start md:gap-12">
+        <div className="max-w-xl md:sticky md:top-28">
+          <SectionKicker>il tuo prossimo passo</SectionKicker>
+          <h2 className="font-serif text-4xl leading-tight md:text-5xl">Da dove vuoi<br /><em>cominciare?</em></h2>
+          <p className="mt-4 max-w-md text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Due incontri diversi: scegli quello più utile per te adesso. Ogni opzione ti porta alla prenotazione giusta.</p>
+        </div>
+        <div className="grid gap-4">
+          <BookingChoiceRow href="/prenota-orientamento" number="01" label="PER SCEGLIERE ATENEO E CORSO" title="Orientamento sul corso di laurea" description="Confrontiamo gli atenei e i corsi in base ai tuoi obiettivi, per capire quale percorso fa per te." detail="ATENEO · CORSO DI LAUREA" cta="Prenota una consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
+          <BookingChoiceRow href="/prenota-tour" number="02" label="PER VEDERE LA PIATTAFORMA" title="Tour guidato con Sofia" description="Un incontro online per scoprire come funziona la piattaforma e fare tutte le tue domande." detail="MEET · 1 ORA" cta="Prenota il tour" Icon={Video} testId="link-booking-tour" />
+        </div>
       </div>
       <div className="mt-9"><PartnerTicker /></div>
     </section>
