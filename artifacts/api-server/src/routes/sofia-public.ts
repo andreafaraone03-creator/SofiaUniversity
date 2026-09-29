@@ -20,6 +20,7 @@ import {
   type OrientationRequest,
   type TourBooking,
 } from "../lib/sofia-db";
+import { persistEmailDelivery, sendAutomaticConfirmation } from "../lib/sofia-email";
 
 const router: IRouter = Router();
 
@@ -39,7 +40,7 @@ router.get("/courses", (req, res): void => {
   res.json(ListCoursesResponse.parse(matches));
 });
 
-router.post("/orientation-requests", (req, res): void => {
+router.post("/orientation-requests", async (req, res): Promise<void> => {
   const parsed = CreateOrientationRequestBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Controlla i dati del modulo e riprova." });
@@ -61,9 +62,25 @@ router.post("/orientation-requests", (req, res): void => {
     firstName.trim(), lastName.trim(), email.trim().toLowerCase(), province.trim(),
     phone.trim(), university, courseId, course.name, new Date().toISOString(),
   );
+  const id = Number(result.lastInsertRowid);
+  const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
+    type: "orientation",
+    firstName: firstName.trim(),
+    university,
+    courseName: course.name,
+  });
+  persistEmailDelivery("richieste_corso", id, delivery);
+  if (delivery.status === "failed") {
+    req.log.warn({ requestId: id, status: delivery.status }, "Orientation confirmation email was not sent");
+  }
   const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-    .get(Number(result.lastInsertRowid)) as OrientationRequest;
-  res.status(201).json(CreateOrientationRequestResponse.parse(request));
+    .get(id) as OrientationRequest;
+  const response = CreateOrientationRequestResponse.parse({
+    id: request.id,
+    createdAt: request.createdAt,
+    confirmationEmailStatus: request.confirmationEmailStatus,
+  });
+  res.status(201).json(response);
 });
 
 router.get("/tour-slots", (req, res): void => {
@@ -90,7 +107,7 @@ router.get("/tour-slots", (req, res): void => {
   ));
 });
 
-router.post("/tour-bookings", (req, res): void => {
+router.post("/tour-bookings", async (req, res): Promise<void> => {
   const parsed = CreateTourBookingBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Controlla i dati della prenotazione e riprova." });
@@ -113,11 +130,27 @@ router.post("/tour-bookings", (req, res): void => {
       firstName.trim(), lastName.trim(), email.trim().toLowerCase(), province.trim(),
       phone.trim(), dateString, time, new Date().toISOString(),
     );
+    const id = Number(result.lastInsertRowid);
+    const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
+      type: "tour",
+      firstName: firstName.trim(),
+      date: dateString,
+      time,
+    });
+    persistEmailDelivery("prenotazioni_tour", id, delivery);
+    if (delivery.status === "failed") {
+      req.log.warn({ bookingId: id, status: delivery.status }, "Tour confirmation email was not sent");
+    }
     const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
-      .get(Number(result.lastInsertRowid)) as TourBooking;
+      .get(id) as TourBooking;
     // Zod validates format: date by coercing it to Date. Preserve the wire
     // contract's YYYY-MM-DD string so the calendar never receives a timestamp.
-    const response = CreateTourBookingResponse.parse(booking);
+    const response = CreateTourBookingResponse.parse({
+      id: booking.id,
+      date: booking.date,
+      time: booking.time,
+      confirmationEmailStatus: booking.confirmationEmailStatus,
+    });
     res.status(201).json({ ...response, date: booking.date });
   } catch (error) {
     if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {

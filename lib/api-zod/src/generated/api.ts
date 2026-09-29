@@ -91,7 +91,13 @@ export const CreateOrientationRequestResponse = zod.object({
   "university": zod.string(),
   "courseId": zod.string(),
   "courseName": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 }))
 
 
@@ -163,7 +169,12 @@ export const CreateTourBookingResponse = zod.object({
   "date": zod.coerce.date(),
   "time": zod.string(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 }))
 
 
@@ -249,6 +260,10 @@ export const GetAdminSummaryResponse = zod.object({
   "orientationRequests": zod.number().int(),
   "tourBookings": zod.number().int(),
   "upcomingBookings": zod.number().int(),
+  "enrollmentsTotal": zod.number().int(),
+  "commissionsPendingCents": zod.number().int(),
+  "commissionsPaidCents": zod.number().int(),
+  "followUpsDue": zod.number().int(),
   "nextBooking": zod.union([zod.object({
   "firstName": zod.string().min(1).max(getAdminSummaryResponseNextBookingOneOneFirstNameMax),
   "lastName": zod.string().min(1).max(getAdminSummaryResponseNextBookingOneOneLastNameMax),
@@ -260,7 +275,12 @@ export const GetAdminSummaryResponse = zod.object({
   "date": zod.coerce.date(),
   "time": zod.string(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 })),zod.null()])
 })
 
@@ -293,7 +313,13 @@ export const ListAdminOrientationRequestsResponseItem = zod.object({
   "university": zod.string(),
   "courseId": zod.string(),
   "courseName": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 }))
 export const ListAdminOrientationRequestsResponse = zod.array(ListAdminOrientationRequestsResponseItem)
 
@@ -326,7 +352,12 @@ export const ListAdminTourBookingsResponseItem = zod.object({
   "date": zod.coerce.date(),
   "time": zod.string(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 }))
 export const ListAdminTourBookingsResponse = zod.array(ListAdminTourBookingsResponseItem)
 
@@ -367,7 +398,318 @@ export const UpdateTourBookingStatusResponse = zod.object({
   "date": zod.coerce.date(),
   "time": zod.string(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
 }))
+
+
+/**
+ * @summary Aggiorna stato, note e promemoria di una richiesta
+ */
+export const UpdateOrientationRequestManagementParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateOrientationRequestManagementBodyAdminNotesMax = 5000;
+
+
+
+export const UpdateOrientationRequestManagementBody = zod.object({
+  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']).optional(),
+  "adminNotes": zod.string().max(updateOrientationRequestManagementBodyAdminNotesMax).optional(),
+  "followUpAt": zod.coerce.date().nullish()
+})
+
+export const updateOrientationRequestManagementResponseOneFirstNameMax = 80;
+
+export const updateOrientationRequestManagementResponseOneLastNameMax = 80;
+
+export const updateOrientationRequestManagementResponseOneEmailMax = 254;
+
+export const updateOrientationRequestManagementResponseOneProvinceMin = 2;
+export const updateOrientationRequestManagementResponseOneProvinceMax = 60;
+
+export const updateOrientationRequestManagementResponseOnePhoneMin = 6;
+export const updateOrientationRequestManagementResponseOnePhoneMax = 30;
+
+
+
+export const UpdateOrientationRequestManagementResponse = zod.object({
+  "firstName": zod.string().min(1).max(updateOrientationRequestManagementResponseOneFirstNameMax),
+  "lastName": zod.string().min(1).max(updateOrientationRequestManagementResponseOneLastNameMax),
+  "email": zod.string().email().max(updateOrientationRequestManagementResponseOneEmailMax),
+  "province": zod.string().min(updateOrientationRequestManagementResponseOneProvinceMin).max(updateOrientationRequestManagementResponseOneProvinceMax),
+  "phone": zod.string().min(updateOrientationRequestManagementResponseOnePhoneMin).max(updateOrientationRequestManagementResponseOnePhoneMax)
+}).and(zod.object({
+  "id": zod.number().int(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
+}))
+
+
+/**
+ * @summary Aggiorna note e promemoria di un tour
+ */
+export const UpdateTourBookingManagementParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateTourBookingManagementBodyAdminNotesMax = 5000;
+
+
+
+export const UpdateTourBookingManagementBody = zod.object({
+  "adminNotes": zod.string().max(updateTourBookingManagementBodyAdminNotesMax).optional(),
+  "followUpAt": zod.coerce.date().nullish()
+})
+
+export const updateTourBookingManagementResponseOneFirstNameMax = 80;
+
+export const updateTourBookingManagementResponseOneLastNameMax = 80;
+
+export const updateTourBookingManagementResponseOneEmailMax = 254;
+
+export const updateTourBookingManagementResponseOneProvinceMin = 2;
+export const updateTourBookingManagementResponseOneProvinceMax = 60;
+
+export const updateTourBookingManagementResponseOnePhoneMin = 6;
+export const updateTourBookingManagementResponseOnePhoneMax = 30;
+
+
+
+export const UpdateTourBookingManagementResponse = zod.object({
+  "firstName": zod.string().min(1).max(updateTourBookingManagementResponseOneFirstNameMax),
+  "lastName": zod.string().min(1).max(updateTourBookingManagementResponseOneLastNameMax),
+  "email": zod.string().email().max(updateTourBookingManagementResponseOneEmailMax),
+  "province": zod.string().min(updateTourBookingManagementResponseOneProvinceMin).max(updateTourBookingManagementResponseOneProvinceMax),
+  "phone": zod.string().min(updateTourBookingManagementResponseOnePhoneMin).max(updateTourBookingManagementResponseOnePhoneMax)
+}).and(zod.object({
+  "id": zod.number().int(),
+  "date": zod.coerce.date(),
+  "time": zod.string(),
+  "status": zod.enum(['confirmed', 'cancelled', 'completed']),
+  "createdAt": zod.coerce.date(),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
+}))
+
+
+/**
+ * @summary Elenca iscrizioni e provvigioni
+ */
+export const listAdminEnrollmentsResponseCommissionCentsMin = 0;
+
+
+
+export const ListAdminEnrollmentsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "orientationRequestId": zod.number().int().nullable(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string().email(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "enrolledAt": zod.coerce.date(),
+  "commissionCents": zod.number().int().min(listAdminEnrollmentsResponseCommissionCentsMin),
+  "commissionStatus": zod.enum(['pending', 'paid']),
+  "commissionPaidAt": zod.coerce.date().nullable(),
+  "status": zod.enum(['active', 'withdrawn']),
+  "notes": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAdminEnrollmentsResponse = zod.array(ListAdminEnrollmentsResponseItem)
+
+
+/**
+ * @summary Registra un'iscrizione universitaria
+ */
+export const createAdminEnrollmentBodyFirstNameMax = 80;
+
+export const createAdminEnrollmentBodyLastNameMax = 80;
+
+export const createAdminEnrollmentBodyEmailMax = 254;
+
+
+
+export const createAdminEnrollmentBodyCommissionCentsMin = 0;
+export const createAdminEnrollmentBodyCommissionCentsMax = 100000000;
+
+export const createAdminEnrollmentBodyNotesMax = 5000;
+
+
+
+export const CreateAdminEnrollmentBody = zod.object({
+  "orientationRequestId": zod.number().int().nullish(),
+  "firstName": zod.string().min(1).max(createAdminEnrollmentBodyFirstNameMax),
+  "lastName": zod.string().min(1).max(createAdminEnrollmentBodyLastNameMax),
+  "email": zod.string().email().max(createAdminEnrollmentBodyEmailMax),
+  "university": zod.string().min(1),
+  "courseId": zod.string().min(1),
+  "enrolledAt": zod.coerce.date(),
+  "commissionCents": zod.number().int().min(createAdminEnrollmentBodyCommissionCentsMin).max(createAdminEnrollmentBodyCommissionCentsMax),
+  "commissionStatus": zod.enum(['pending', 'paid']),
+  "notes": zod.string().max(createAdminEnrollmentBodyNotesMax).optional()
+})
+
+export const createAdminEnrollmentResponseCommissionCentsMin = 0;
+
+
+
+export const CreateAdminEnrollmentResponse = zod.object({
+  "id": zod.number().int(),
+  "orientationRequestId": zod.number().int().nullable(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string().email(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "enrolledAt": zod.coerce.date(),
+  "commissionCents": zod.number().int().min(createAdminEnrollmentResponseCommissionCentsMin),
+  "commissionStatus": zod.enum(['pending', 'paid']),
+  "commissionPaidAt": zod.coerce.date().nullable(),
+  "status": zod.enum(['active', 'withdrawn']),
+  "notes": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Aggiorna provvigione e stato di un'iscrizione
+ */
+export const UpdateAdminEnrollmentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const updateAdminEnrollmentBodyCommissionCentsMin = 0;
+export const updateAdminEnrollmentBodyCommissionCentsMax = 100000000;
+
+export const updateAdminEnrollmentBodyNotesMax = 5000;
+
+
+
+export const UpdateAdminEnrollmentBody = zod.object({
+  "commissionCents": zod.number().int().min(updateAdminEnrollmentBodyCommissionCentsMin).max(updateAdminEnrollmentBodyCommissionCentsMax).optional(),
+  "commissionStatus": zod.enum(['pending', 'paid']).optional(),
+  "status": zod.enum(['active', 'withdrawn']).optional(),
+  "notes": zod.string().max(updateAdminEnrollmentBodyNotesMax).optional()
+})
+
+export const updateAdminEnrollmentResponseCommissionCentsMin = 0;
+
+
+
+export const UpdateAdminEnrollmentResponse = zod.object({
+  "id": zod.number().int(),
+  "orientationRequestId": zod.number().int().nullable(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string().email(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "enrolledAt": zod.coerce.date(),
+  "commissionCents": zod.number().int().min(updateAdminEnrollmentResponseCommissionCentsMin),
+  "commissionStatus": zod.enum(['pending', 'paid']),
+  "commissionPaidAt": zod.coerce.date().nullable(),
+  "status": zod.enum(['active', 'withdrawn']),
+  "notes": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Legge la configurazione delle email automatiche
+ */
+export const GetAdminEmailSettingsResponse = zod.object({
+  "senderEmail": zod.string().nullable(),
+  "senderName": zod.string(),
+  "sendOrientationConfirmations": zod.boolean(),
+  "sendTourConfirmations": zod.boolean()
+})
+
+
+/**
+ * @summary Configura le email automatiche
+ */
+export const updateAdminEmailSettingsBodySenderNameMax = 80;
+
+
+
+export const UpdateAdminEmailSettingsBody = zod.object({
+  "senderEmail": zod.string().nullable(),
+  "senderName": zod.string().min(1).max(updateAdminEmailSettingsBodySenderNameMax),
+  "sendOrientationConfirmations": zod.boolean(),
+  "sendTourConfirmations": zod.boolean()
+})
+
+export const UpdateAdminEmailSettingsResponse = zod.object({
+  "senderEmail": zod.string().nullable(),
+  "senderName": zod.string(),
+  "sendOrientationConfirmations": zod.boolean(),
+  "sendTourConfirmations": zod.boolean()
+})
+
+
+/**
+ * @summary Invia un'email di prova
+ */
+export const sendAdminTestEmailBodyToMax = 254;
+
+
+
+export const SendAdminTestEmailBody = zod.object({
+  "to": zod.string().email().max(sendAdminTestEmailBodyToMax)
+})
+
+export const SendAdminTestEmailResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Reinvia la conferma di una richiesta
+ */
+export const ResendOrientationConfirmationParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ResendOrientationConfirmationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Reinvia la conferma di un tour
+ */
+export const ResendTourConfirmationParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ResendTourConfirmationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "message": zod.string()
+})
 
 

@@ -5,12 +5,22 @@
  * API per il portale di orientamento universitario di Sofia
  * OpenAPI spec version: 0.1.0
  */
+import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 import type { ContactInput } from './contactInput';
+import type { OrientationPipelineStatus } from './orientationPipelineStatus';
 
-export type OrientationRequest = ContactInput & {
+export type OrientationRequest = ContactInput & ({
   id: number;
   university: string;
   courseId: string;
   courseName: string;
   createdAt: Date;
-};
+  pipelineStatus: OrientationPipelineStatus;
+  adminNotes: string;
+  /** @nullable */
+  followUpAt: Date | null;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+  /** @nullable */
+  confirmationEmailSentAt: Date | null;
+  confirmationEmailError: string;
+});

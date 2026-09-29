@@ -24,15 +24,24 @@ import type {
   AdminStatus,
   AdminSummary,
   Course,
+  EmailActionResult,
+  EmailSettings,
+  EmailSettingsInput,
+  Enrollment,
+  EnrollmentInput,
+  EnrollmentUpdate,
   HealthStatus,
   ListCoursesParams,
   ListTourSlotsParams,
+  OrientationManagementUpdate,
   OrientationRequest,
   OrientationRequestInput,
   Success,
+  TestEmailInput,
   TourBooking,
   TourBookingInput,
   TourBookingStatusInput,
+  TourManagementUpdate,
   TourSlot
 } from './api.schemas';
 
@@ -1130,5 +1139,838 @@ export const useUpdateTourBookingStatus = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateTourBookingStatusMutationOptions(options));
+    }
+
+export const getUpdateOrientationRequestManagementUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/management`
+}
+
+/**
+ * @summary Aggiorna stato, note e promemoria di una richiesta
+ */
+export const updateOrientationRequestManagement = async (id: number,
+    orientationManagementUpdate: OrientationManagementUpdate, options?: Parameters<typeof customFetch>[1]): Promise<OrientationRequest> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<OrientationRequest>(getUpdateOrientationRequestManagementUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(orientationManagementUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateOrientationRequestManagementMutationKey = () => ['updateOrientationRequestManagement'] as const;
+
+export const getUpdateOrientationRequestManagementMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrientationRequestManagement>>, TError,UpdateOrientationRequestManagementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateOrientationRequestManagement>>, TError,UpdateOrientationRequestManagementMutationVariables, TContext> => {
+
+const mutationKey = getUpdateOrientationRequestManagementMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateOrientationRequestManagement>>, UpdateOrientationRequestManagementMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateOrientationRequestManagement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateOrientationRequestManagementMutationResult = NonNullable<Awaited<ReturnType<typeof updateOrientationRequestManagement>>>
+    export type UpdateOrientationRequestManagementMutationBody = BodyType<OrientationManagementUpdate>
+    export type UpdateOrientationRequestManagementMutationError = ErrorType<unknown>
+    export type UpdateOrientationRequestManagementMutationVariables = {id: number;data: BodyType<OrientationManagementUpdate>}
+
+    /**
+ * @summary Aggiorna stato, note e promemoria di una richiesta
+ */
+export const useUpdateOrientationRequestManagement = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateOrientationRequestManagement>>, TError,UpdateOrientationRequestManagementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateOrientationRequestManagement>>,
+        TError,
+        UpdateOrientationRequestManagementMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateOrientationRequestManagementMutationOptions(options));
+    }
+
+export const getUpdateTourBookingManagementUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tour-bookings/${id}/management`
+}
+
+/**
+ * @summary Aggiorna note e promemoria di un tour
+ */
+export const updateTourBookingManagement = async (id: number,
+    tourManagementUpdate: TourManagementUpdate, options?: Parameters<typeof customFetch>[1]): Promise<TourBooking> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<TourBooking>(getUpdateTourBookingManagementUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(tourManagementUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateTourBookingManagementMutationKey = () => ['updateTourBookingManagement'] as const;
+
+export const getUpdateTourBookingManagementMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTourBookingManagement>>, TError,UpdateTourBookingManagementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTourBookingManagement>>, TError,UpdateTourBookingManagementMutationVariables, TContext> => {
+
+const mutationKey = getUpdateTourBookingManagementMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTourBookingManagement>>, UpdateTourBookingManagementMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateTourBookingManagement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTourBookingManagementMutationResult = NonNullable<Awaited<ReturnType<typeof updateTourBookingManagement>>>
+    export type UpdateTourBookingManagementMutationBody = BodyType<TourManagementUpdate>
+    export type UpdateTourBookingManagementMutationError = ErrorType<unknown>
+    export type UpdateTourBookingManagementMutationVariables = {id: number;data: BodyType<TourManagementUpdate>}
+
+    /**
+ * @summary Aggiorna note e promemoria di un tour
+ */
+export const useUpdateTourBookingManagement = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTourBookingManagement>>, TError,UpdateTourBookingManagementMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTourBookingManagement>>,
+        TError,
+        UpdateTourBookingManagementMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateTourBookingManagementMutationOptions(options));
+    }
+
+export const getListAdminEnrollmentsUrl = () => {
+
+
+
+
+  return `/api/admin/enrollments`
+}
+
+/**
+ * @summary Elenca iscrizioni e provvigioni
+ */
+export const listAdminEnrollments = async ( options?: Parameters<typeof customFetch>[1]): Promise<Enrollment[]> => {
+
+  return customFetch<Enrollment[]>(getListAdminEnrollmentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminEnrollmentsQueryKey = () => {
+    return [
+    `/api/admin/enrollments`
+    ] as const;
+    }
+
+
+export const getListAdminEnrollmentsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminEnrollments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminEnrollments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminEnrollmentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminEnrollments>>> = ({ signal }) => listAdminEnrollments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminEnrollments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminEnrollmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminEnrollments>>>
+export type ListAdminEnrollmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Elenca iscrizioni e provvigioni
+ */
+
+export function useListAdminEnrollments<TData = Awaited<ReturnType<typeof listAdminEnrollments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminEnrollments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminEnrollmentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAdminEnrollmentUrl = () => {
+
+
+
+
+  return `/api/admin/enrollments`
+}
+
+/**
+ * @summary Registra un'iscrizione universitaria
+ */
+export const createAdminEnrollment = async (enrollmentInput: EnrollmentInput, options?: Parameters<typeof customFetch>[1]): Promise<Enrollment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Enrollment>(getCreateAdminEnrollmentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(enrollmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAdminEnrollmentMutationKey = () => ['createAdminEnrollment'] as const;
+
+export const getCreateAdminEnrollmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminEnrollment>>, TError,CreateAdminEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminEnrollment>>, TError,CreateAdminEnrollmentMutationVariables, TContext> => {
+
+const mutationKey = getCreateAdminEnrollmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminEnrollment>>, CreateAdminEnrollmentMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminEnrollment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminEnrollment>>>
+    export type CreateAdminEnrollmentMutationBody = BodyType<EnrollmentInput>
+    export type CreateAdminEnrollmentMutationError = ErrorType<unknown>
+    export type CreateAdminEnrollmentMutationVariables = {data: BodyType<EnrollmentInput>}
+
+    /**
+ * @summary Registra un'iscrizione universitaria
+ */
+export const useCreateAdminEnrollment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminEnrollment>>, TError,CreateAdminEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminEnrollment>>,
+        TError,
+        CreateAdminEnrollmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAdminEnrollmentMutationOptions(options));
+    }
+
+export const getUpdateAdminEnrollmentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/enrollments/${id}`
+}
+
+/**
+ * @summary Aggiorna provvigione e stato di un'iscrizione
+ */
+export const updateAdminEnrollment = async (id: number,
+    enrollmentUpdate: EnrollmentUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Enrollment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Enrollment>(getUpdateAdminEnrollmentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(enrollmentUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminEnrollmentMutationKey = () => ['updateAdminEnrollment'] as const;
+
+export const getUpdateAdminEnrollmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEnrollment>>, TError,UpdateAdminEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminEnrollment>>, TError,UpdateAdminEnrollmentMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminEnrollmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminEnrollment>>, UpdateAdminEnrollmentMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminEnrollment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminEnrollment>>>
+    export type UpdateAdminEnrollmentMutationBody = BodyType<EnrollmentUpdate>
+    export type UpdateAdminEnrollmentMutationError = ErrorType<unknown>
+    export type UpdateAdminEnrollmentMutationVariables = {id: number;data: BodyType<EnrollmentUpdate>}
+
+    /**
+ * @summary Aggiorna provvigione e stato di un'iscrizione
+ */
+export const useUpdateAdminEnrollment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEnrollment>>, TError,UpdateAdminEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminEnrollment>>,
+        TError,
+        UpdateAdminEnrollmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminEnrollmentMutationOptions(options));
+    }
+
+export const getGetAdminEmailSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/email-settings`
+}
+
+/**
+ * @summary Legge la configurazione delle email automatiche
+ */
+export const getAdminEmailSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailSettings> => {
+
+  return customFetch<EmailSettings>(getGetAdminEmailSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminEmailSettingsQueryKey = () => {
+    return [
+    `/api/admin/email-settings`
+    ] as const;
+    }
+
+
+export const getGetAdminEmailSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminEmailSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEmailSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminEmailSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminEmailSettings>>> = ({ signal }) => getAdminEmailSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminEmailSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminEmailSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminEmailSettings>>>
+export type GetAdminEmailSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Legge la configurazione delle email automatiche
+ */
+
+export function useGetAdminEmailSettings<TData = Awaited<ReturnType<typeof getAdminEmailSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminEmailSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminEmailSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminEmailSettingsUrl = () => {
+
+
+
+
+  return `/api/admin/email-settings`
+}
+
+/**
+ * @summary Configura le email automatiche
+ */
+export const updateAdminEmailSettings = async (emailSettingsInput: EmailSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<EmailSettings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmailSettings>(getUpdateAdminEmailSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emailSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminEmailSettingsMutationKey = () => ['updateAdminEmailSettings'] as const;
+
+export const getUpdateAdminEmailSettingsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEmailSettings>>, TError,UpdateAdminEmailSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminEmailSettings>>, TError,UpdateAdminEmailSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminEmailSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminEmailSettings>>, UpdateAdminEmailSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminEmailSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminEmailSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminEmailSettings>>>
+    export type UpdateAdminEmailSettingsMutationBody = BodyType<EmailSettingsInput>
+    export type UpdateAdminEmailSettingsMutationError = ErrorType<unknown>
+    export type UpdateAdminEmailSettingsMutationVariables = {data: BodyType<EmailSettingsInput>}
+
+    /**
+ * @summary Configura le email automatiche
+ */
+export const useUpdateAdminEmailSettings = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEmailSettings>>, TError,UpdateAdminEmailSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminEmailSettings>>,
+        TError,
+        UpdateAdminEmailSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminEmailSettingsMutationOptions(options));
+    }
+
+export const getSendAdminTestEmailUrl = () => {
+
+
+
+
+  return `/api/admin/email-settings/test`
+}
+
+/**
+ * @summary Invia un'email di prova
+ */
+export const sendAdminTestEmail = async (testEmailInput: TestEmailInput, options?: Parameters<typeof customFetch>[1]): Promise<EmailActionResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmailActionResult>(getSendAdminTestEmailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(testEmailInput)
+  }
+);}
+
+
+
+
+
+export const getSendAdminTestEmailMutationKey = () => ['sendAdminTestEmail'] as const;
+
+export const getSendAdminTestEmailMutationOptions = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAdminTestEmail>>, TError,SendAdminTestEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendAdminTestEmail>>, TError,SendAdminTestEmailMutationVariables, TContext> => {
+
+const mutationKey = getSendAdminTestEmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendAdminTestEmail>>, SendAdminTestEmailMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendAdminTestEmail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendAdminTestEmailMutationResult = NonNullable<Awaited<ReturnType<typeof sendAdminTestEmail>>>
+    export type SendAdminTestEmailMutationBody = BodyType<TestEmailInput>
+    export type SendAdminTestEmailMutationError = ErrorType<EmailActionResult>
+    export type SendAdminTestEmailMutationVariables = {data: BodyType<TestEmailInput>}
+
+    /**
+ * @summary Invia un'email di prova
+ */
+export const useSendAdminTestEmail = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendAdminTestEmail>>, TError,SendAdminTestEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendAdminTestEmail>>,
+        TError,
+        SendAdminTestEmailMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendAdminTestEmailMutationOptions(options));
+    }
+
+export const getResendOrientationConfirmationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/send-confirmation`
+}
+
+/**
+ * @summary Reinvia la conferma di una richiesta
+ */
+export const resendOrientationConfirmation = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailActionResult> => {
+
+  return customFetch<EmailActionResult>(getResendOrientationConfirmationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendOrientationConfirmationMutationKey = () => ['resendOrientationConfirmation'] as const;
+
+export const getResendOrientationConfirmationMutationOptions = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrientationConfirmation>>, TError,ResendOrientationConfirmationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrientationConfirmation>>, TError,ResendOrientationConfirmationMutationVariables, TContext> => {
+
+const mutationKey = getResendOrientationConfirmationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrientationConfirmation>>, ResendOrientationConfirmationMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendOrientationConfirmation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendOrientationConfirmationMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrientationConfirmation>>>
+
+    export type ResendOrientationConfirmationMutationError = ErrorType<EmailActionResult>
+    export type ResendOrientationConfirmationMutationVariables = {id: number}
+
+    /**
+ * @summary Reinvia la conferma di una richiesta
+ */
+export const useResendOrientationConfirmation = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrientationConfirmation>>, TError,ResendOrientationConfirmationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendOrientationConfirmation>>,
+        TError,
+        ResendOrientationConfirmationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendOrientationConfirmationMutationOptions(options));
+    }
+
+export const getResendTourConfirmationUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tour-bookings/${id}/send-confirmation`
+}
+
+/**
+ * @summary Reinvia la conferma di un tour
+ */
+export const resendTourConfirmation = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailActionResult> => {
+
+  return customFetch<EmailActionResult>(getResendTourConfirmationUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendTourConfirmationMutationKey = () => ['resendTourConfirmation'] as const;
+
+export const getResendTourConfirmationMutationOptions = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendTourConfirmation>>, TError,ResendTourConfirmationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendTourConfirmation>>, TError,ResendTourConfirmationMutationVariables, TContext> => {
+
+const mutationKey = getResendTourConfirmationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendTourConfirmation>>, ResendTourConfirmationMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendTourConfirmation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendTourConfirmationMutationResult = NonNullable<Awaited<ReturnType<typeof resendTourConfirmation>>>
+
+    export type ResendTourConfirmationMutationError = ErrorType<EmailActionResult>
+    export type ResendTourConfirmationMutationVariables = {id: number}
+
+    /**
+ * @summary Reinvia la conferma di un tour
+ */
+export const useResendTourConfirmation = <TError = ErrorType<EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendTourConfirmation>>, TError,ResendTourConfirmationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendTourConfirmation>>,
+        TError,
+        ResendTourConfirmationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendTourConfirmationMutationOptions(options));
     }
 

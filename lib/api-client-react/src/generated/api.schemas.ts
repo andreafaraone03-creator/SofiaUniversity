@@ -49,13 +49,48 @@ export type OrientationRequestInput = ContactInput & {
   courseId: string;
 };
 
-export type OrientationRequest = ContactInput & {
+export type OrientationPipelineStatus = typeof OrientationPipelineStatus[keyof typeof OrientationPipelineStatus];
+
+
+export const OrientationPipelineStatus = {
+  new: 'new',
+  contacted: 'contacted',
+  considering: 'considering',
+  enrolled: 'enrolled',
+  closed: 'closed',
+} as const;
+
+export type ConfirmationEmailStatus = typeof ConfirmationEmailStatus[keyof typeof ConfirmationEmailStatus];
+
+
+export const ConfirmationEmailStatus = {
+  sent: 'sent',
+  failed: 'failed',
+  not_configured: 'not_configured',
+  disabled: 'disabled',
+} as const;
+
+export type OrientationRequest = ContactInput & ({
   id: number;
   university: string;
   courseId: string;
   courseName: string;
   createdAt: string;
-};
+  pipelineStatus: OrientationPipelineStatus;
+  adminNotes: string;
+  /** @nullable */
+  followUpAt: string | null;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+  /** @nullable */
+  confirmationEmailSentAt: string | null;
+  confirmationEmailError: string;
+});
+
+export interface OrientationRequestReceipt {
+  id: number;
+  createdAt: string;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+}
 
 export type TourBookingInput = ContactInput & {
   date: string;
@@ -72,13 +107,27 @@ export const TourBookingStatus = {
   completed: 'completed',
 } as const;
 
-export type TourBooking = ContactInput & {
+export type TourBooking = ContactInput & ({
   id: number;
   date: string;
   time: string;
   status: TourBookingStatus;
   createdAt: string;
-};
+  adminNotes: string;
+  /** @nullable */
+  followUpAt: string | null;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+  /** @nullable */
+  confirmationEmailSentAt: string | null;
+  confirmationEmailError: string;
+});
+
+export interface TourBookingReceipt {
+  id: number;
+  date: string;
+  time: string;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+}
 
 export interface TourSlot {
   time: string;
@@ -107,7 +156,160 @@ export interface AdminSummary {
   orientationRequests: number;
   tourBookings: number;
   upcomingBookings: number;
+  enrollmentsTotal: number;
+  commissionsPendingCents: number;
+  commissionsPaidCents: number;
+  followUpsDue: number;
   nextBooking: TourBooking | null;
+}
+
+export interface OrientationManagementUpdate {
+  pipelineStatus?: OrientationPipelineStatus;
+  /** @maxLength 5000 */
+  adminNotes?: string;
+  /** @nullable */
+  followUpAt?: string | null;
+}
+
+export interface TourManagementUpdate {
+  /** @maxLength 5000 */
+  adminNotes?: string;
+  /** @nullable */
+  followUpAt?: string | null;
+}
+
+export type EnrollmentCommissionStatus = typeof EnrollmentCommissionStatus[keyof typeof EnrollmentCommissionStatus];
+
+
+export const EnrollmentCommissionStatus = {
+  pending: 'pending',
+  paid: 'paid',
+} as const;
+
+export type EnrollmentStatus = typeof EnrollmentStatus[keyof typeof EnrollmentStatus];
+
+
+export const EnrollmentStatus = {
+  active: 'active',
+  withdrawn: 'withdrawn',
+} as const;
+
+export interface Enrollment {
+  id: number;
+  /** @nullable */
+  orientationRequestId: number | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  university: string;
+  courseId: string;
+  courseName: string;
+  enrolledAt: string;
+  /** @minimum 0 */
+  commissionCents: number;
+  commissionStatus: EnrollmentCommissionStatus;
+  /** @nullable */
+  commissionPaidAt: string | null;
+  status: EnrollmentStatus;
+  notes: string;
+  createdAt: string;
+}
+
+export type EnrollmentInputCommissionStatus = typeof EnrollmentInputCommissionStatus[keyof typeof EnrollmentInputCommissionStatus];
+
+
+export const EnrollmentInputCommissionStatus = {
+  pending: 'pending',
+  paid: 'paid',
+} as const;
+
+export interface EnrollmentInput {
+  /** @nullable */
+  orientationRequestId?: number | null;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  firstName: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  lastName: string;
+  /** @maxLength 254 */
+  email: string;
+  /** @minLength 1 */
+  university: string;
+  /** @minLength 1 */
+  courseId: string;
+  enrolledAt: string;
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  commissionCents: number;
+  commissionStatus: EnrollmentInputCommissionStatus;
+  /** @maxLength 5000 */
+  notes?: string;
+}
+
+export type EnrollmentUpdateCommissionStatus = typeof EnrollmentUpdateCommissionStatus[keyof typeof EnrollmentUpdateCommissionStatus];
+
+
+export const EnrollmentUpdateCommissionStatus = {
+  pending: 'pending',
+  paid: 'paid',
+} as const;
+
+export type EnrollmentUpdateStatus = typeof EnrollmentUpdateStatus[keyof typeof EnrollmentUpdateStatus];
+
+
+export const EnrollmentUpdateStatus = {
+  active: 'active',
+  withdrawn: 'withdrawn',
+} as const;
+
+export interface EnrollmentUpdate {
+  /**
+     * @minimum 0
+     * @maximum 100000000
+     */
+  commissionCents?: number;
+  commissionStatus?: EnrollmentUpdateCommissionStatus;
+  status?: EnrollmentUpdateStatus;
+  /** @maxLength 5000 */
+  notes?: string;
+}
+
+export interface EmailSettings {
+  /** @nullable */
+  senderEmail: string | null;
+  senderName: string;
+  sendOrientationConfirmations: boolean;
+  sendTourConfirmations: boolean;
+}
+
+export interface EmailSettingsInput {
+  /** @nullable */
+  senderEmail: string | null;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  senderName: string;
+  sendOrientationConfirmations: boolean;
+  sendTourConfirmations: boolean;
+}
+
+export interface TestEmailInput {
+  /** @maxLength 254 */
+  to: string;
+}
+
+export interface EmailActionResult {
+  success: boolean;
+  status: ConfirmationEmailStatus;
+  message: string;
 }
 
 export type TourBookingStatusInputStatus = typeof TourBookingStatusInputStatus[keyof typeof TourBookingStatusInputStatus];

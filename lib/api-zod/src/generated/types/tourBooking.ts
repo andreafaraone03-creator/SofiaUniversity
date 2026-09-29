@@ -5,13 +5,21 @@
  * API per il portale di orientamento universitario di Sofia
  * OpenAPI spec version: 0.1.0
  */
+import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 import type { ContactInput } from './contactInput';
 import type { TourBookingStatus } from './tourBookingStatus';
 
-export type TourBooking = ContactInput & {
+export type TourBooking = ContactInput & ({
   id: number;
   date: Date;
   time: string;
   status: TourBookingStatus;
   createdAt: Date;
-};
+  adminNotes: string;
+  /** @nullable */
+  followUpAt: Date | null;
+  confirmationEmailStatus: ConfirmationEmailStatus;
+  /** @nullable */
+  confirmationEmailSentAt: Date | null;
+  confirmationEmailError: string;
+});

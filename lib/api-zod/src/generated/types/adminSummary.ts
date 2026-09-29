@@ -11,5 +11,9 @@ export interface AdminSummary {
   orientationRequests: number;
   tourBookings: number;
   upcomingBookings: number;
+  enrollmentsTotal: number;
+  commissionsPendingCents: number;
+  commissionsPaidCents: number;
+  followUpsDue: number;
   nextBooking: TourBooking | null;
 }

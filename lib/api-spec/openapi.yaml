@@ -236,6 +236,205 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TourBooking"
+  /admin/orientation-requests/{id}/management:
+    patch:
+      operationId: updateOrientationRequestManagement
+      tags: [admin]
+      summary: Aggiorna stato, note e promemoria di una richiesta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrientationManagementUpdate"
+      responses:
+        "200":
+          description: Richiesta aggiornata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrientationRequest"
+  /admin/tour-bookings/{id}/management:
+    patch:
+      operationId: updateTourBookingManagement
+      tags: [admin]
+      summary: Aggiorna note e promemoria di un tour
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TourManagementUpdate"
+      responses:
+        "200":
+          description: Tour aggiornato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourBooking"
+  /admin/enrollments:
+    get:
+      operationId: listAdminEnrollments
+      tags: [admin]
+      summary: Elenca iscrizioni e provvigioni
+      responses:
+        "200":
+          description: Iscrizioni in ordine cronologico inverso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+    post:
+      operationId: createAdminEnrollment
+      tags: [admin]
+      summary: Registra un'iscrizione universitaria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentInput"
+      responses:
+        "201":
+          description: Iscrizione registrata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+  /admin/enrollments/{id}:
+    patch:
+      operationId: updateAdminEnrollment
+      tags: [admin]
+      summary: Aggiorna provvigione e stato di un'iscrizione
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrollmentUpdate"
+      responses:
+        "200":
+          description: Iscrizione aggiornata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+  /admin/email-settings:
+    get:
+      operationId: getAdminEmailSettings
+      tags: [admin]
+      summary: Legge la configurazione delle email automatiche
+      responses:
+        "200":
+          description: Mittente e tipi di conferma attivi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSettings"
+    put:
+      operationId: updateAdminEmailSettings
+      tags: [admin]
+      summary: Configura le email automatiche
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailSettingsInput"
+      responses:
+        "200":
+          description: Configurazione salvata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSettings"
+  /admin/email-settings/test:
+    post:
+      operationId: sendAdminTestEmail
+      tags: [admin]
+      summary: Invia un'email di prova
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestEmailInput"
+      responses:
+        "200":
+          description: Esito dell'invio di prova
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+        "503":
+          description: Servizio o mittente non configurato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+  /admin/orientation-requests/{id}/send-confirmation:
+    post:
+      operationId: resendOrientationConfirmation
+      tags: [admin]
+      summary: Reinvia la conferma di una richiesta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Esito dell'invio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+        "503":
+          description: Invio non riuscito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+  /admin/tour-bookings/{id}/send-confirmation:
+    post:
+      operationId: resendTourConfirmation
+      tags: [admin]
+      summary: Reinvia la conferma di un tour
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Esito dell'invio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+        "503":
+          description: Invio non riuscito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
 components:
   schemas:
     HealthStatus:
@@ -281,7 +480,20 @@ components:
             courseId: { type: string }
             courseName: { type: string }
             createdAt: { type: string, format: date-time }
-          required: [id, university, courseId, courseName, createdAt]
+            pipelineStatus: { $ref: "#/components/schemas/OrientationPipelineStatus" }
+            adminNotes: { type: string }
+            followUpAt: { type: ["string", "null"], format: date-time }
+            confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
+            confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
+            confirmationEmailError: { type: string }
+          required: [id, university, courseId, courseName, createdAt, pipelineStatus, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+    OrientationRequestReceipt:
+      type: object
+      properties:
+        id: { type: integer }
+        createdAt: { type: string, format: date-time }
+        confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
+      required: [id, createdAt, confirmationEmailStatus]
     TourBookingInput:
       allOf:
         - $ref: "#/components/schemas/ContactInput"
@@ -300,7 +512,20 @@ components:
             time: { type: string }
             status: { type: string, enum: [confirmed, cancelled, completed] }
             createdAt: { type: string, format: date-time }
-          required: [id, date, time, status, createdAt]
+            adminNotes: { type: string }
+            followUpAt: { type: ["string", "null"], format: date-time }
+            confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
+            confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
+            confirmationEmailError: { type: string }
+          required: [id, date, time, status, createdAt, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+    TourBookingReceipt:
+      type: object
+      properties:
+        id: { type: integer }
+        date: { type: string, format: date }
+        time: { type: string }
+        confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
+      required: [id, date, time, confirmationEmailStatus]
     TourSlot:
       type: object
       properties:
@@ -325,11 +550,100 @@ components:
         orientationRequests: { type: integer }
         tourBookings: { type: integer }
         upcomingBookings: { type: integer }
+        enrollmentsTotal: { type: integer }
+        commissionsPendingCents: { type: integer }
+        commissionsPaidCents: { type: integer }
+        followUpsDue: { type: integer }
         nextBooking:
           oneOf:
             - $ref: "#/components/schemas/TourBooking"
             - type: "null"
-      required: [orientationRequests, tourBookings, upcomingBookings, nextBooking]
+      required: [orientationRequests, tourBookings, upcomingBookings, enrollmentsTotal, commissionsPendingCents, commissionsPaidCents, followUpsDue, nextBooking]
+    OrientationPipelineStatus:
+      type: string
+      enum: [new, contacted, considering, enrolled, closed]
+    ConfirmationEmailStatus:
+      type: string
+      enum: [sent, failed, not_configured, disabled]
+    OrientationManagementUpdate:
+      type: object
+      properties:
+        pipelineStatus: { $ref: "#/components/schemas/OrientationPipelineStatus" }
+        adminNotes: { type: string, maxLength: 5000 }
+        followUpAt: { type: ["string", "null"], format: date-time }
+    TourManagementUpdate:
+      type: object
+      properties:
+        adminNotes: { type: string, maxLength: 5000 }
+        followUpAt: { type: ["string", "null"], format: date-time }
+    Enrollment:
+      type: object
+      properties:
+        id: { type: integer }
+        orientationRequestId: { type: ["integer", "null"] }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        university: { type: string }
+        courseId: { type: string }
+        courseName: { type: string }
+        enrolledAt: { type: string, format: date }
+        commissionCents: { type: integer, minimum: 0 }
+        commissionStatus: { type: string, enum: [pending, paid] }
+        commissionPaidAt: { type: ["string", "null"], format: date-time }
+        status: { type: string, enum: [active, withdrawn] }
+        notes: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, orientationRequestId, firstName, lastName, email, university, courseId, courseName, enrolledAt, commissionCents, commissionStatus, commissionPaidAt, status, notes, createdAt]
+    EnrollmentInput:
+      type: object
+      properties:
+        orientationRequestId: { type: ["integer", "null"] }
+        firstName: { type: string, minLength: 1, maxLength: 80 }
+        lastName: { type: string, minLength: 1, maxLength: 80 }
+        email: { type: string, format: email, maxLength: 254 }
+        university: { type: string, minLength: 1 }
+        courseId: { type: string, minLength: 1 }
+        enrolledAt: { type: string, format: date }
+        commissionCents: { type: integer, minimum: 0, maximum: 100000000 }
+        commissionStatus: { type: string, enum: [pending, paid] }
+        notes: { type: string, maxLength: 5000 }
+      required: [firstName, lastName, email, university, courseId, enrolledAt, commissionCents, commissionStatus]
+    EnrollmentUpdate:
+      type: object
+      properties:
+        commissionCents: { type: integer, minimum: 0, maximum: 100000000 }
+        commissionStatus: { type: string, enum: [pending, paid] }
+        status: { type: string, enum: [active, withdrawn] }
+        notes: { type: string, maxLength: 5000 }
+    EmailSettings:
+      type: object
+      properties:
+        senderEmail: { type: ["string", "null"] }
+        senderName: { type: string }
+        sendOrientationConfirmations: { type: boolean }
+        sendTourConfirmations: { type: boolean }
+      required: [senderEmail, senderName, sendOrientationConfirmations, sendTourConfirmations]
+    EmailSettingsInput:
+      type: object
+      properties:
+        senderEmail: { type: ["string", "null"] }
+        senderName: { type: string, minLength: 1, maxLength: 80 }
+        sendOrientationConfirmations: { type: boolean }
+        sendTourConfirmations: { type: boolean }
+      required: [senderEmail, senderName, sendOrientationConfirmations, sendTourConfirmations]
+    TestEmailInput:
+      type: object
+      properties:
+        to: { type: string, format: email, maxLength: 254 }
+      required: [to]
+    EmailActionResult:
+      type: object
+      properties:
+        success: { type: boolean }
+        status: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
+        message: { type: string }
+      required: [success, status, message]
     TourBookingStatusInput:
       type: object
       properties:

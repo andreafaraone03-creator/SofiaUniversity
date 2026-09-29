@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
+  Bell,
   CalendarDays,
   Check,
   Clock3,
+  CircleDollarSign,
   GraduationCap,
   LogOut,
   MapPin,
@@ -33,9 +35,16 @@ import {
   useSetupAdmin,
   useUpdateTourBookingStatus,
 } from '@workspace/api-client-react';
-import type { TourBooking, TourSlot } from '@workspace/api-client-react';
+import type { OrientationRequest, TourBooking, TourSlot } from '@workspace/api-client-react';
 import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
+import {
+  EmailSettingsPanel,
+  EnrollmentPanel,
+  OrientationManagementEditor,
+  TourManagementEditor,
+  type EnrollmentPrefill,
+} from '@/components/admin-management';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -174,7 +183,15 @@ function OrientationForm() {
     setMessage(null);
     if (!university || !courseId) { setMessage({ kind: 'error', text: 'Scegli un ateneo e un corso per continuare.' }); return; }
     create.mutate({ data: { ...values, university, courseId } }, {
-      onSuccess: () => { setMessage({ kind: 'success', text: 'Grazie, ho ricevuto la tua richiesta. Ti contatterò presto per parlarne insieme.' }); setValues(contactDefaults); setUniversity(''); setCourseId(''); },
+      onSuccess: (receipt) => {
+        const emailMessage = receipt.confirmationEmailStatus === 'sent'
+          ? 'Ti ho inviato una conferma all’indirizzo email indicato.'
+          : receipt.confirmationEmailStatus === 'failed'
+            ? 'La richiesta è registrata, ma l’invio della conferma email non è riuscito.'
+            : 'La richiesta è registrata; la conferma email automatica non è attiva al momento.';
+        setMessage({ kind: 'success', text: `Grazie, ho ricevuto la tua richiesta. ${emailMessage} Sofia ti contatterà presto.` });
+        setValues(contactDefaults); setUniversity(''); setCourseId('');
+      },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile inviare la richiesta. Riprova tra poco.') }),
     });
   };
@@ -208,7 +225,16 @@ function TourForm() {
     if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli prima una data e un orario disponibile.' }); return; }
     if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
     create.mutate({ data: { ...values, date, time } }, {
-      onSuccess: () => { client.invalidateQueries({ queryKey: getListTourSlotsQueryKey({ date }) }); setMessage({ kind: 'success', text: 'Il tuo Meet è prenotato. Sofia ti condividerà personalmente i dettagli per partecipare.' }); setValues(contactDefaults); setDate(''); setTime(''); },
+      onSuccess: (receipt) => {
+        client.invalidateQueries({ queryKey: getListTourSlotsQueryKey({ date }) });
+        const emailMessage = receipt.confirmationEmailStatus === 'sent'
+          ? 'Ti ho inviato una conferma email con data e ora.'
+          : receipt.confirmationEmailStatus === 'failed'
+            ? 'La prenotazione è registrata, ma l’invio della conferma email non è riuscito.'
+            : 'La prenotazione è registrata; la conferma email automatica non è attiva al momento.';
+        setMessage({ kind: 'success', text: `Il tuo Meet è prenotato. ${emailMessage} Sofia ti condividerà personalmente i dettagli per partecipare.` });
+        setValues(contactDefaults); setDate(''); setTime('');
+      },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile prenotare il tour. Riprova tra poco.') }),
     });
   };
@@ -391,15 +417,68 @@ function WhatsAppButton({ phone, text, id }: { phone: string; text: string; id: 
 
 function Dashboard() {
   const client = useQueryClient();
-  const [tab, setTab] = useState<'orientation' | 'tours'>('orientation');
+  const [tab, setTab] = useState<"orientation" | "tours" | "enrollments" | "email">("orientation");
+  const [enrollmentPrefill, setEnrollmentPrefill] = useState<EnrollmentPrefill | null>(null);
   const { data: summary, isLoading: summaryLoading } = useGetAdminSummary();
   const requests = useListAdminOrientationRequests();
   const bookings = useListAdminTourBookings();
   const logout = useLogoutAdmin();
   const update = useUpdateTourBookingStatus();
   const next = summary?.nextBooking;
-  const statusUpdate = (id: number, status: BookingStatus) => update.mutate({ id, data: { status } }, { onSuccess: () => { client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() }); client.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() }); } });
-  return <div className="min-h-[100dvh] bg-[hsl(var(--secondary)/.28)]"><header className="border-b border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 md:px-8"><Link href="/" data-testid="link-dashboard-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg italic">S</span><span className="font-serif text-lg">sofia / riservata</span></Link><button type="button" onClick={() => logout.mutate(undefined, { onSuccess: () => client.invalidateQueries({ queryKey: getGetAdminStatusQueryKey() }) })} className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]" data-testid="button-logout"><LogOut size={15} /> Esci</button></div></header><main className="mx-auto max-w-[1500px] px-5 py-8 md:px-8 md:py-12"><div className="flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="eyebrow">area riservata · oggi</p><h1 className="mt-2 font-serif text-4xl md:text-5xl">Le persone che ti stanno cercando.</h1></div><span className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]"><span className="h-2 w-2 rounded-full bg-[hsl(160_36%_55%)]" /> Sessione attiva</span></div><div className="mt-10 grid gap-3 sm:grid-cols-3"><Metric label="Richieste orientamento" value={summaryLoading ? '—' : summary?.orientationRequests ?? 0} icon={<Search size={16} />} /><Metric label="Tour prenotati" value={summaryLoading ? '—' : summary?.tourBookings ?? 0} icon={<CalendarDays size={16} />} /><Metric label="In arrivo" value={summaryLoading ? '—' : summary?.upcomingBookings ?? 0} icon={<Clock3 size={16} />} /></div>{next && <div className="mt-5 flex flex-col justify-between gap-4 border border-[hsl(var(--primary)/.5)] bg-[hsl(var(--primary)/.12)] p-5 sm:flex-row sm:items-center"><div><p className="eyebrow !text-[hsl(var(--foreground))]">prossimo appuntamento</p><p className="mt-2 font-serif text-2xl">{next.firstName} {next.lastName}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{formatDate(next.date)} · {next.time}</p></div><WhatsAppButton phone={next.phone} id={`next-${next.id}`} text={`Ciao ${next.firstName}, sono Sofia! Ti confermo il nostro Meet del ${formatDate(next.date)} alle ${next.time}.`} /></div>}<div className="mt-10 border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="flex border-b border-[hsl(var(--border))]"><button type="button" onClick={() => setTab('orientation')} data-testid="tab-orientation" className={`px-5 py-4 text-sm ${tab === 'orientation' ? 'border-b-2 border-[hsl(var(--foreground))] font-semibold' : 'text-[hsl(var(--muted-foreground))]'}`}>Richieste orientamento</button><button type="button" onClick={() => setTab('tours')} data-testid="tab-tours" className={`px-5 py-4 text-sm ${tab === 'tours' ? 'border-b-2 border-[hsl(var(--foreground))] font-semibold' : 'text-[hsl(var(--muted-foreground))]'}`}>Tour Meet</button></div>{tab === 'orientation' ? <OrientationTable data={requests.data} loading={requests.isLoading} error={requests.isError} /> : <ToursTable data={bookings.data} loading={bookings.isLoading} error={bookings.isError} onStatus={statusUpdate} updating={update.isPending} />}</div></main></div>;
+  const statusUpdate = (id: number, status: BookingStatus) => update.mutate(
+    { id, data: { status } },
+    {
+      onSuccess: () => {
+        client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
+        client.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+      },
+    },
+  );
+  const tabClass = (active: boolean) => `whitespace-nowrap border-b-2 px-4 py-4 text-sm transition-colors md:px-5 ${active ? "border-[hsl(var(--foreground))] font-semibold" : "border-transparent text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"}`;
+  const pendingCommission = summaryLoading ? "—" : new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format((summary?.commissionsPendingCents ?? 0) / 100);
+  const paidCommission = summaryLoading ? "—" : new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format((summary?.commissionsPaidCents ?? 0) / 100);
+
+  return <div className="min-h-[100dvh] bg-[hsl(var(--secondary)/.28)]">
+    <header className="border-b border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+      <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 md:px-8">
+        <Link href="/" data-testid="link-dashboard-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg italic">S</span><span className="font-serif text-lg">sofia / riservata</span></Link>
+        <button type="button" onClick={() => logout.mutate(undefined, { onSuccess: () => client.invalidateQueries({ queryKey: getGetAdminStatusQueryKey() }) })} className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]" data-testid="button-logout"><LogOut size={15} /> Esci</button>
+      </div>
+    </header>
+    <main className="mx-auto max-w-[1500px] px-5 py-8 md:px-8 md:py-12">
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+        <div><p className="eyebrow">area riservata · oggi</p><h1 className="mt-2 font-serif text-4xl md:text-5xl">Il tuo lavoro, in un unico posto.</h1></div>
+        <span className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))]"><span className="h-2 w-2 rounded-full bg-[hsl(160_36%_55%)]" /> Sessione attiva</span>
+      </div>
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Metric label="Richieste" value={summaryLoading ? "—" : summary?.orientationRequests ?? 0} icon={<Search size={16} />} />
+        <Metric label="Tour in arrivo" value={summaryLoading ? "—" : summary?.upcomingBookings ?? 0} icon={<CalendarDays size={16} />} />
+        <Metric label="Iscrizioni attive" value={summaryLoading ? "—" : summary?.enrollmentsTotal ?? 0} icon={<GraduationCap size={16} />} />
+        <Metric label="Provvigioni attese" value={pendingCommission} icon={<CircleDollarSign size={16} />} />
+        <Metric label="Provvigioni incassate" value={paidCommission} icon={<Check size={16} />} />
+        <Metric label="Promemoria scaduti" value={summaryLoading ? "—" : summary?.followUpsDue ?? 0} icon={<Bell size={16} />} />
+      </div>
+      {next && <div className="mt-5 flex flex-col justify-between gap-4 border border-[hsl(var(--primary)/.5)] bg-[hsl(var(--primary)/.12)] p-5 sm:flex-row sm:items-center">
+        <div><p className="eyebrow !text-[hsl(var(--foreground))]">prossimo appuntamento</p><p className="mt-2 font-serif text-2xl">{next.firstName} {next.lastName}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{formatDate(next.date)} · {next.time}</p></div>
+        <WhatsAppButton phone={next.phone} id={`next-${next.id}`} text={`Ciao ${next.firstName}, sono Sofia! Ti confermo il nostro Meet del ${formatDate(next.date)} alle ${next.time}.`} />
+      </div>}
+      <section className="mt-10 border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+        <nav className="flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Gestione area riservata">
+          <button type="button" role="tab" aria-selected={tab === "orientation"} onClick={() => setTab("orientation")} data-testid="tab-orientation" className={tabClass(tab === "orientation")}>Richieste</button>
+          <button type="button" role="tab" aria-selected={tab === "tours"} onClick={() => setTab("tours")} data-testid="tab-tours" className={tabClass(tab === "tours")}>Tour Meet</button>
+          <button type="button" role="tab" aria-selected={tab === "enrollments"} onClick={() => setTab("enrollments")} data-testid="tab-enrollments" className={tabClass(tab === "enrollments")}>Iscrizioni e provvigioni</button>
+          <button type="button" role="tab" aria-selected={tab === "email"} onClick={() => setTab("email")} data-testid="tab-email" className={tabClass(tab === "email")}>Email automatiche</button>
+        </nav>
+        {tab === "orientation" && <OrientationTable data={requests.data} loading={requests.isLoading} error={requests.isError} onRecordEnrollment={(item) => {
+          setEnrollmentPrefill(item);
+          setTab("enrollments");
+        }} />}
+        {tab === "tours" && <ToursTable data={bookings.data} loading={bookings.isLoading} error={bookings.isError} onStatus={statusUpdate} updating={update.isPending} />}
+        {tab === "enrollments" && <EnrollmentPanel prefill={enrollmentPrefill} onPrefillConsumed={() => setEnrollmentPrefill(null)} />}
+        {tab === "email" && <EmailSettingsPanel />}
+      </section>
+    </main>
+  </div>;
 }
 
 function Metric({ label, value, icon }: { label: string; value: string | number; icon: ReactNode }) {
@@ -412,51 +491,142 @@ function TableState({ loading, error }: { loading: boolean; error: boolean }) {
   return null;
 }
 
-function OrientationTable({ data, loading, error }: { data?: Array<{ id: number; firstName: string; lastName: string; email: string; province: string; phone: string; university: string; courseName: string; createdAt: string }>; loading: boolean; error: boolean }) {
+function OrientationTable({
+  data,
+  loading,
+  error,
+  onRecordEnrollment,
+}: {
+  data?: OrientationRequest[];
+  loading: boolean;
+  error: boolean;
+  onRecordEnrollment: (item: OrientationRequest) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const visible = useMemo(() => (data ?? []).filter((item) => {
+    const term = search.trim().toLocaleLowerCase("it");
+    const matchesSearch = !term || `${item.firstName} ${item.lastName} ${item.email} ${item.courseName} ${item.university}`.toLocaleLowerCase("it").includes(term);
+    const due = Boolean(
+      item.followUpAt &&
+      new Date(item.followUpAt) <= new Date() &&
+      item.pipelineStatus !== "enrolled" &&
+      item.pipelineStatus !== "closed",
+    );
+    return matchesSearch && (filter === "all" || filter === item.pipelineStatus || (filter === "due" && due));
+  }), [data, filter, search]);
+
   if (loading || error) return <TableState loading={loading} error={error} />;
   if (!data?.length) return <div className="p-12 text-center"><p className="font-serif text-2xl">Ancora nessuna richiesta.</p><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Quando arriverà, la vedrai qui.</p></div>;
-  return <div className="overflow-x-auto">
-    <p className="px-5 pt-4 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
-    <table className="w-full min-w-[1260px] text-left text-sm">
-      <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]">
-        <tr>{['Data / ora', 'Nome', 'Cognome', 'Email', 'Provincia', 'Telefono', 'Ateneo', 'Corso scelto', 'Contatta'].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr>
-      </thead>
-      <tbody>{data.map((item) => <tr key={item.id} data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)] last:border-0">
-        <td className="whitespace-nowrap px-4 py-4 text-xs">{formatDateTime(item.createdAt)}</td>
-        <td className="px-4 py-4 font-semibold">{item.firstName}</td>
-        <td className="px-4 py-4 font-semibold">{item.lastName}</td>
-        <td className="px-4 py-4">{item.email}</td>
-        <td className="px-4 py-4">{item.province}</td>
-        <td className="whitespace-nowrap px-4 py-4">{item.phone}</td>
-        <td className="px-4 py-4">{item.university}</td>
-        <td className="min-w-40 px-4 py-4">{item.courseName}</td>
-        <td className="whitespace-nowrap px-4 py-4"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di orientamento per ${item.courseName}.`} /></td>
-      </tr>)}</tbody>
-    </table>
+  return <div className="p-5 md:p-7">
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+      <label className="relative block flex-1"><span className="sr-only">Cerca richieste</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, corso…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
+      <label className="sm:w-56"><span className="sr-only">Filtra richieste</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Tutti gli stati</option>{Object.entries(leadStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}<option value="due">Promemoria scaduti</option></select></label>
+    </div>
+    <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
+    {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna richiesta corrisponde ai filtri.</div> : <div className="overflow-x-auto">
+      <table className="w-full min-w-[1580px] text-left text-sm">
+        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Ateneo", "Corso scelto", "Stato", "Promemoria", "Email", "Contatta / gestisci"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
+        <tbody>{visible.map((item) => <OrientationRow key={item.id} item={item} onRecordEnrollment={onRecordEnrollment} />)}</tbody>
+      </table>
+    </div>}
   </div>;
 }
 
+const leadStatusLabels: Record<OrientationRequest["pipelineStatus"], string> = {
+  new: "Nuova",
+  contacted: "Contattata",
+  considering: "In valutazione",
+  enrolled: "Iscritta",
+  closed: "Archiviata",
+};
+
+function OrientationRow({
+  item,
+  onRecordEnrollment,
+}: {
+  item: OrientationRequest;
+  onRecordEnrollment: (item: OrientationRequest) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const emailLabel = item.confirmationEmailStatus === "sent"
+    ? "Inviata"
+    : item.confirmationEmailStatus === "failed"
+      ? "Da ritentare"
+      : item.confirmationEmailStatus === "disabled"
+        ? "Disattivata"
+        : "Da configurare";
+  return <>
+    <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
+      <td className="whitespace-nowrap px-4 py-4 text-xs">{formatDateTime(item.createdAt)}</td>
+      <td className="px-4 py-4 font-semibold">{item.firstName}</td>
+      <td className="px-4 py-4 font-semibold">{item.lastName}</td>
+      <td className="px-4 py-4">{item.email}</td>
+      <td className="px-4 py-4">{item.province}</td>
+      <td className="whitespace-nowrap px-4 py-4">{item.phone}</td>
+      <td className="px-4 py-4">{item.university}</td>
+      <td className="min-w-40 px-4 py-4">{item.courseName}</td>
+      <td className="px-4 py-4 text-xs">{leadStatusLabels[item.pipelineStatus]}</td>
+      <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
+      <td className="px-4 py-4 text-xs">{emailLabel}</td>
+      <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di orientamento per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
+    </tr>
+    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={12} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
+  </>;
+}
+
 function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourBooking[]; loading: boolean; error: boolean; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | BookingStatus | "due">("all");
+  const visible = useMemo(() => (data ?? []).filter((item) => {
+    const term = search.trim().toLocaleLowerCase("it");
+    const matchesSearch = !term || `${item.firstName} ${item.lastName} ${item.email} ${item.phone}`.toLocaleLowerCase("it").includes(term);
+    const due = Boolean(item.followUpAt && new Date(item.followUpAt) <= new Date() && item.status !== "cancelled");
+    return matchesSearch && (filter === "all" || filter === item.status || (filter === "due" && due));
+  }), [data, filter, search]);
   if (loading || error) return <TableState loading={loading} error={error} />;
   if (!data?.length) return <div className="p-12 text-center"><p className="font-serif text-2xl">Ancora nessun Meet.</p><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Le prossime prenotazioni appariranno qui.</p></div>;
-  return <div className="overflow-x-auto">
-    <p className="px-5 pt-4 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
-    <table className="w-full min-w-[1180px] text-left text-sm">
-    <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]">
-      <tr>{['Data / ora appuntamento', 'Nome', 'Cognome', 'Email', 'Provincia', 'Telefono', 'Stato', 'Contatta', 'Ricevuta'].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr>
-    </thead>
-    <tbody>{data.map((item) => <tr key={item.id} data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)] last:border-0">
+  return <div className="p-5 md:p-7">
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row">
+      <label className="relative block flex-1"><span className="sr-only">Cerca tour</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, telefono…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
+      <label className="sm:w-56"><span className="sr-only">Filtra tour</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value as typeof filter)}><option value="all">Tutti i tour</option><option value="confirmed">Confermati</option><option value="completed">Completati</option><option value="cancelled">Annullati</option><option value="due">Promemoria scaduti</option></select></label>
+    </div>
+    <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
+    {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna prenotazione corrisponde ai filtri.</div> : <div className="overflow-x-auto">
+      <table className="w-full min-w-[1510px] text-left text-sm">
+        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora appuntamento", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Stato", "Contatta", "Conferma email", "Promemoria", "Ricevuta", "Gestione"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
+        <tbody>{visible.map((item) => <TourRow key={item.id} item={item} onStatus={onStatus} updating={updating} />)}</tbody>
+      </table>
+    </div>}
+  </div>;
+}
+
+function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const emailLabel = item.confirmationEmailStatus === "sent"
+    ? "Inviata"
+    : item.confirmationEmailStatus === "failed"
+      ? "Da ritentare"
+      : item.confirmationEmailStatus === "disabled"
+        ? "Disattivata"
+        : "Da configurare";
+  return <>
+    <tr data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
       <td className="whitespace-nowrap px-4 py-4">{formatDate(item.date)} · {item.time}</td>
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>
       <td className="px-4 py-4 font-semibold">{item.lastName}</td>
       <td className="px-4 py-4">{item.email}</td>
       <td className="px-4 py-4">{item.province}</td>
       <td className="whitespace-nowrap px-4 py-4">{item.phone}</td>
-      <td className="px-4 py-4"><select disabled={updating} value={item.status} onChange={(e) => onStatus(item.id, e.target.value as BookingStatus)} data-testid={`select-status-${item.id}`} className={`border px-2 py-2 text-xs ${item.status === 'confirmed' ? 'border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)]' : item.status === 'cancelled' ? 'border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)]' : 'border-[hsl(var(--border))]'}`}><option value="confirmed">Confermato</option><option value="cancelled">Annullato</option><option value="completed">Completato</option></select></td>
+      <td className="px-4 py-4"><select disabled={updating} value={item.status} onChange={(event) => onStatus(item.id, event.target.value as BookingStatus)} data-testid={`select-status-${item.id}`} className={`border px-2 py-2 text-xs ${item.status === "confirmed" ? "border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)]" : item.status === "cancelled" ? "border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)]" : "border-[hsl(var(--border))]"}`}><option value="confirmed">Confermato</option><option value="cancelled">Annullato</option><option value="completed">Completato</option></select></td>
       <td className="whitespace-nowrap px-4 py-4"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ti scrivo per il nostro Meet del ${formatDate(item.date)} alle ${item.time}.`} /></td>
+      <td className="px-4 py-4 text-xs">{emailLabel}</td>
+      <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs text-[hsl(var(--muted-foreground))]">{formatDateTime(item.createdAt)}</td>
-    </tr>)}</tbody>
-  </table></div>;
+      <td className="px-4 py-4"><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></td>
+    </tr>
+    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={12} className="p-5"><TourManagementEditor item={item} /></td></tr>}
+  </>;
 }
 
 function formatDate(value: string) { return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`)); }
