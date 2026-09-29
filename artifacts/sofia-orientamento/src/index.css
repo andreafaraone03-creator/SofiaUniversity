@@ -26,23 +26,23 @@
 }
 
 :root {
-  --background: 48 33% 95%;
-  --foreground: 222 31% 16%;
-  --border: 217 18% 78%;
-  --card: 48 33% 98%;
-  --card-foreground: 222 31% 16%;
-  --primary: 186 72% 39%;
-  --primary-foreground: 48 33% 95%;
-  --secondary: 222 31% 16%;
-  --secondary-foreground: 48 33% 95%;
-  --muted: 45 20% 89%;
-  --muted-foreground: 220 13% 42%;
-  --accent: 48 93% 58%;
-  --accent-foreground: 222 31% 16%;
-  --destructive: 4 65% 46%;
-  --destructive-foreground: 48 33% 98%;
-  --input: 217 18% 70%;
-  --ring: 186 72% 39%;
+  --background: 345 45% 98%;
+  --foreground: 337 26% 19%;
+  --border: 343 22% 84%;
+  --card: 0 0% 100%;
+  --card-foreground: 337 26% 19%;
+  --primary: 341 44% 47%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 337 27% 23%;
+  --secondary-foreground: 345 45% 97%;
+  --muted: 344 33% 93%;
+  --muted-foreground: 337 12% 38%;
+  --accent: 344 72% 87%;
+  --accent-foreground: 337 26% 19%;
+  --destructive: 0 55% 43%;
+  --destructive-foreground: 345 45% 98%;
+  --input: 343 21% 78%;
+  --ring: 341 44% 47%;
   --app-font-sans: 'DM Sans', sans-serif;
   --app-font-display: 'Syne', sans-serif;
   --app-font-mono: 'DM Mono', monospace;
@@ -50,23 +50,23 @@
 }
 
 .dark {
-  --background: 222 31% 11%;
-  --foreground: 48 33% 95%;
-  --border: 220 17% 28%;
-  --card: 222 27% 15%;
-  --card-foreground: 48 33% 95%;
-  --primary: 186 67% 48%;
-  --primary-foreground: 222 31% 11%;
-  --secondary: 222 22% 22%;
-  --secondary-foreground: 48 33% 95%;
-  --muted: 220 20% 22%;
-  --muted-foreground: 220 15% 70%;
-  --accent: 48 89% 60%;
-  --accent-foreground: 222 31% 11%;
-  --destructive: 4 68% 57%;
-  --destructive-foreground: 222 31% 11%;
-  --input: 220 17% 34%;
-  --ring: 186 67% 48%;
+  --background: 337 24% 12%;
+  --foreground: 345 45% 97%;
+  --border: 337 18% 28%;
+  --card: 337 24% 16%;
+  --card-foreground: 345 45% 97%;
+  --primary: 343 64% 79%;
+  --primary-foreground: 337 28% 16%;
+  --secondary: 337 20% 24%;
+  --secondary-foreground: 345 45% 97%;
+  --muted: 337 18% 22%;
+  --muted-foreground: 340 20% 72%;
+  --accent: 344 64% 80%;
+  --accent-foreground: 337 28% 16%;
+  --destructive: 0 60% 54%;
+  --destructive-foreground: 345 45% 97%;
+  --input: 337 18% 34%;
+  --ring: 343 64% 79%;
 }
 
 @layer base {
@@ -97,12 +97,12 @@
 .field:focus { border-color: hsl(var(--primary)); box-shadow: 4px 4px 0 hsl(var(--accent)); background: hsl(var(--background)); }
 .field::placeholder { color: hsl(var(--muted-foreground) / .7); }
 .btn-primary, .btn-rose { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; padding: .9rem 1.2rem; border: 1px solid hsl(var(--foreground)); border-radius: 0; font-weight: 600; transition: transform .2s, background .2s, color .2s, box-shadow .2s; }
-.btn-primary { background: hsl(var(--foreground)); color: hsl(var(--background)); }
-.btn-primary:hover { transform: translate(-3px,-3px); background: hsl(var(--primary)); color: hsl(var(--foreground)); box-shadow: 5px 5px 0 hsl(var(--accent)); }
-.btn-rose { background: hsl(var(--primary)); color: hsl(var(--foreground)); border-color: hsl(var(--primary)); }
-.btn-rose:hover { transform: translate(-3px,-3px); background: hsl(var(--accent)); box-shadow: 5px 5px 0 hsl(var(--foreground)); }
+.btn-primary { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); border-color: hsl(var(--accent)); }
+.btn-primary:hover { transform: translate(-3px,-3px); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); box-shadow: 5px 5px 0 hsl(var(--secondary)); }
+.btn-rose { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
+.btn-rose:hover { transform: translate(-3px,-3px); background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); box-shadow: 5px 5px 0 hsl(var(--foreground)); }
 
-/* The visual system: editorial route maps, hard edges, ink + teal + signal yellow. */
+/* The visual system: editorial route maps, warm neutrals, plum ink, and pastel rose. */
 .route-shell { position: relative; overflow: hidden; }
 .route-shell::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .32; background-image: linear-gradient(hsl(var(--foreground)/.05) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)/.05) 1px, transparent 1px); background-size: 38px 38px; mask-image: linear-gradient(to bottom, black, transparent 70%); }
 .hero-route { position: relative; min-height: 610px; background: hsl(var(--secondary)); color: hsl(var(--background)); }
@@ -110,13 +110,13 @@
 .hero-route .route-copy { position: relative; z-index: 2; }
 .hero-route .route-copy h1 { font-family: var(--app-font-display); font-weight: 700; letter-spacing: -.07em; }
 .route-map { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.route-map path { fill: none; stroke: hsl(var(--primary)); stroke-width: 2; }
+.route-map path { fill: none; stroke: hsl(var(--accent)); stroke-width: 2; }
 .route-map circle { fill: hsl(var(--accent)); stroke: hsl(var(--secondary)); stroke-width: 5; }
 .route-number { color: hsl(var(--accent)); font-family: var(--app-font-mono); }
 .route-card { position: relative; border: 1px solid hsl(var(--foreground)/.3); background: hsl(var(--card)); transition: transform .25s, border-color .25s, box-shadow .25s; }
 .route-card:hover { transform: translate(-6px,-6px); border-color: hsl(var(--primary)); box-shadow: 7px 7px 0 hsl(var(--accent)); }
 .ink-panel { background: hsl(var(--secondary)); color: hsl(var(--background)); }
-.signal-panel { background: hsl(var(--accent)); color: hsl(var(--foreground)); }
+.signal-panel { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

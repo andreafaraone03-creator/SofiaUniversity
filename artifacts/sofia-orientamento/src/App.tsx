@@ -112,7 +112,7 @@ function BookingChoiceRow({ href, number, label, title, description, detail, cta
   testId: string;
 }) {
   return <Link href={href} data-testid={testId} className="route-card group grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-5 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))] sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-0 sm:px-7 sm:py-8 md:px-9">
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-[hsl(var(--secondary))] text-[hsl(var(--accent))] transition-colors group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--foreground))] sm:h-14 sm:w-14">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-[hsl(var(--secondary))] text-[hsl(var(--accent))] transition-colors group-hover:bg-[hsl(var(--accent))] group-hover:text-[hsl(var(--accent-foreground))] sm:h-14 sm:w-14">
       <Icon size={21} strokeWidth={1.6} />
     </span>
     <div className="min-w-0">
@@ -248,7 +248,7 @@ function Home() {
       <div className="route-copy mx-auto grid min-h-[610px] max-w-[1500px] items-center gap-10 px-5 py-20 md:grid-cols-[1.05fr_.95fr] md:px-10 md:py-24">
         <div className="page-in">
           <p className="eyebrow !text-[hsl(var(--accent))]">orientamento universitario · roma / online</p>
-          <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--primary))]">tua rotta.</span></h1>
+          <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--accent))]">tua rotta.</span></h1>
           <p className="mt-8 max-w-xl text-lg leading-relaxed text-[hsl(var(--background)/.75)] md:text-xl">L’università non è una risposta da indovinare. È una direzione da mettere a fuoco, insieme.</p>
           <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#servizi" className="btn-rose" data-testid="link-discover-services">Inizia da qui <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 border-b border-[hsl(var(--accent))] py-2 text-sm text-[hsl(var(--background))]" data-testid="link-meet-sofia">Conosci Sofia <ArrowRight size={15} /></Link></div>
         </div>
@@ -370,7 +370,7 @@ function Contacts() {
       })}
     </div></section>
     <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:px-8 md:py-24"><div><SectionKicker>{email ? 'anche via email' : 'inizia da qui'}</SectionKicker>{email ? <a href={`mailto:${email}`} data-testid="link-email" className="group flex items-center gap-3 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">{email} <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></a> : <Link href="/#servizi" data-testid="link-contact-orientation" className="inline-flex items-center gap-2 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">Invia una richiesta di orientamento <ArrowRight size={18} /></Link>}</div><div><SectionKicker>ovunque tu sia</SectionKicker><p className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-[hsl(var(--primary))]" /> Consulenze online, ovunque tu sia</p></div></section>
-    <section className="mx-5 mb-16 bg-[hsl(var(--foreground))] px-6 py-14 text-center text-[hsl(var(--background))] md:mx-8 md:mb-24 md:py-20"><p className="eyebrow !text-[hsl(var(--primary))]">una frase da ricordare</p><p className="mx-auto mt-5 max-w-2xl font-serif text-3xl leading-tight md:text-5xl">La conoscenza è l'investimento che paga i migliori interessi. Sii il protagonista del tuo futuro.</p></section>
+    <section className="mx-5 mb-16 bg-[hsl(var(--foreground))] px-6 py-14 text-center text-[hsl(var(--background))] md:mx-8 md:mb-24 md:py-20"><p className="eyebrow !text-[hsl(var(--accent))]">una frase da ricordare</p><p className="mx-auto mt-5 max-w-2xl font-serif text-3xl leading-tight md:text-5xl">La conoscenza è l'investimento che paga i migliori interessi. Sii il protagonista del tuo futuro.</p></section>
   </main><SiteFooter /></div>;
 }
 
@@ -439,7 +439,7 @@ function Dashboard() {
   return <div className="min-h-[100dvh] bg-[hsl(var(--secondary)/.28)]">
     <header className="border-b border-[hsl(var(--border))] bg-[hsl(var(--card))]">
       <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-4 md:px-8">
-        <Link href="/" data-testid="link-dashboard-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg italic">S</span><span className="font-serif text-lg">sofia / riservata</span></Link>
+        <Link href="/" data-testid="link-dashboard-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg text-[hsl(var(--primary-foreground))] italic">S</span><span className="font-serif text-lg">sofia / riservata</span></Link>
         <button type="button" onClick={() => logout.mutate(undefined, { onSuccess: () => client.invalidateQueries({ queryKey: getGetAdminStatusQueryKey() }) })} className="flex items-center gap-2 text-xs text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]" data-testid="button-logout"><LogOut size={15} /> Esci</button>
       </div>
     </header>
