@@ -163,7 +163,7 @@ router.post("/admin/logout", (_req, res): void => {
 
 router.get("/admin/summary", requireAdmin, (_req, res): void => {
   const { date, time } = nowInRome();
-  const orientationRequests = (sqlite.prepare("SELECT COUNT(*) AS total FROM richieste_corso")
+  const orientationRequests = (sqlite.prepare("SELECT COUNT(*) AS total FROM richieste_corso WHERE enrollment_outcome = 'pending'")
     .get() as { total: number }).total;
   const tourBookings = (sqlite.prepare("SELECT COUNT(*) AS total FROM prenotazioni_tour")
     .get() as { total: number }).total;

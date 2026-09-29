@@ -1,22 +1,16 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Mail, RotateCw, Save, Search, X } from "lucide-react";
+import { Check, Save, Search, X } from "lucide-react";
 import {
-  getGetAdminEmailSettingsQueryKey,
   getGetAdminSummaryQueryKey,
   getListAdminEnrollmentsQueryKey,
   getListAdminOrientationRequestsQueryKey,
   getListAdminTourBookingsQueryKey,
   useConfirmOrientationEnrollment,
   useCreateAdminEnrollment,
-  useGetAdminEmailSettings,
   useListAdminEnrollments,
   useListCourses,
   useMarkOrientationRequestNotEnrolled,
-  useResendOrientationConfirmation,
-  useResendTourConfirmation,
-  useSendAdminTestEmail,
-  useUpdateAdminEmailSettings,
   useUpdateAdminEnrollment,
   useUpdateOrientationRequestManagement,
   useUpdateTourBookingManagement,
@@ -65,10 +59,12 @@ function dateLabel(value: string | Date) {
 }
 
 function invalidateCRM(client: ReturnType<typeof useQueryClient>) {
-  client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
-  client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
-  client.invalidateQueries({ queryKey: getListAdminEnrollmentsQueryKey() });
-  client.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() });
+  return Promise.all([
+    client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() }),
+    client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() }),
+    client.invalidateQueries({ queryKey: getListAdminEnrollmentsQueryKey() }),
+    client.invalidateQueries({ queryKey: getGetAdminSummaryQueryKey() }),
+  ]);
 }
 
 function ReminderFields({
@@ -89,23 +85,15 @@ function ReminderFields({
   </label>;
 }
 
-function EmailStatusLabel({ status }: { status: string }) {
-  const label = status === "sent"
-    ? "Inviata"
-    : status === "failed"
-      ? "Invio non riuscito"
-      : status === "disabled"
-        ? "Automazione disattivata"
-        : "Mittente da configurare";
-  const style = status === "sent"
-    ? "border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)]"
-    : status === "failed"
-      ? "border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)]"
-      : "border-[hsl(var(--border))] bg-[hsl(var(--muted)/.45)]";
-  return <span className={`inline-flex border px-2 py-1 text-[.65rem] ${style}`}>{label}</span>;
-}
-
-export function EnrollmentDecisionActions({ item }: { item: OrientationRequest }) {
+export function EnrollmentDecisionActions({
+  item,
+  onEnrollmentRecorded,
+  onMarkedNotEnrolled,
+}: {
+  item: OrientationRequest;
+  onEnrollmentRecorded?: () => void;
+  onMarkedNotEnrolled?: () => void;
+}) {
   const client = useQueryClient();
   const confirm = useConfirmOrientationEnrollment();
   const markNotEnrolled = useMarkOrientationRequestNotEnrolled();
@@ -113,17 +101,19 @@ export function EnrollmentDecisionActions({ item }: { item: OrientationRequest }
   const busy = confirm.isPending || markNotEnrolled.isPending;
 
   const confirmEnrollment = () => confirm.mutate({ id: item.id }, {
-    onSuccess: (enrollment) => {
+    onSuccess: async (enrollment) => {
       setMessage(`Iscrizione registrata · ${euro(enrollment.commissionCents)} segnati come incassati.`);
-      invalidateCRM(client);
+      await invalidateCRM(client);
+      onEnrollmentRecorded?.();
     },
     onError: () => setMessage("Non posso registrare l’iscrizione: verifica se esiste già una scheda collegata."),
   });
 
   const markAsNotEnrolled = () => markNotEnrolled.mutate({ id: item.id }, {
-    onSuccess: () => {
+    onSuccess: async () => {
       setMessage("La persona è stata spostata tra le non iscritte.");
-      invalidateCRM(client);
+      await invalidateCRM(client);
+      onMarkedNotEnrolled?.();
     },
     onError: () => setMessage("Non posso segnare la persona come non iscritta: esiste già una scheda iscrizione."),
   });
@@ -172,7 +162,6 @@ export function OrientationManagementEditor({
 }) {
   const client = useQueryClient();
   const update = useUpdateOrientationRequestManagement();
-  const resend = useResendOrientationConfirmation();
   const [status, setStatus] = useState<OrientationPipelineStatus>(item.pipelineStatus);
   const [notes, setNotes] = useState(item.adminNotes);
   const [followUp, setFollowUp] = useState(toLocalDateTime(item.followUpAt));
@@ -196,7 +185,7 @@ export function OrientationManagementEditor({
     });
   };
 
-  return <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+  return <div className="max-w-3xl">
     <form onSubmit={save} className="space-y-4">
       <label className="block text-xs font-semibold">
         Avanzamento
@@ -219,33 +208,12 @@ export function OrientationManagementEditor({
         {message && <span role="status" className="text-xs text-[hsl(var(--muted-foreground))]">{message}</span>}
       </div>
     </form>
-    <div className="border-l border-[hsl(var(--border))] pl-0 lg:pl-5">
-      <p className="eyebrow mb-3">Conferma email</p>
-      <EmailStatusLabel status={item.confirmationEmailStatus} />
-      {item.confirmationEmailSentAt && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Ultimo invio: {dateLabel(item.confirmationEmailSentAt)}</p>}
-      {item.confirmationEmailError && <p className="mt-2 text-xs text-[hsl(var(--destructive))]">{item.confirmationEmailError}</p>}
-      <button
-        type="button"
-        disabled={resend.isPending}
-        onClick={() => resend.mutate({ id: item.id }, {
-          onSuccess: (result) => {
-            setMessage(result.message);
-            client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
-          },
-          onError: () => setMessage("Email non inviata. Controlla il mittente verificato in Resend."),
-        })}
-        className="mt-4 inline-flex items-center gap-2 border border-[hsl(var(--border))] px-3 py-2 text-xs font-semibold disabled:opacity-50"
-      >
-        <RotateCw size={13} /> {resend.isPending ? "Invio…" : "Invia / reinvia conferma"}
-      </button>
-    </div>
   </div>;
 }
 
 export function TourManagementEditor({ item }: { item: TourBooking }) {
   const client = useQueryClient();
   const update = useUpdateTourBookingManagement();
-  const resend = useResendTourConfirmation();
   const [notes, setNotes] = useState(item.adminNotes);
   const [followUp, setFollowUp] = useState(toLocalDateTime(item.followUpAt));
   const [message, setMessage] = useState("");
@@ -267,7 +235,7 @@ export function TourManagementEditor({ item }: { item: TourBooking }) {
     });
   };
 
-  return <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
+  return <div className="max-w-3xl">
     <form onSubmit={save} className="space-y-4">
       <ReminderFields value={followUp} onChange={setFollowUp} />
       <label className="block text-xs font-semibold">
@@ -281,26 +249,6 @@ export function TourManagementEditor({ item }: { item: TourBooking }) {
         {message && <span role="status" className="text-xs text-[hsl(var(--muted-foreground))]">{message}</span>}
       </div>
     </form>
-    <div className="border-l border-[hsl(var(--border))] pl-0 lg:pl-5">
-      <p className="eyebrow mb-3">Conferma email</p>
-      <EmailStatusLabel status={item.confirmationEmailStatus} />
-      {item.confirmationEmailSentAt && <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">Ultimo invio: {dateLabel(item.confirmationEmailSentAt)}</p>}
-      {item.confirmationEmailError && <p className="mt-2 text-xs text-[hsl(var(--destructive))]">{item.confirmationEmailError}</p>}
-      <button
-        type="button"
-        disabled={resend.isPending}
-        onClick={() => resend.mutate({ id: item.id }, {
-          onSuccess: (result) => {
-            setMessage(result.message);
-            client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
-          },
-          onError: () => setMessage("Email non inviata. Controlla il mittente verificato in Resend."),
-        })}
-        className="mt-4 inline-flex items-center gap-2 border border-[hsl(var(--border))] px-3 py-2 text-xs font-semibold disabled:opacity-50"
-      >
-        <RotateCw size={13} /> {resend.isPending ? "Invio…" : "Invia / reinvia conferma"}
-      </button>
-    </div>
   </div>;
 }
 
@@ -514,82 +462,6 @@ export function EnrollmentPanel({
         <tbody>{visibleEnrollments.map((item) => <EnrollmentRow key={item.id} item={item} />)}</tbody>
       </table>
     </div>}
-  </section>;
-}
-
-export function EmailSettingsPanel() {
-  const client = useQueryClient();
-  const settings = useGetAdminEmailSettings();
-  const save = useUpdateAdminEmailSettings();
-  const sendTest = useSendAdminTestEmail();
-  const [senderEmail, setSenderEmail] = useState("");
-  const [senderName, setSenderName] = useState("Sofia");
-  const [orientationEnabled, setOrientationEnabled] = useState(false);
-  const [tourEnabled, setTourEnabled] = useState(false);
-  const [testRecipient, setTestRecipient] = useState("");
-  const [message, setMessage] = useState("");
-  const [testMessage, setTestMessage] = useState("");
-  const savedSenderEmail = settings.data?.senderEmail?.trim().toLowerCase() ?? "";
-  const senderIsSaved = Boolean(savedSenderEmail) && senderEmail.trim().toLowerCase() === savedSenderEmail;
-
-  useEffect(() => {
-    if (!settings.data) return;
-    setSenderEmail(settings.data.senderEmail ?? "");
-    setSenderName(settings.data.senderName);
-    setOrientationEnabled(settings.data.sendOrientationConfirmations);
-    setTourEnabled(settings.data.sendTourConfirmations);
-  }, [settings.data]);
-
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    save.mutate({
-      data: {
-        senderEmail: senderEmail.trim() || null,
-        senderName: senderName.trim(),
-        sendOrientationConfirmations: orientationEnabled,
-        sendTourConfirmations: tourEnabled,
-      },
-    }, {
-      onSuccess: () => {
-        setMessage("Impostazioni salvate.");
-        client.invalidateQueries({ queryKey: getGetAdminEmailSettingsQueryKey() });
-      },
-      onError: () => setMessage("Non riesco a salvare le impostazioni. Riprova."),
-    });
-  };
-
-  const submitTest = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setTestMessage("");
-    sendTest.mutate({ data: { to: testRecipient.trim() } }, {
-      onSuccess: (result) => setTestMessage(result.message),
-      onError: () => setTestMessage("Email di prova non inviata. Verifica che il mittente sia verificato in Resend."),
-    });
-  };
-
-  return <section className="space-y-7 p-5 md:p-7">
-    <div><p className="eyebrow">comunicazioni</p><h2 className="mt-2 font-serif text-3xl">Conferme automatiche</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">Le richieste vengono salvate anche se un invio email fallisce. Configura un mittente verificato su Resend, attiva i messaggi e controlla o reinvia le conferme dalle singole schede.</p></div>
-    {settings.isError && <TableNotice error>Non riesco a caricare le impostazioni email.</TableNotice>}
-    <form onSubmit={submit} className="space-y-5 border border-[hsl(var(--border))] p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="text-xs font-semibold">Nome mittente<input className="field mt-2" maxLength={80} required value={senderName} onChange={(event) => setSenderName(event.target.value)} /></label>
-        <label className="text-xs font-semibold">Email mittente verificata<input className="field mt-2" type="email" value={senderEmail} onChange={(event) => setSenderEmail(event.target.value)} placeholder="Sofia@tuodominio.it" /><span className="mt-2 block font-normal text-[hsl(var(--muted-foreground))]">Resend accetta invii ai clienti solo da un indirizzo o dominio verificato.</span></label>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex items-start gap-3 border border-[hsl(var(--border))] p-4 text-sm"><input type="checkbox" checked={orientationEnabled} onChange={(event) => setOrientationEnabled(event.target.checked)} className="mt-0.5 accent-[hsl(var(--foreground))]" /><span><strong className="block">Richieste di orientamento</strong><span className="mt-1 block text-xs text-[hsl(var(--muted-foreground))]">Invia una ricevuta quando una persona invia il modulo.</span></span></label>
-        <label className="flex items-start gap-3 border border-[hsl(var(--border))] p-4 text-sm"><input type="checkbox" checked={tourEnabled} onChange={(event) => setTourEnabled(event.target.checked)} className="mt-0.5 accent-[hsl(var(--foreground))]" /><span><strong className="block">Tour della piattaforma</strong><span className="mt-1 block text-xs text-[hsl(var(--muted-foreground))]">Conferma data e ora quando un tour viene prenotato.</span></span></label>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={save.isPending || settings.isLoading} className="inline-flex items-center gap-2 bg-[hsl(var(--foreground))] px-5 py-3 text-sm font-semibold text-[hsl(var(--background))] disabled:opacity-50"><Save size={15} />{save.isPending ? "Salvataggio…" : "Salva impostazioni"}</button>
-        {message && <span role="status" className="text-sm text-[hsl(var(--muted-foreground))]">{message}</span>}
-      </div>
-    </form>
-    <form onSubmit={submitTest} className="grid gap-4 border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)] p-5 sm:grid-cols-[1fr_auto] sm:items-end">
-      <label className="text-xs font-semibold">Invia un test a<input className="field mt-2" type="email" required value={testRecipient} onChange={(event) => setTestRecipient(event.target.value)} placeholder="tuoindirizzo@email.it" /></label>
-      <button type="submit" disabled={sendTest.isPending || save.isPending || !senderIsSaved} className="inline-flex items-center justify-center gap-2 border border-[hsl(var(--foreground))] px-5 py-3 text-sm font-semibold disabled:opacity-50"><Mail size={15} />{sendTest.isPending ? "Invio…" : "Invia test"}</button>
-      {testMessage && <p role="status" className="text-sm text-[hsl(var(--muted-foreground))] sm:col-span-2">{testMessage}</p>}
-      {!senderIsSaved && <p className="text-xs text-[hsl(var(--muted-foreground))] sm:col-span-2">Inserisci e salva l’indirizzo mittente verificato prima di inviare il test.</p>}
-    </form>
   </section>;
 }
 

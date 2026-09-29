@@ -20,7 +20,7 @@ import {
   type OrientationRequest,
   type TourBooking,
 } from "../lib/sofia-db";
-import { persistEmailDelivery, sendAutomaticConfirmation } from "../lib/sofia-email";
+import { persistEmailDelivery, type EmailDelivery } from "../lib/sofia-email";
 
 const router: IRouter = Router();
 
@@ -63,16 +63,8 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
     phone.trim(), university, courseId, course.name, new Date().toISOString(),
   );
   const id = Number(result.lastInsertRowid);
-  const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
-    type: "orientation",
-    firstName: firstName.trim(),
-    university,
-    courseName: course.name,
-  });
+  const delivery: EmailDelivery = { status: "disabled", sentAt: null, error: "" };
   persistEmailDelivery("richieste_corso", id, delivery);
-  if (delivery.status === "failed") {
-    req.log.warn({ requestId: id, status: delivery.status }, "Orientation confirmation email was not sent");
-  }
   const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
     .get(id) as OrientationRequest;
   const response = CreateOrientationRequestResponse.parse({
@@ -131,16 +123,8 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
       phone.trim(), dateString, time, new Date().toISOString(),
     );
     const id = Number(result.lastInsertRowid);
-    const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
-      type: "tour",
-      firstName: firstName.trim(),
-      date: dateString,
-      time,
-    });
+    const delivery: EmailDelivery = { status: "disabled", sentAt: null, error: "" };
     persistEmailDelivery("prenotazioni_tour", id, delivery);
-    if (delivery.status === "failed") {
-      req.log.warn({ bookingId: id, status: delivery.status }, "Tour confirmation email was not sent");
-    }
     const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
       .get(id) as TourBooking;
     // Zod validates format: date by coercing it to Date. Preserve the wire

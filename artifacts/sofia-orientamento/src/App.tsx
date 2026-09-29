@@ -20,6 +20,7 @@ import { FaTiktok, FaWhatsapp } from 'react-icons/fa6';
 import {
   getGetAdminStatusQueryKey,
   getGetAdminSummaryQueryKey,
+  getListAdminOrientationRequestsQueryKey,
   getListAdminTourBookingsQueryKey,
   getListTourSlotsQueryKey,
   useCreateOrientationRequest,
@@ -39,7 +40,6 @@ import type { OrientationRequest, TourBooking, TourSlot } from '@workspace/api-c
 import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import {
-  EmailSettingsPanel,
   EnrollmentDecisionActions,
   EnrollmentPanel,
   OrientationManagementEditor,
@@ -184,13 +184,8 @@ function OrientationForm() {
     setMessage(null);
     if (!university || !courseId) { setMessage({ kind: 'error', text: 'Scegli un ateneo e un corso per continuare.' }); return; }
     create.mutate({ data: { ...values, university, courseId } }, {
-      onSuccess: (receipt) => {
-        const emailMessage = receipt.confirmationEmailStatus === 'sent'
-          ? 'Ti ho inviato una conferma all’indirizzo email indicato.'
-          : receipt.confirmationEmailStatus === 'failed'
-            ? 'La richiesta è registrata, ma l’invio della conferma email non è riuscito.'
-            : 'La richiesta è registrata; la conferma email automatica non è attiva al momento.';
-        setMessage({ kind: 'success', text: `Grazie, ho ricevuto la tua richiesta. ${emailMessage} Sofia ti contatterà presto.` });
+      onSuccess: () => {
+        setMessage({ kind: 'success', text: 'Grazie, ho ricevuto la tua richiesta. Sofia ti contatterà presto.' });
         setValues(contactDefaults); setUniversity(''); setCourseId('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile inviare la richiesta. Riprova tra poco.') }),
@@ -226,14 +221,9 @@ function TourForm() {
     if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli prima una data e un orario disponibile.' }); return; }
     if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
     create.mutate({ data: { ...values, date, time } }, {
-      onSuccess: (receipt) => {
+      onSuccess: () => {
         client.invalidateQueries({ queryKey: getListTourSlotsQueryKey({ date }) });
-        const emailMessage = receipt.confirmationEmailStatus === 'sent'
-          ? 'Ti ho inviato una conferma email con data e ora.'
-          : receipt.confirmationEmailStatus === 'failed'
-            ? 'La prenotazione è registrata, ma l’invio della conferma email non è riuscito.'
-            : 'La prenotazione è registrata; la conferma email automatica non è attiva al momento.';
-        setMessage({ kind: 'success', text: `Il tuo Meet è prenotato. ${emailMessage} Sofia ti condividerà personalmente i dettagli per partecipare.` });
+        setMessage({ kind: 'success', text: 'Il tuo Meet è prenotato. Sofia ti condividerà personalmente i dettagli per partecipare.' });
         setValues(contactDefaults); setDate(''); setTime('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile prenotare il tour. Riprova tra poco.') }),
@@ -418,10 +408,17 @@ function WhatsAppButton({ phone, text, id }: { phone: string; text: string; id: 
 
 function Dashboard() {
   const client = useQueryClient();
-  const [tab, setTab] = useState<"orientation" | "tours" | "enrollments" | "email">("orientation");
+  const [tab, setTab] = useState<"orientation" | "not_concluded" | "tours" | "enrollments">("orientation");
   const [enrollmentPrefill, setEnrollmentPrefill] = useState<EnrollmentPrefill | null>(null);
-  const { data: summary, isLoading: summaryLoading } = useGetAdminSummary();
-  const requests = useListAdminOrientationRequests();
+  const { data: summary, isLoading: summaryLoading } = useGetAdminSummary({
+    query: { refetchInterval: 15_000, queryKey: getGetAdminSummaryQueryKey() },
+  });
+  const requests = useListAdminOrientationRequests({
+    query: { refetchInterval: 15_000, queryKey: getListAdminOrientationRequestsQueryKey() },
+  });
+  const allRequests = requests.data ?? [];
+  const pendingRequests = allRequests.filter((item) => item.enrollmentOutcome === "pending");
+  const notConcludedRequests = allRequests.filter((item) => item.enrollmentOutcome === "not_enrolled");
   const bookings = useListAdminTourBookings();
   const logout = useLogoutAdmin();
   const update = useUpdateTourBookingStatus();
@@ -465,18 +462,37 @@ function Dashboard() {
       </div>}
       <section className="mt-10 border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <nav className="flex overflow-x-auto border-b border-[hsl(var(--border))]" role="tablist" aria-label="Gestione area riservata">
-          <button type="button" role="tab" aria-selected={tab === "orientation"} onClick={() => setTab("orientation")} data-testid="tab-orientation" className={tabClass(tab === "orientation")}>Richieste</button>
+          <button type="button" role="tab" aria-selected={tab === "orientation"} onClick={() => setTab("orientation")} data-testid="tab-orientation" className={tabClass(tab === "orientation")}>Richieste <span className="ml-1 text-xs text-[hsl(var(--muted-foreground))]">{pendingRequests.length}</span></button>
+          <button type="button" role="tab" aria-selected={tab === "not_concluded"} onClick={() => setTab("not_concluded")} data-testid="tab-not-concluded" className={tabClass(tab === "not_concluded")}>Non concluse <span className="ml-1 text-xs text-[hsl(var(--muted-foreground))]">{notConcludedRequests.length}</span></button>
           <button type="button" role="tab" aria-selected={tab === "tours"} onClick={() => setTab("tours")} data-testid="tab-tours" className={tabClass(tab === "tours")}>Tour Meet</button>
           <button type="button" role="tab" aria-selected={tab === "enrollments"} onClick={() => setTab("enrollments")} data-testid="tab-enrollments" className={tabClass(tab === "enrollments")}>Iscrizioni e provvigioni</button>
-          <button type="button" role="tab" aria-selected={tab === "email"} onClick={() => setTab("email")} data-testid="tab-email" className={tabClass(tab === "email")}>Email automatiche</button>
         </nav>
-        {tab === "orientation" && <OrientationTable data={requests.data} loading={requests.isLoading} error={requests.isError} onRecordEnrollment={(item) => {
-          setEnrollmentPrefill(item);
-          setTab("enrollments");
-        }} />}
+        {tab === "orientation" && <OrientationTable
+          data={pendingRequests}
+          loading={requests.isLoading}
+          error={requests.isError}
+          view="requests"
+          onRecordEnrollment={(item) => {
+            setEnrollmentPrefill(item);
+            setTab("enrollments");
+          }}
+          onEnrollmentRecorded={() => setTab("enrollments")}
+          onMarkedNotEnrolled={() => setTab("not_concluded")}
+        />}
+        {tab === "not_concluded" && <OrientationTable
+          data={notConcludedRequests}
+          loading={requests.isLoading}
+          error={requests.isError}
+          view="not_concluded"
+          onRecordEnrollment={(item) => {
+            setEnrollmentPrefill(item);
+            setTab("enrollments");
+          }}
+          onEnrollmentRecorded={() => setTab("enrollments")}
+          onMarkedNotEnrolled={() => setTab("not_concluded")}
+        />}
         {tab === "tours" && <ToursTable data={bookings.data} loading={bookings.isLoading} error={bookings.isError} onStatus={statusUpdate} updating={update.isPending} />}
         {tab === "enrollments" && <EnrollmentPanel prefill={enrollmentPrefill} onPrefillConsumed={() => setEnrollmentPrefill(null)} />}
-        {tab === "email" && <EmailSettingsPanel />}
       </section>
     </main>
   </div>;
@@ -496,12 +512,18 @@ function OrientationTable({
   data,
   loading,
   error,
+  view,
   onRecordEnrollment,
+  onEnrollmentRecorded,
+  onMarkedNotEnrolled,
 }: {
   data?: OrientationRequest[];
   loading: boolean;
   error: boolean;
+  view: "requests" | "not_concluded";
   onRecordEnrollment: (item: OrientationRequest) => void;
+  onEnrollmentRecorded: () => void;
+  onMarkedNotEnrolled: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -509,6 +531,7 @@ function OrientationTable({
     const term = search.trim().toLocaleLowerCase("it");
     const matchesSearch = !term || `${item.firstName} ${item.lastName} ${item.email} ${item.courseName} ${item.university}`.toLocaleLowerCase("it").includes(term);
     const due = Boolean(
+      view === "requests" &&
       item.followUpAt &&
       new Date(item.followUpAt) <= new Date() &&
       item.pipelineStatus !== "enrolled" &&
@@ -517,27 +540,36 @@ function OrientationTable({
     );
     const matchesFilter = filter === "all" ||
       filter === item.pipelineStatus ||
-      (filter === "due" && due) ||
-      (filter.startsWith("outcome:") && item.enrollmentOutcome === filter.slice("outcome:".length));
+      (filter === "due" && due);
     return matchesSearch && matchesFilter;
-  }), [data, filter, search]);
+  }), [data, filter, search, view]);
 
   if (loading || error) return <TableState loading={loading} error={error} />;
   if (!data?.length) return <div className="p-10 text-center md:p-12">
-    <p className="font-serif text-2xl">Ancora nessuna richiesta.</p>
-    <p className="mx-auto mt-2 max-w-2xl text-sm text-[hsl(var(--muted-foreground))]">Al momento ci sono 0 richieste, quindi non ci sono righe su cui usare le azioni. Quando arriva una richiesta, nella colonna “Iscrizione” trovi ✓ per registrare l’iscrizione dai dati già raccolti e segnare €180 come incassati, oppure X per segnarla come non iscritta senza creare una provvigione.</p>
+    <p className="font-serif text-2xl">{view === "requests" ? "Ancora nessuna richiesta." : "Nessuna pratica non conclusa."}</p>
+    <p className="mx-auto mt-2 max-w-2xl text-sm text-[hsl(var(--muted-foreground))]">{view === "requests"
+      ? "Le nuove richieste inviate dal modulo di orientamento compaiono qui automaticamente. L’elenco si aggiorna ogni 15 secondi."
+      : "Le persone contrassegnate con X compaiono qui, senza provvigione. Se l’esito cambia, puoi ancora registrare l’iscrizione con ✓."}</p>
   </div>;
   return <div className="p-5 md:p-7">
     <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-      <label className="relative block flex-1"><span className="sr-only">Cerca richieste</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, corso…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
-      <label className="sm:w-56"><span className="sr-only">Filtra richieste</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Tutte le richieste</option><optgroup label="Stato richiesta">{Object.entries(leadStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</optgroup><optgroup label="Esito iscrizione"><option value="outcome:pending">In attesa di esito</option><option value="outcome:enrolled">Iscritte</option><option value="outcome:not_enrolled">Non iscritte</option></optgroup><option value="due">Promemoria scaduti</option></select></label>
+      <label className="relative block flex-1"><span className="sr-only">{view === "requests" ? "Cerca richieste" : "Cerca persone non iscritte"}</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, corso…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
+      <label className="sm:w-56"><span className="sr-only">Filtra per stato</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">{view === "requests" ? "Tutte le richieste" : "Tutte le persone"}</option><optgroup label="Stato richiesta">{Object.entries(leadStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</optgroup>{view === "requests" && <option value="due">Promemoria scaduti</option>}</select></label>
     </div>
-    <p className="mb-4 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">✓ registra l’iscrizione dai dati già raccolti e segna €180 come incassati. La X inserisce la persona tra le non iscritte, senza provvigione.</p>
+    <p className="mb-4 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">{view === "requests"
+      ? "✓ registra l’iscrizione dai dati già raccolti e segna €180 come incassati. La X sposta la persona in “Non concluse”, senza provvigione."
+      : "✓ registra l’iscrizione e segna €180 come incassati. La persona verrà spostata in “Iscrizioni e provvigioni”."}</p>
     <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
-    {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna richiesta corrisponde ai filtri.</div> : <div className="overflow-x-auto">
-      <table className="w-full min-w-[1780px] text-left text-sm">
-        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Ateneo", "Corso scelto", "Stato richiesta", "Esito iscrizione", "Promemoria", "Email", "Iscrizione", "Contatta / gestisci"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
-        <tbody>{visible.map((item) => <OrientationRow key={item.id} item={item} onRecordEnrollment={onRecordEnrollment} />)}</tbody>
+    {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">{view === "requests" ? "Nessuna richiesta corrisponde ai filtri." : "Nessuna persona corrisponde ai filtri."}</div> : <div className="overflow-x-auto">
+      <table className="w-full min-w-[1640px] text-left text-sm">
+        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Ateneo", "Corso scelto", "Stato richiesta", "Esito iscrizione", "Promemoria", "Iscrizione", "Contatta / gestisci"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
+        <tbody>{visible.map((item) => <OrientationRow
+          key={item.id}
+          item={item}
+          onRecordEnrollment={onRecordEnrollment}
+          onEnrollmentRecorded={onEnrollmentRecorded}
+          onMarkedNotEnrolled={onMarkedNotEnrolled}
+        />)}</tbody>
       </table>
     </div>}
   </div>;
@@ -554,18 +586,15 @@ const leadStatusLabels: Record<OrientationRequest["pipelineStatus"], string> = {
 function OrientationRow({
   item,
   onRecordEnrollment,
+  onEnrollmentRecorded,
+  onMarkedNotEnrolled,
 }: {
   item: OrientationRequest;
   onRecordEnrollment: (item: OrientationRequest) => void;
+  onEnrollmentRecorded: () => void;
+  onMarkedNotEnrolled: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const emailLabel = item.confirmationEmailStatus === "sent"
-    ? "Inviata"
-    : item.confirmationEmailStatus === "failed"
-      ? "Da ritentare"
-      : item.confirmationEmailStatus === "disabled"
-        ? "Disattivata"
-        : "Da configurare";
   return <>
     <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
       <td className="whitespace-nowrap px-4 py-4 text-xs">{formatDateTime(item.createdAt)}</td>
@@ -579,11 +608,10 @@ function OrientationRow({
       <td className="px-4 py-4 text-xs">{leadStatusLabels[item.pipelineStatus]}</td>
       <td className="px-4 py-4 text-xs">{item.enrollmentOutcome === "pending" ? "In attesa" : item.enrollmentOutcome === "enrolled" ? "Iscritta" : "Non iscritta"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
-      <td className="px-4 py-4 text-xs">{emailLabel}</td>
-      <td className="px-4 py-4"><EnrollmentDecisionActions item={item} /></td>
+      <td className="px-4 py-4"><EnrollmentDecisionActions item={item} onEnrollmentRecorded={onEnrollmentRecorded} onMarkedNotEnrolled={onMarkedNotEnrolled} /></td>
       <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di orientamento per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
     </tr>
-    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={14} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
+    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={13} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
   </>;
 }
 
@@ -605,8 +633,8 @@ function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourB
     </div>
     <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
     {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna prenotazione corrisponde ai filtri.</div> : <div className="overflow-x-auto">
-      <table className="w-full min-w-[1510px] text-left text-sm">
-        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora appuntamento", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Stato", "Contatta", "Conferma email", "Promemoria", "Ricevuta", "Gestione"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
+      <table className="w-full min-w-[1400px] text-left text-sm">
+        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora appuntamento", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Stato", "Contatta", "Promemoria", "Ricevuta", "Gestione"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
         <tbody>{visible.map((item) => <TourRow key={item.id} item={item} onStatus={onStatus} updating={updating} />)}</tbody>
       </table>
     </div>}
@@ -615,13 +643,6 @@ function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourB
 
 function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const emailLabel = item.confirmationEmailStatus === "sent"
-    ? "Inviata"
-    : item.confirmationEmailStatus === "failed"
-      ? "Da ritentare"
-      : item.confirmationEmailStatus === "disabled"
-        ? "Disattivata"
-        : "Da configurare";
   return <>
     <tr data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
       <td className="whitespace-nowrap px-4 py-4">{formatDate(item.date)} · {item.time}</td>
@@ -632,12 +653,11 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
       <td className="whitespace-nowrap px-4 py-4">{item.phone}</td>
       <td className="px-4 py-4"><select disabled={updating} value={item.status} onChange={(event) => onStatus(item.id, event.target.value as BookingStatus)} data-testid={`select-status-${item.id}`} className={`border px-2 py-2 text-xs ${item.status === "confirmed" ? "border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)]" : item.status === "cancelled" ? "border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)]" : "border-[hsl(var(--border))]"}`}><option value="confirmed">Confermato</option><option value="cancelled">Annullato</option><option value="completed">Completato</option></select></td>
       <td className="whitespace-nowrap px-4 py-4"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ti scrivo per il nostro Meet del ${formatDate(item.date)} alle ${item.time}.`} /></td>
-      <td className="px-4 py-4 text-xs">{emailLabel}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs text-[hsl(var(--muted-foreground))]">{formatDateTime(item.createdAt)}</td>
       <td className="px-4 py-4"><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></td>
     </tr>
-    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={12} className="p-5"><TourManagementEditor item={item} /></td></tr>}
+    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={11} className="p-5"><TourManagementEditor item={item} /></td></tr>}
   </>;
 }
 
