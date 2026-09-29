@@ -523,7 +523,10 @@ function OrientationTable({
   }), [data, filter, search]);
 
   if (loading || error) return <TableState loading={loading} error={error} />;
-  if (!data?.length) return <div className="p-12 text-center"><p className="font-serif text-2xl">Ancora nessuna richiesta.</p><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Quando arriverà, la vedrai qui.</p></div>;
+  if (!data?.length) return <div className="p-10 text-center md:p-12">
+    <p className="font-serif text-2xl">Ancora nessuna richiesta.</p>
+    <p className="mx-auto mt-2 max-w-2xl text-sm text-[hsl(var(--muted-foreground))]">Al momento ci sono 0 richieste, quindi non ci sono righe su cui usare le azioni. Quando arriva una richiesta, nella colonna “Iscrizione” trovi ✓ per registrare l’iscrizione dai dati già raccolti e segnare €180 come incassati, oppure X per segnarla come non iscritta senza creare una provvigione.</p>
+  </div>;
   return <div className="p-5 md:p-7">
     <div className="mb-5 flex flex-col gap-3 sm:flex-row">
       <label className="relative block flex-1"><span className="sr-only">Cerca richieste</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, corso…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
