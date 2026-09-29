@@ -105,13 +105,13 @@
 /* The visual system: editorial route maps, warm neutrals, plum ink, and pastel rose. */
 .route-shell { position: relative; overflow: hidden; }
 .route-shell::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .32; background-image: linear-gradient(hsl(var(--foreground)/.05) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)/.05) 1px, transparent 1px); background-size: 38px 38px; mask-image: linear-gradient(to bottom, black, transparent 70%); }
-.hero-route { position: relative; min-height: 610px; background: hsl(var(--secondary)); color: hsl(var(--background)); }
+.hero-route { position: relative; min-height: 610px; background: hsl(var(--accent)); color: hsl(var(--foreground)); }
 .hero-route::after { content: ''; position: absolute; right: -18%; top: 14%; width: 48vw; height: 48vw; max-width: 620px; max-height: 620px; border: 1px solid hsl(var(--primary)/.6); border-radius: 50%; box-shadow: 0 0 0 30px hsl(var(--primary)/.05), 0 0 0 70px hsl(var(--accent)/.06); }
 .hero-route .route-copy { position: relative; z-index: 2; }
 .hero-route .route-copy h1 { font-family: var(--app-font-display); font-weight: 700; letter-spacing: -.07em; }
 .route-map { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.route-map path { fill: none; stroke: hsl(var(--accent)); stroke-width: 2; }
-.route-map circle { fill: hsl(var(--accent)); stroke: hsl(var(--secondary)); stroke-width: 5; }
+.route-map path { fill: none; stroke: hsl(var(--primary)); stroke-width: 2; }
+.route-map circle { fill: hsl(var(--primary)); stroke: hsl(var(--accent)); stroke-width: 5; }
 .route-number { color: hsl(var(--accent)); font-family: var(--app-font-mono); }
 .route-card { position: relative; border: 1px solid hsl(var(--foreground)/.3); background: hsl(var(--card)); transition: transform .25s, border-color .25s, box-shadow .25s; }
 .route-card:hover { transform: translate(-6px,-6px); border-color: hsl(var(--primary)); box-shadow: 7px 7px 0 hsl(var(--accent)); }

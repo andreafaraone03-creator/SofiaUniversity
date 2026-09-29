@@ -247,12 +247,12 @@ function Home() {
       <svg className="route-map" viewBox="0 0 1200 620" preserveAspectRatio="none" aria-hidden="true"><path className="route-line" d="M10 500 C180 420 160 130 360 180 S500 510 690 390 S820 110 1160 170" /><circle cx="360" cy="180" r="9" /><circle cx="690" cy="390" r="9" /><circle className="route-pin" cx="1015" cy="150" r="13" /></svg>
       <div className="route-copy mx-auto grid min-h-[610px] max-w-[1500px] items-center gap-10 px-5 py-20 md:grid-cols-[1.05fr_.95fr] md:px-10 md:py-24">
         <div className="page-in">
-          <p className="eyebrow !text-[hsl(var(--accent))]">orientamento universitario · roma / online</p>
-          <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--accent))]">tua rotta.</span></h1>
-          <p className="mt-8 max-w-xl text-lg leading-relaxed text-[hsl(var(--background)/.75)] md:text-xl">L’università non è una risposta da indovinare. È una direzione da mettere a fuoco, insieme.</p>
-          <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#servizi" className="btn-rose" data-testid="link-discover-services">Inizia da qui <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 border-b border-[hsl(var(--accent))] py-2 text-sm text-[hsl(var(--background))]" data-testid="link-meet-sofia">Conosci Sofia <ArrowRight size={15} /></Link></div>
+          <p className="eyebrow !text-[hsl(var(--primary))]">orientamento universitario · roma / online</p>
+          <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--primary))]">tua rotta.</span></h1>
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-[hsl(var(--foreground)/.75)] md:text-xl">L’università non è una risposta da indovinare. È una direzione da mettere a fuoco, insieme.</p>
+          <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#servizi" className="btn-rose" data-testid="link-discover-services">Inizia da qui <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 border-b border-[hsl(var(--primary))] py-2 text-sm text-[hsl(var(--foreground))]" data-testid="link-meet-sofia">Conosci Sofia <ArrowRight size={15} /></Link></div>
         </div>
-        <div className="page-in delay-2 relative z-10 ml-auto max-w-sm border border-[hsl(var(--primary)/.65)] bg-[hsl(var(--secondary)/.72)] p-7 backdrop-blur-sm md:mr-8 md:p-9">
+        <div className="page-in delay-2 relative z-10 ml-auto max-w-sm border border-[hsl(var(--primary)/.65)] bg-[hsl(var(--secondary)/.92)] p-7 text-[hsl(var(--secondary-foreground))] backdrop-blur-sm md:mr-8 md:p-9">
           <div className="flex items-center justify-between"><span className="route-number">01 / PARTENZA</span><Sparkles size={18} className="text-[hsl(var(--accent))]" /></div>
           <p className="mt-20 font-serif text-3xl leading-tight md:text-4xl">Non devi avere già tutte le risposte.</p>
           <p className="mt-5 text-sm leading-relaxed text-[hsl(var(--background)/.68)]">Una domanda sincera è già un punto sulla mappa. Da lì, costruiamo una direzione.</p>
