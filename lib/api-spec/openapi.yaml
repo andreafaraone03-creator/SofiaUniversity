@@ -72,7 +72,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OrientationRequest"
+                $ref: "#/components/schemas/OrientationRequestReceipt"
   /tour-slots:
     get:
       operationId: listTourSlots
@@ -259,6 +259,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrientationRequest"
+  /admin/orientation-requests/{id}/confirm-enrollment:
+    post:
+      operationId: confirmOrientationEnrollment
+      tags: [admin]
+      summary: Registra un'iscrizione e conferma la provvigione incassata
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Iscrizione e provvigione registrate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enrollment"
+        "404":
+          description: Richiesta non trovata
+        "409":
+          description: Esiste già un'iscrizione collegata alla richiesta
+  /admin/orientation-requests/{id}/mark-not-enrolled:
+    post:
+      operationId: markOrientationRequestNotEnrolled
+      tags: [admin]
+      summary: Segna una richiesta come non iscritta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Esito di iscrizione aggiornato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrientationRequest"
+        "404":
+          description: Richiesta non trovata
+        "409":
+          description: La richiesta ha già un'iscrizione registrata
   /admin/tour-bookings/{id}/management:
     patch:
       operationId: updateTourBookingManagement
@@ -481,12 +523,13 @@ components:
             courseName: { type: string }
             createdAt: { type: string, format: date-time }
             pipelineStatus: { $ref: "#/components/schemas/OrientationPipelineStatus" }
+            enrollmentOutcome: { $ref: "#/components/schemas/EnrollmentOutcome" }
             adminNotes: { type: string }
             followUpAt: { type: ["string", "null"], format: date-time }
             confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
             confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
             confirmationEmailError: { type: string }
-          required: [id, university, courseId, courseName, createdAt, pipelineStatus, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+          required: [id, university, courseId, courseName, createdAt, pipelineStatus, enrollmentOutcome, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
     OrientationRequestReceipt:
       type: object
       properties:
@@ -562,6 +605,9 @@ components:
     OrientationPipelineStatus:
       type: string
       enum: [new, contacted, considering, enrolled, closed]
+    EnrollmentOutcome:
+      type: string
+      enum: [pending, enrolled, not_enrolled]
     ConfirmationEmailStatus:
       type: string
       enum: [sent, failed, not_configured, disabled]

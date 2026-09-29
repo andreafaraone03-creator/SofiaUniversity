@@ -66,39 +66,11 @@ export const CreateOrientationRequestBody = zod.object({
   "courseId": zod.string().min(1)
 }))
 
-export const createOrientationRequestResponseOneFirstNameMax = 80;
-
-export const createOrientationRequestResponseOneLastNameMax = 80;
-
-export const createOrientationRequestResponseOneEmailMax = 254;
-
-export const createOrientationRequestResponseOneProvinceMin = 2;
-export const createOrientationRequestResponseOneProvinceMax = 60;
-
-export const createOrientationRequestResponseOnePhoneMin = 6;
-export const createOrientationRequestResponseOnePhoneMax = 30;
-
-
-
 export const CreateOrientationRequestResponse = zod.object({
-  "firstName": zod.string().min(1).max(createOrientationRequestResponseOneFirstNameMax),
-  "lastName": zod.string().min(1).max(createOrientationRequestResponseOneLastNameMax),
-  "email": zod.string().email().max(createOrientationRequestResponseOneEmailMax),
-  "province": zod.string().min(createOrientationRequestResponseOneProvinceMin).max(createOrientationRequestResponseOneProvinceMax),
-  "phone": zod.string().min(createOrientationRequestResponseOnePhoneMin).max(createOrientationRequestResponseOnePhoneMax)
-}).and(zod.object({
   "id": zod.number().int(),
-  "university": zod.string(),
-  "courseId": zod.string(),
-  "courseName": zod.string(),
   "createdAt": zod.coerce.date(),
-  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
-  "adminNotes": zod.string(),
-  "followUpAt": zod.coerce.date().nullable(),
-  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
-  "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
-}))
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled'])
+})
 
 
 /**
@@ -315,6 +287,7 @@ export const ListAdminOrientationRequestsResponseItem = zod.object({
   "courseName": zod.string(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
   "adminNotes": zod.string(),
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
@@ -451,6 +424,80 @@ export const UpdateOrientationRequestManagementResponse = zod.object({
   "courseName": zod.string(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
+  "adminNotes": zod.string(),
+  "followUpAt": zod.coerce.date().nullable(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "confirmationEmailSentAt": zod.coerce.date().nullable(),
+  "confirmationEmailError": zod.string()
+}))
+
+
+/**
+ * @summary Registra un'iscrizione e conferma la provvigione incassata
+ */
+export const ConfirmOrientationEnrollmentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const confirmOrientationEnrollmentResponseCommissionCentsMin = 0;
+
+
+
+export const ConfirmOrientationEnrollmentResponse = zod.object({
+  "id": zod.number().int(),
+  "orientationRequestId": zod.number().int().nullable(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string().email(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "enrolledAt": zod.coerce.date(),
+  "commissionCents": zod.number().int().min(confirmOrientationEnrollmentResponseCommissionCentsMin),
+  "commissionStatus": zod.enum(['pending', 'paid']),
+  "commissionPaidAt": zod.coerce.date().nullable(),
+  "status": zod.enum(['active', 'withdrawn']),
+  "notes": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Segna una richiesta come non iscritta
+ */
+export const MarkOrientationRequestNotEnrolledParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const markOrientationRequestNotEnrolledResponseOneFirstNameMax = 80;
+
+export const markOrientationRequestNotEnrolledResponseOneLastNameMax = 80;
+
+export const markOrientationRequestNotEnrolledResponseOneEmailMax = 254;
+
+export const markOrientationRequestNotEnrolledResponseOneProvinceMin = 2;
+export const markOrientationRequestNotEnrolledResponseOneProvinceMax = 60;
+
+export const markOrientationRequestNotEnrolledResponseOnePhoneMin = 6;
+export const markOrientationRequestNotEnrolledResponseOnePhoneMax = 30;
+
+
+
+export const MarkOrientationRequestNotEnrolledResponse = zod.object({
+  "firstName": zod.string().min(1).max(markOrientationRequestNotEnrolledResponseOneFirstNameMax),
+  "lastName": zod.string().min(1).max(markOrientationRequestNotEnrolledResponseOneLastNameMax),
+  "email": zod.string().email().max(markOrientationRequestNotEnrolledResponseOneEmailMax),
+  "province": zod.string().min(markOrientationRequestNotEnrolledResponseOneProvinceMin).max(markOrientationRequestNotEnrolledResponseOneProvinceMax),
+  "phone": zod.string().min(markOrientationRequestNotEnrolledResponseOnePhoneMin).max(markOrientationRequestNotEnrolledResponseOnePhoneMax)
+}).and(zod.object({
+  "id": zod.number().int(),
+  "university": zod.string(),
+  "courseId": zod.string(),
+  "courseName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
+  "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
   "adminNotes": zod.string(),
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),

@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { timingSafeEqual } from "node:crypto";
 import {
+  ConfirmOrientationEnrollmentParams,
+  ConfirmOrientationEnrollmentResponse,
   CreateAdminEnrollmentBody,
   CreateAdminEnrollmentResponse,
   GetAdminEmailSettingsResponse,
@@ -9,6 +11,8 @@ import {
   ListAdminEnrollmentsResponse,
   ListAdminOrientationRequestsResponse,
   ListAdminTourBookingsResponse,
+  MarkOrientationRequestNotEnrolledParams,
+  MarkOrientationRequestNotEnrolledResponse,
   LoginAdminBody,
   LoginAdminResponse,
   LogoutAdminResponse,
@@ -178,6 +182,7 @@ router.get("/admin/summary", requireAdmin, (_req, res): void => {
     SELECT COUNT(*) AS total FROM richieste_corso
     WHERE follow_up_at IS NOT NULL AND datetime(follow_up_at) <= datetime('now')
       AND pipeline_status NOT IN ('enrolled', 'closed')
+      AND enrollment_outcome = 'pending'
   `).get() as { total: number }).total;
   const dueTours = (sqlite.prepare(`
     SELECT COUNT(*) AS total FROM prenotazioni_tour
@@ -287,6 +292,122 @@ router.patch("/admin/orientation-requests/:id/management", requireAdmin, (req, r
   res.json(UpdateOrientationRequestManagementResponse.parse(request));
 });
 
+router.post("/admin/orientation-requests/:id/confirm-enrollment", requireAdmin, (req, res): void => {
+  const id = positivePathId(req.params.id);
+  const params = ConfirmOrientationEnrollmentParams.safeParse({ id });
+  if (!id || !params.success) {
+    res.status(400).json({ error: "Richiesta non valida." });
+    return;
+  }
+
+  sqlite.exec("BEGIN IMMEDIATE");
+  let enrollmentId: number;
+  try {
+    const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
+      .get(params.data.id) as OrientationRequest | undefined;
+    if (!request) {
+      sqlite.exec("ROLLBACK");
+      res.status(404).json({ error: "Richiesta non trovata." });
+      return;
+    }
+
+    const existing = sqlite.prepare(`
+      SELECT id FROM iscrizioni_universita WHERE orientation_request_id = ? LIMIT 1
+    `).get(params.data.id) as { id: number } | undefined;
+    if (existing) {
+      sqlite.exec("ROLLBACK");
+      res.status(409).json({ error: "Esiste già un'iscrizione collegata. Controlla la scheda iscrizioni." });
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const enrolledAt = nowInRome().date;
+    const result = sqlite.prepare(`
+      INSERT INTO iscrizioni_universita
+        (orientation_request_id, first_name, last_name, email, university, course_id,
+         course_name, enrolled_at, commission_cents, commission_status,
+         commission_paid_at, status, notes, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 18000, 'paid', ?, 'active', ?, ?)
+    `).run(
+      request.id,
+      request.firstName,
+      request.lastName,
+      request.email,
+      request.university,
+      request.courseId,
+      request.courseName,
+      enrolledAt,
+      createdAt,
+      "Confermata con spunta nell'area admin.",
+      createdAt,
+    );
+    enrollmentId = Number(result.lastInsertRowid);
+    sqlite.prepare(`
+      UPDATE richieste_corso
+      SET pipeline_status = 'enrolled', enrollment_outcome = 'enrolled'
+      WHERE id = ?
+    `).run(request.id);
+    sqlite.exec("COMMIT");
+  } catch (error) {
+    sqlite.exec("ROLLBACK");
+    throw error;
+  }
+
+  const enrollment = sqlite.prepare(`
+    SELECT ${enrollmentColumns} FROM iscrizioni_universita WHERE id = ?
+  `).get(enrollmentId) as Enrollment;
+  res.status(201).json(ConfirmOrientationEnrollmentResponse.parse(enrollment));
+});
+
+router.post("/admin/orientation-requests/:id/mark-not-enrolled", requireAdmin, (req, res): void => {
+  const id = positivePathId(req.params.id);
+  const params = MarkOrientationRequestNotEnrolledParams.safeParse({ id });
+  if (!id || !params.success) {
+    res.status(400).json({ error: "Richiesta non valida." });
+    return;
+  }
+
+  sqlite.exec("BEGIN IMMEDIATE");
+  try {
+    const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
+      .get(params.data.id) as OrientationRequest | undefined;
+    if (!request) {
+      sqlite.exec("ROLLBACK");
+      res.status(404).json({ error: "Richiesta non trovata." });
+      return;
+    }
+
+    const existing = sqlite.prepare(`
+      SELECT id FROM iscrizioni_universita WHERE orientation_request_id = ? LIMIT 1
+    `).get(params.data.id) as { id: number } | undefined;
+    if (existing || request.enrollmentOutcome === "enrolled") {
+      sqlite.exec("ROLLBACK");
+      res.status(409).json({ error: "La richiesta ha già un'iscrizione registrata." });
+      return;
+    }
+    if (request.enrollmentOutcome === "not_enrolled") {
+      sqlite.exec("ROLLBACK");
+      res.json(MarkOrientationRequestNotEnrolledResponse.parse(request));
+      return;
+    }
+
+    sqlite.prepare(`
+      UPDATE richieste_corso
+      SET enrollment_outcome = 'not_enrolled',
+          pipeline_status = CASE WHEN pipeline_status = 'enrolled' THEN 'considering' ELSE pipeline_status END
+      WHERE id = ?
+    `).run(params.data.id);
+    sqlite.exec("COMMIT");
+  } catch (error) {
+    sqlite.exec("ROLLBACK");
+    throw error;
+  }
+
+  const updated = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
+    .get(params.data.id) as OrientationRequest;
+  res.json(MarkOrientationRequestNotEnrolledResponse.parse(updated));
+});
+
 router.patch("/admin/tour-bookings/:id/management", requireAdmin, (req, res): void => {
   const id = positivePathId(req.params.id);
   const params = UpdateTourBookingManagementParams.safeParse({ id });
@@ -390,7 +511,11 @@ router.post("/admin/enrollments", requireAdmin, (req, res): void => {
     );
     enrollmentId = Number(result.lastInsertRowid);
     if (orientationRequestId !== null) {
-      sqlite.prepare("UPDATE richieste_corso SET pipeline_status = 'enrolled' WHERE id = ?")
+      sqlite.prepare(`
+        UPDATE richieste_corso
+        SET pipeline_status = 'enrolled', enrollment_outcome = 'enrolled'
+        WHERE id = ?
+      `)
         .run(orientationRequestId);
     }
     sqlite.exec("COMMIT");

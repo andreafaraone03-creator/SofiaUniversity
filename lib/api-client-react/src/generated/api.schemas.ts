@@ -60,6 +60,15 @@ export const OrientationPipelineStatus = {
   closed: 'closed',
 } as const;
 
+export type EnrollmentOutcome = typeof EnrollmentOutcome[keyof typeof EnrollmentOutcome];
+
+
+export const EnrollmentOutcome = {
+  pending: 'pending',
+  enrolled: 'enrolled',
+  not_enrolled: 'not_enrolled',
+} as const;
+
 export type ConfirmationEmailStatus = typeof ConfirmationEmailStatus[keyof typeof ConfirmationEmailStatus];
 
 
@@ -77,6 +86,7 @@ export type OrientationRequest = ContactInput & ({
   courseName: string;
   createdAt: string;
   pipelineStatus: OrientationPipelineStatus;
+  enrollmentOutcome: EnrollmentOutcome;
   adminNotes: string;
   /** @nullable */
   followUpAt: string | null;

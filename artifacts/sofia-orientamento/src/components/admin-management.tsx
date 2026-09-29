@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Mail, RotateCw, Save, Search, X } from "lucide-react";
+import { Check, Mail, RotateCw, Save, Search, X } from "lucide-react";
 import {
   getGetAdminEmailSettingsQueryKey,
   getGetAdminSummaryQueryKey,
   getListAdminEnrollmentsQueryKey,
   getListAdminOrientationRequestsQueryKey,
   getListAdminTourBookingsQueryKey,
+  useConfirmOrientationEnrollment,
   useCreateAdminEnrollment,
   useGetAdminEmailSettings,
   useListAdminEnrollments,
   useListCourses,
+  useMarkOrientationRequestNotEnrolled,
   useResendOrientationConfirmation,
   useResendTourConfirmation,
   useSendAdminTestEmail,
@@ -101,6 +103,64 @@ function EmailStatusLabel({ status }: { status: string }) {
       ? "border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)]"
       : "border-[hsl(var(--border))] bg-[hsl(var(--muted)/.45)]";
   return <span className={`inline-flex border px-2 py-1 text-[.65rem] ${style}`}>{label}</span>;
+}
+
+export function EnrollmentDecisionActions({ item }: { item: OrientationRequest }) {
+  const client = useQueryClient();
+  const confirm = useConfirmOrientationEnrollment();
+  const markNotEnrolled = useMarkOrientationRequestNotEnrolled();
+  const [message, setMessage] = useState("");
+  const busy = confirm.isPending || markNotEnrolled.isPending;
+
+  const confirmEnrollment = () => confirm.mutate({ id: item.id }, {
+    onSuccess: (enrollment) => {
+      setMessage(`Iscrizione registrata · ${euro(enrollment.commissionCents)} segnati come incassati.`);
+      invalidateCRM(client);
+    },
+    onError: () => setMessage("Non posso registrare l’iscrizione: verifica se esiste già una scheda collegata."),
+  });
+
+  const markAsNotEnrolled = () => markNotEnrolled.mutate({ id: item.id }, {
+    onSuccess: () => {
+      setMessage("La persona è stata spostata tra le non iscritte.");
+      invalidateCRM(client);
+    },
+    onError: () => setMessage("Non posso segnare la persona come non iscritta: esiste già una scheda iscrizione."),
+  });
+
+  if (item.enrollmentOutcome === "enrolled") {
+    return <div className="min-w-44">
+      <span className="inline-flex items-center gap-1 border border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)] px-2 py-1 text-[.65rem] font-semibold"><Check size={12} /> Iscritta</span>
+      {message && <p role="status" className="mt-1 max-w-56 whitespace-normal text-[.65rem] text-[hsl(var(--muted-foreground))]">{message}</p>}
+    </div>;
+  }
+
+  return <div className="min-w-52">
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={confirmEnrollment}
+        aria-label={`Conferma iscrizione e incasso per ${item.firstName} ${item.lastName}`}
+        title="Registra l'iscrizione e la provvigione incassata"
+        className="inline-flex items-center gap-1 border border-[hsl(160_28%_70%)] bg-[hsl(160_35%_94%)] px-2 py-2 text-[.68rem] font-semibold disabled:opacity-50"
+      >
+        <Check size={13} /> Iscritta
+      </button>
+      <button
+        type="button"
+        disabled={busy || item.enrollmentOutcome === "not_enrolled"}
+        onClick={markAsNotEnrolled}
+        aria-label={`Segna ${item.firstName} ${item.lastName} come non iscritta`}
+        title="Sposta tra le persone non iscritte senza creare una provvigione"
+        className="inline-flex items-center gap-1 border border-[hsl(var(--border))] px-2 py-2 text-[.68rem] font-semibold disabled:opacity-50"
+      >
+        <X size={13} /> Non iscritta
+      </button>
+    </div>
+    {item.enrollmentOutcome === "not_enrolled" && <p className="mt-1 text-[.65rem] text-[hsl(var(--muted-foreground))]">Esito attuale: non iscritta</p>}
+    {message && <p role="status" className="mt-1 max-w-56 whitespace-normal text-[.65rem] text-[hsl(var(--muted-foreground))]">{message}</p>}
+  </div>;
 }
 
 export function OrientationManagementEditor({

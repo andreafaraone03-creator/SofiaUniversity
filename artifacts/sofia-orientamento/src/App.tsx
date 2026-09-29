@@ -40,6 +40,7 @@ import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter
 import { ErrorBoundary } from '@/components/error-boundary';
 import {
   EmailSettingsPanel,
+  EnrollmentDecisionActions,
   EnrollmentPanel,
   OrientationManagementEditor,
   TourManagementEditor,
@@ -511,9 +512,14 @@ function OrientationTable({
       item.followUpAt &&
       new Date(item.followUpAt) <= new Date() &&
       item.pipelineStatus !== "enrolled" &&
-      item.pipelineStatus !== "closed",
+      item.pipelineStatus !== "closed" &&
+      item.enrollmentOutcome === "pending",
     );
-    return matchesSearch && (filter === "all" || filter === item.pipelineStatus || (filter === "due" && due));
+    const matchesFilter = filter === "all" ||
+      filter === item.pipelineStatus ||
+      (filter === "due" && due) ||
+      (filter.startsWith("outcome:") && item.enrollmentOutcome === filter.slice("outcome:".length));
+    return matchesSearch && matchesFilter;
   }), [data, filter, search]);
 
   if (loading || error) return <TableState loading={loading} error={error} />;
@@ -521,12 +527,13 @@ function OrientationTable({
   return <div className="p-5 md:p-7">
     <div className="mb-5 flex flex-col gap-3 sm:flex-row">
       <label className="relative block flex-1"><span className="sr-only">Cerca richieste</span><input className="field pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cerca nome, email, corso…" /><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /></label>
-      <label className="sm:w-56"><span className="sr-only">Filtra richieste</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Tutti gli stati</option>{Object.entries(leadStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}<option value="due">Promemoria scaduti</option></select></label>
+      <label className="sm:w-56"><span className="sr-only">Filtra richieste</span><select className="field" value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Tutte le richieste</option><optgroup label="Stato richiesta">{Object.entries(leadStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</optgroup><optgroup label="Esito iscrizione"><option value="outcome:pending">In attesa di esito</option><option value="outcome:enrolled">Iscritte</option><option value="outcome:not_enrolled">Non iscritte</option></optgroup><option value="due">Promemoria scaduti</option></select></label>
     </div>
+    <p className="mb-4 text-xs leading-relaxed text-[hsl(var(--muted-foreground))]">✓ registra l’iscrizione dai dati già raccolti e segna €180 come incassati. La X inserisce la persona tra le non iscritte, senza provvigione.</p>
     <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))] lg:hidden">Scorri la tabella per vedere tutti i dati →</p>
     {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna richiesta corrisponde ai filtri.</div> : <div className="overflow-x-auto">
-      <table className="w-full min-w-[1580px] text-left text-sm">
-        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Ateneo", "Corso scelto", "Stato", "Promemoria", "Email", "Contatta / gestisci"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
+      <table className="w-full min-w-[1780px] text-left text-sm">
+        <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Ateneo", "Corso scelto", "Stato richiesta", "Esito iscrizione", "Promemoria", "Email", "Iscrizione", "Contatta / gestisci"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
         <tbody>{visible.map((item) => <OrientationRow key={item.id} item={item} onRecordEnrollment={onRecordEnrollment} />)}</tbody>
       </table>
     </div>}
@@ -567,11 +574,13 @@ function OrientationRow({
       <td className="px-4 py-4">{item.university}</td>
       <td className="min-w-40 px-4 py-4">{item.courseName}</td>
       <td className="px-4 py-4 text-xs">{leadStatusLabels[item.pipelineStatus]}</td>
+      <td className="px-4 py-4 text-xs">{item.enrollmentOutcome === "pending" ? "In attesa" : item.enrollmentOutcome === "enrolled" ? "Iscritta" : "Non iscritta"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="px-4 py-4 text-xs">{emailLabel}</td>
+      <td className="px-4 py-4"><EnrollmentDecisionActions item={item} /></td>
       <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di orientamento per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
     </tr>
-    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={12} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
+    {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={14} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
   </>;
 }
 

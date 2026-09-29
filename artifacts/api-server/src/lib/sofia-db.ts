@@ -24,6 +24,7 @@ export type OrientationRequest = {
   courseName: string;
   createdAt: string;
   pipelineStatus: "new" | "contacted" | "considering" | "enrolled" | "closed";
+  enrollmentOutcome: "pending" | "enrolled" | "not_enrolled";
   adminNotes: string;
   followUpAt: string | null;
   confirmationEmailStatus: "sent" | "failed" | "not_configured" | "disabled";
@@ -95,6 +96,8 @@ sqlite.exec(`
     created_at TEXT NOT NULL,
     pipeline_status TEXT NOT NULL DEFAULT 'new'
       CHECK (pipeline_status IN ('new', 'contacted', 'considering', 'enrolled', 'closed')),
+    enrollment_outcome TEXT NOT NULL DEFAULT 'pending'
+      CHECK (enrollment_outcome IN ('pending', 'enrolled', 'not_enrolled')),
     admin_notes TEXT NOT NULL DEFAULT '',
     follow_up_at TEXT,
     confirmation_email_status TEXT NOT NULL DEFAULT 'not_configured'
@@ -170,6 +173,7 @@ function ensureColumn(table: string, column: string, definition: string) {
 }
 
 ensureColumn("richieste_corso", "pipeline_status", "TEXT NOT NULL DEFAULT 'new'");
+ensureColumn("richieste_corso", "enrollment_outcome", "TEXT NOT NULL DEFAULT 'pending'");
 ensureColumn("richieste_corso", "admin_notes", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("richieste_corso", "follow_up_at", "TEXT");
 ensureColumn("richieste_corso", "confirmation_email_status", "TEXT NOT NULL DEFAULT 'not_configured'");
@@ -181,6 +185,19 @@ ensureColumn("prenotazioni_tour", "confirmation_email_status", "TEXT NOT NULL DE
 ensureColumn("prenotazioni_tour", "confirmation_email_sent_at", "TEXT");
 ensureColumn("prenotazioni_tour", "confirmation_email_error", "TEXT NOT NULL DEFAULT ''");
 
+sqlite.exec(`
+  UPDATE richieste_corso
+  SET enrollment_outcome = 'enrolled'
+  WHERE enrollment_outcome = 'pending'
+    AND (
+      pipeline_status = 'enrolled'
+      OR EXISTS (
+        SELECT 1 FROM iscrizioni_universita
+        WHERE iscrizioni_universita.orientation_request_id = richieste_corso.id
+      )
+    )
+`);
+
 export const courses = JSON.parse(
   readFileSync(path.join(dataDir, "courses.json"), "utf8"),
 ) as Course[];
@@ -188,7 +205,8 @@ export const courses = JSON.parse(
 export const orientationColumns = `
   id, first_name AS firstName, last_name AS lastName, email, province, phone,
   university, course_id AS courseId, course_name AS courseName, created_at AS createdAt,
-  pipeline_status AS pipelineStatus, admin_notes AS adminNotes, follow_up_at AS followUpAt,
+  pipeline_status AS pipelineStatus, enrollment_outcome AS enrollmentOutcome,
+  admin_notes AS adminNotes, follow_up_at AS followUpAt,
   confirmation_email_status AS confirmationEmailStatus,
   confirmation_email_sent_at AS confirmationEmailSentAt,
   confirmation_email_error AS confirmationEmailError

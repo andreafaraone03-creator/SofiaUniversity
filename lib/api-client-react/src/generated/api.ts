@@ -36,6 +36,7 @@ import type {
   OrientationManagementUpdate,
   OrientationRequest,
   OrientationRequestInput,
+  OrientationRequestReceipt,
   Success,
   TestEmailInput,
   TourBooking,
@@ -245,7 +246,7 @@ export const getCreateOrientationRequestUrl = () => {
 /**
  * @summary Invia una richiesta di orientamento
  */
-export const createOrientationRequest = async (orientationRequestInput: OrientationRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<OrientationRequest> => {
+export const createOrientationRequest = async (orientationRequestInput: OrientationRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<OrientationRequestReceipt> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -261,7 +262,7 @@ export const createOrientationRequest = async (orientationRequestInput: Orientat
     }
     return headers;
   };
-return customFetch<OrientationRequest>(getCreateOrientationRequestUrl(),
+return customFetch<OrientationRequestReceipt>(getCreateOrientationRequestUrl(),
   {
     ...options,
     method: 'POST',
@@ -1228,6 +1229,154 @@ export const useUpdateOrientationRequestManagement = <TError = ErrorType<unknown
         TContext
       > => {
       return useMutation(getUpdateOrientationRequestManagementMutationOptions(options));
+    }
+
+export const getConfirmOrientationEnrollmentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/confirm-enrollment`
+}
+
+/**
+ * @summary Registra un'iscrizione e conferma la provvigione incassata
+ */
+export const confirmOrientationEnrollment = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Enrollment> => {
+
+  return customFetch<Enrollment>(getConfirmOrientationEnrollmentUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getConfirmOrientationEnrollmentMutationKey = () => ['confirmOrientationEnrollment'] as const;
+
+export const getConfirmOrientationEnrollmentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmOrientationEnrollment>>, TError,ConfirmOrientationEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmOrientationEnrollment>>, TError,ConfirmOrientationEnrollmentMutationVariables, TContext> => {
+
+const mutationKey = getConfirmOrientationEnrollmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmOrientationEnrollment>>, ConfirmOrientationEnrollmentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  confirmOrientationEnrollment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmOrientationEnrollmentMutationResult = NonNullable<Awaited<ReturnType<typeof confirmOrientationEnrollment>>>
+
+    export type ConfirmOrientationEnrollmentMutationError = ErrorType<void>
+    export type ConfirmOrientationEnrollmentMutationVariables = {id: number}
+
+    /**
+ * @summary Registra un'iscrizione e conferma la provvigione incassata
+ */
+export const useConfirmOrientationEnrollment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmOrientationEnrollment>>, TError,ConfirmOrientationEnrollmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmOrientationEnrollment>>,
+        TError,
+        ConfirmOrientationEnrollmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfirmOrientationEnrollmentMutationOptions(options));
+    }
+
+export const getMarkOrientationRequestNotEnrolledUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/mark-not-enrolled`
+}
+
+/**
+ * @summary Segna una richiesta come non iscritta
+ */
+export const markOrientationRequestNotEnrolled = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<OrientationRequest> => {
+
+  return customFetch<OrientationRequest>(getMarkOrientationRequestNotEnrolledUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkOrientationRequestNotEnrolledMutationKey = () => ['markOrientationRequestNotEnrolled'] as const;
+
+export const getMarkOrientationRequestNotEnrolledMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>, TError,MarkOrientationRequestNotEnrolledMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>, TError,MarkOrientationRequestNotEnrolledMutationVariables, TContext> => {
+
+const mutationKey = getMarkOrientationRequestNotEnrolledMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>, MarkOrientationRequestNotEnrolledMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  markOrientationRequestNotEnrolled(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkOrientationRequestNotEnrolledMutationResult = NonNullable<Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>>
+
+    export type MarkOrientationRequestNotEnrolledMutationError = ErrorType<void>
+    export type MarkOrientationRequestNotEnrolledMutationVariables = {id: number}
+
+    /**
+ * @summary Segna una richiesta come non iscritta
+ */
+export const useMarkOrientationRequestNotEnrolled = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>, TError,MarkOrientationRequestNotEnrolledMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markOrientationRequestNotEnrolled>>,
+        TError,
+        MarkOrientationRequestNotEnrolledMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkOrientationRequestNotEnrolledMutationOptions(options));
     }
 
 export const getUpdateTourBookingManagementUrl = (id: number,) => {

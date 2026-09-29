@@ -19,6 +19,7 @@ export * from './enrollment';
 export * from './enrollmentCommissionStatus';
 export * from './enrollmentInput';
 export * from './enrollmentInputCommissionStatus';
+export * from './enrollmentOutcome';
 export * from './enrollmentStatus';
 export * from './enrollmentUpdate';
 export * from './enrollmentUpdateCommissionStatus';

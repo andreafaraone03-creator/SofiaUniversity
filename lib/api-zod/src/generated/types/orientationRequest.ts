@@ -7,6 +7,7 @@
  */
 import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 import type { ContactInput } from './contactInput';
+import type { EnrollmentOutcome } from './enrollmentOutcome';
 import type { OrientationPipelineStatus } from './orientationPipelineStatus';
 
 export type OrientationRequest = ContactInput & ({
@@ -16,6 +17,7 @@ export type OrientationRequest = ContactInput & ({
   courseName: string;
   createdAt: Date;
   pipelineStatus: OrientationPipelineStatus;
+  enrollmentOutcome: EnrollmentOutcome;
   adminNotes: string;
   /** @nullable */
   followUpAt: Date | null;
