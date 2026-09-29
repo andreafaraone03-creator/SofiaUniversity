@@ -68,15 +68,15 @@ function SiteHeader() {
     ? 'font-semibold text-[hsl(var(--foreground))] after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-[hsl(var(--primary))]'
     : 'text-[hsl(var(--muted-foreground))]';
   return (
-    <header className="sticky top-0 z-40 border-b border-[hsl(var(--border)/.75)] bg-[hsl(var(--background)/.95)] backdrop-blur-md">
-      <div className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-5 md:px-8">
+    <header className="sticky top-0 z-40 border-b border-[hsl(var(--border)/.75)] bg-[hsl(var(--background)/.92)] backdrop-blur-md">
+      <div className="mx-auto flex h-[76px] max-w-[1500px] items-center justify-between px-5 md:px-10">
         <Link href="/" data-testid="link-logo" className="group flex shrink-0 items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg italic">S</span>
-          <span className="leading-none"><strong className="block font-serif text-lg font-medium">sofia</strong><small className="eyebrow block !text-[.52rem] !tracking-[.18em]">orientamento</small></span>
+          <span className="relative flex h-10 w-10 items-center justify-center bg-[hsl(var(--secondary))] text-[hsl(var(--accent))] font-bold">S<span className="absolute -bottom-1 -right-1 h-3 w-3 bg-[hsl(var(--primary))]" /></span>
+          <span className="leading-none"><strong className="block font-serif text-xl font-bold tracking-[-.06em]">sofia<span className="text-[hsl(var(--primary))]">.</span></strong><small className="eyebrow block !text-[.5rem] !tracking-[.2em]">orientamento</small></span>
         </Link>
         <nav className="hidden items-center md:flex" aria-label="Navigazione principale">
           {nav.map((item) => <Link key={item.href} href={item.href} aria-current={location === item.href ? 'page' : undefined} data-testid={`link-nav-${item.label.toLowerCase().replace(' ', '-')}`} className={`relative px-4 py-3 text-sm transition-colors hover:text-[hsl(var(--primary))] before:absolute before:left-0 before:top-1/2 before:h-4 before:-translate-y-1/2 before:border-l before:border-[hsl(var(--border))] first:before:hidden ${activeLink(item.href)}`}>{item.label}</Link>)}
-          <Link href="/admin" data-testid="link-admin" className="ml-3 inline-flex items-center gap-2 border border-[hsl(var(--border))] px-4 py-2.5 text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:border-[hsl(var(--primary))] hover:text-[hsl(var(--foreground))]"><ShieldCheck size={15} />Area riservata<ArrowRight size={13} /></Link>
+           <Link href="/admin" data-testid="link-admin" className="ml-3 inline-flex items-center gap-2 border border-[hsl(var(--foreground))] px-4 py-2.5 text-sm text-[hsl(var(--foreground))] transition-colors hover:bg-[hsl(var(--accent))]"><ShieldCheck size={15} />Area riservata<ArrowRight size={13} /></Link>
         </nav>
       </div>
       <div className="border-t border-[hsl(var(--border)/.7)] md:hidden">
@@ -100,8 +100,8 @@ function BookingChoiceRow({ href, number, label, title, description, detail, cta
   Icon: typeof GraduationCap;
   testId: string;
 }) {
-  return <Link href={href} data-testid={testId} className="group grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-5 border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 transition-all hover:-translate-y-0.5 hover:border-[hsl(var(--primary))] hover:shadow-[0_14px_38px_hsl(var(--foreground)/.07)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))] sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-0 sm:px-6 sm:py-6 md:px-8">
-    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-[hsl(var(--secondary)/.55)] text-[hsl(var(--foreground))] transition-colors group-hover:bg-[hsl(var(--primary)/.35)] sm:h-14 sm:w-14">
+  return <Link href={href} data-testid={testId} className="route-card group grid grid-cols-[2.75rem_minmax(0,1fr)] items-start gap-x-4 gap-y-5 p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--primary))] sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6 sm:gap-y-0 sm:px-7 sm:py-8 md:px-9">
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-[hsl(var(--secondary))] text-[hsl(var(--accent))] transition-colors group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--foreground))] sm:h-14 sm:w-14">
       <Icon size={21} strokeWidth={1.6} />
     </span>
     <div className="min-w-0">
@@ -111,9 +111,9 @@ function BookingChoiceRow({ href, number, label, title, description, detail, cta
       </div>
       <h3 className="mt-1.5 font-serif text-2xl leading-tight md:text-[1.8rem]">{title}</h3>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p>
-      <span className="mt-3 inline-flex text-[.66rem] font-semibold tracking-[.1em] text-[hsl(var(--muted-foreground))]">{detail}</span>
+       <span className="mt-4 inline-flex text-[.66rem] font-semibold tracking-[.1em] text-[hsl(var(--muted-foreground))]">{detail}</span>
     </div>
-    <span className="col-span-2 inline-flex min-h-11 w-full items-center justify-between gap-2 bg-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold text-[hsl(var(--background))] transition-colors group-hover:bg-[hsl(var(--primary))] group-hover:text-[hsl(var(--foreground))] sm:col-span-1 sm:w-fit sm:justify-start sm:whitespace-nowrap">
+     <span className="col-span-2 inline-flex min-h-11 w-full items-center justify-between gap-2 bg-[hsl(var(--secondary))] px-4 py-3 text-sm font-semibold text-[hsl(var(--background))] transition-colors group-hover:bg-[hsl(var(--accent))] group-hover:text-[hsl(var(--foreground))] sm:col-span-1 sm:w-fit sm:justify-start sm:whitespace-nowrap">
       {cta}<ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
     </span>
   </Link>;
@@ -224,35 +224,44 @@ function TourForm() {
 }
 
 function Home() {
-  return <div className="grain min-h-[100dvh]"><SiteHeader /><main>
-    <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-14 md:grid-cols-[1.1fr_.9fr] md:items-end md:px-8 md:pb-24 md:pt-24">
-      <div className="page-in"><SectionKicker>una scelta, finalmente tua</SectionKicker><h1 className="max-w-3xl font-serif text-5xl leading-[.98] tracking-[-.04em] sm:text-7xl md:text-[6.3rem]">L’università<br /><em className="text-[hsl(var(--primary))]">giusta per te.</em></h1><p className="mt-8 max-w-lg font-serif text-2xl leading-snug text-[hsl(var(--foreground))] sm:text-3xl">Il tuo futuro universitario inizia qui: scegli la strada giusta con una consulenza personalizzata.</p><p className="mt-4 max-w-lg text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Sono Sofia. Ti aiuto a capire cosa vuoi, a trovare il percorso più adatto e a iniziare senza sentirti solo.</p><div className="mt-8 flex flex-wrap gap-3"><a href="#servizi" className="btn-primary" data-testid="link-discover-services">Scopri come posso aiutarti <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 px-3 py-3 text-sm underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-4" data-testid="link-meet-sofia">Conosci Sofia</Link></div></div>
-      <div className="page-in delay-2 relative min-h-[310px] overflow-hidden bg-[hsl(var(--secondary))] p-7 md:min-h-[430px] md:p-10"><div className="absolute right-0 top-0 h-44 w-44 rounded-full bg-[hsl(var(--accent)/.65)] blur-2xl" /><div className="relative flex h-full flex-col justify-between"><div className="flex justify-between"><span className="eyebrow">01 / il primo passo</span><Sparkles size={20} strokeWidth={1.5} /></div><div><p className="max-w-xs font-serif text-3xl leading-tight md:text-4xl">Non devi avere già tutte le risposte.</p><p className="mt-4 max-w-sm text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Basta una domanda sincera. Da lì, costruiamo una direzione.</p></div><div className="flex items-center gap-3 text-xs text-[hsl(var(--muted-foreground))]"><span className="h-px w-10 bg-[hsl(var(--primary))]" />consulenza personale · online</div></div></div>
-    </section>
-    <section id="servizi" className="mx-auto max-w-7xl scroll-mt-20 px-5 pb-12 pt-12 md:px-8 md:pb-20 md:pt-16">
-      <div className="grid gap-8 md:grid-cols-[.72fr_1.28fr] md:items-start md:gap-12">
-        <div className="max-w-xl md:sticky md:top-28">
-          <SectionKicker>il tuo prossimo passo</SectionKicker>
-          <h2 className="font-serif text-4xl leading-tight md:text-5xl">Da dove vuoi<br /><em>cominciare?</em></h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Due incontri diversi: scegli quello più utile per te adesso. Ogni opzione ti porta alla prenotazione giusta.</p>
+  return <div className="grain min-h-[100dvh] route-shell"><SiteHeader /><main>
+    <section className="hero-route">
+      <svg className="route-map" viewBox="0 0 1200 620" preserveAspectRatio="none" aria-hidden="true"><path className="route-line" d="M10 500 C180 420 160 130 360 180 S500 510 690 390 S820 110 1160 170" /><circle cx="360" cy="180" r="9" /><circle cx="690" cy="390" r="9" /><circle className="route-pin" cx="1015" cy="150" r="13" /></svg>
+      <div className="route-copy mx-auto grid min-h-[610px] max-w-[1500px] items-center gap-10 px-5 py-20 md:grid-cols-[1.05fr_.95fr] md:px-10 md:py-24">
+        <div className="page-in">
+          <p className="eyebrow !text-[hsl(var(--accent))]">orientamento universitario · roma / online</p>
+          <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--primary))]">tua rotta.</span></h1>
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-[hsl(var(--background)/.75)] md:text-xl">L’università non è una risposta da indovinare. È una direzione da mettere a fuoco, insieme.</p>
+          <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#servizi" className="btn-rose" data-testid="link-discover-services">Inizia da qui <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 border-b border-[hsl(var(--accent))] py-2 text-sm text-[hsl(var(--background))]" data-testid="link-meet-sofia">Conosci Sofia <ArrowRight size={15} /></Link></div>
         </div>
-        <div className="grid gap-4">
-          <BookingChoiceRow href="/prenota-orientamento" number="01" label="PER SCEGLIERE ATENEO E CORSO" title="Orientamento sul corso di laurea" description="Confrontiamo gli atenei e i corsi in base ai tuoi obiettivi, per capire quale percorso fa per te." detail="ATENEO · CORSO DI LAUREA" cta="Prenota una consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
-          <BookingChoiceRow href="/prenota-tour" number="02" label="PER VEDERE LA PIATTAFORMA" title="Tour guidato con Sofia" description="Un incontro online per scoprire come funziona la piattaforma e fare tutte le tue domande." detail="MEET · 1 ORA" cta="Prenota il tour" Icon={Video} testId="link-booking-tour" />
+        <div className="page-in delay-2 relative z-10 ml-auto max-w-sm border border-[hsl(var(--primary)/.65)] bg-[hsl(var(--secondary)/.72)] p-7 backdrop-blur-sm md:mr-8 md:p-9">
+          <div className="flex items-center justify-between"><span className="route-number">01 / PARTENZA</span><Sparkles size={18} className="text-[hsl(var(--accent))]" /></div>
+          <p className="mt-20 font-serif text-3xl leading-tight md:text-4xl">Non devi avere già tutte le risposte.</p>
+          <p className="mt-5 text-sm leading-relaxed text-[hsl(var(--background)/.68)]">Una domanda sincera è già un punto sulla mappa. Da lì, costruiamo una direzione.</p>
+          <div className="mt-10 flex items-center gap-3 text-xs text-[hsl(var(--background)/.6)]"><span className="h-px w-10 bg-[hsl(var(--accent))]" /> Sofia, personalmente</div>
         </div>
       </div>
-      <div className="mt-9"><PartnerTicker /></div>
     </section>
-    <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)]"><div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-[.8fr_1.2fr] md:px-8 md:py-20"><div><SectionKicker>come lavoriamo</SectionKicker><p className="font-serif text-3xl leading-tight">La tua situazione<br />è il punto di partenza.</p></div><div className="grid gap-8 sm:grid-cols-3"><div><span className="mono text-sm text-[hsl(var(--primary))]">01</span><h3 className="mt-3 font-semibold">Ascolto</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Partiamo da te, non da un catalogo.</p></div><div><span className="mono text-sm text-[hsl(var(--primary))]">02</span><h3 className="mt-3 font-semibold">Chiarezza</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Mettiamo a confronto le opzioni.</p></div><div><span className="mono text-sm text-[hsl(var(--primary))]">03</span><h3 className="mt-3 font-semibold">Presenza</h3><p className="mt-2 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Ci sono anche dopo la scelta.</p></div></div></div></section>
+    <section id="servizi" className="mx-auto max-w-[1500px] scroll-mt-20 px-5 py-20 md:px-10 md:py-28">
+      <div className="grid gap-12 md:grid-cols-[.65fr_1.35fr] md:gap-20">
+        <div className="max-w-md md:sticky md:top-28 md:self-start"><SectionKicker>scegli il prossimo punto</SectionKicker><h2 className="font-serif text-5xl leading-[.94] md:text-7xl">Da quale<br /><em className="text-[hsl(var(--primary))]">direzione</em><br />partiamo?</h2><p className="mt-7 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Due incontri diversi, una cosa in comune: nessuna pressione. Scegli quello che ti serve adesso.</p></div>
+        <div className="grid gap-6">
+          <BookingChoiceRow href="/prenota-orientamento" number="01" label="METTERE A FUOCO" title="Orientamento sul corso di laurea" description="Confrontiamo atenei e corsi a partire dai tuoi obiettivi, non da un catalogo." detail="ATENEO · CORSO DI LAUREA" cta="Prenota una consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
+          <BookingChoiceRow href="/prenota-tour" number="02" label="VEDERE DA VICINO" title="Tour guidato con Sofia" description="Un incontro online per scoprire la piattaforma e fare tutte le domande che vuoi." detail="MEET · 1 ORA" cta="Prenota il tour" Icon={Video} testId="link-booking-tour" />
+        </div>
+      </div>
+      <div className="mt-20"><PartnerTicker /></div>
+    </section>
+    <section className="ink-panel relative overflow-hidden"><div className="mx-auto grid max-w-[1500px] gap-12 px-5 py-20 md:grid-cols-[.75fr_1.25fr] md:px-10 md:py-28"><div><p className="eyebrow !text-[hsl(var(--accent))]">il metodo</p><p className="mt-5 font-serif text-4xl leading-[.95] md:text-6xl">La tua situazione<br />è la mappa.</p></div><div className="grid gap-8 sm:grid-cols-3"><div><span className="route-number">01</span><h3 className="mt-4 text-lg font-semibold">Ascolto</h3><p className="mt-3 text-sm leading-relaxed text-[hsl(var(--background)/.65)]">Partiamo da te, non da un elenco di corsi.</p></div><div><span className="route-number">02</span><h3 className="mt-4 text-lg font-semibold">Chiarezza</h3><p className="mt-3 text-sm leading-relaxed text-[hsl(var(--background)/.65)]">Mettiamo a confronto le opzioni reali.</p></div><div><span className="route-number">03</span><h3 className="mt-4 text-lg font-semibold">Presenza</h3><p className="mt-3 text-sm leading-relaxed text-[hsl(var(--background)/.65)]">Resto con te anche dopo la scelta.</p></div></div></div></section>
   </main><SiteFooter /></div>;
 }
 
 function BookingPageLayout({ step, title, description, children }: { step: string; title: string; description: string; children: ReactNode }) {
-  return <div className="grain min-h-[100dvh]"><SiteHeader /><main className="page-in">
-    <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 md:px-8 md:pb-24 md:pt-12">
+  return <div className="grain min-h-[100dvh] route-shell"><SiteHeader /><main className="page-in">
+    <section className="mx-auto max-w-[1500px] px-5 pb-20 pt-8 md:px-10 md:pb-28 md:pt-12">
       <Link href="/" data-testid="link-back-to-services" className="inline-flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))] underline decoration-[hsl(var(--primary))] underline-offset-4"><ArrowRight className="rotate-180" size={15} />Torna alla scelta dei servizi</Link>
-      <div className="mt-10 max-w-3xl"><SectionKicker>{step}</SectionKicker><h1 className="font-serif text-4xl leading-tight md:text-6xl">{title}</h1><p className="mt-5 max-w-2xl leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p></div>
-      <section aria-label={title} className="mt-9 border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 md:p-9">{children}</section>
+      <div className="mt-16 grid gap-10 md:grid-cols-[.78fr_1.22fr] md:items-end"><div><SectionKicker>{step}</SectionKicker><h1 className="max-w-3xl font-serif text-5xl leading-[.94] md:text-8xl">{title}</h1></div><p className="max-w-lg pb-2 leading-relaxed text-[hsl(var(--muted-foreground))]">{description}</p></div>
+      <section aria-label={title} className="mt-14 grid gap-8 border-t-2 border-[hsl(var(--foreground))] bg-[hsl(var(--card))] p-5 pt-8 md:p-10 md:pt-10">{children}</section>
     </section>
   </main><SiteFooter /></div>;
 }
@@ -270,26 +279,26 @@ function TourBookingPage() {
 }
 
 function About() {
-  return <div className="grain min-h-[100dvh]">
+  return <div className="grain min-h-[100dvh] route-shell">
     <SiteHeader />
     <main className="page-in">
-      <section className="mx-auto max-w-7xl px-5 pb-12 pt-16 md:px-8 md:pb-20 md:pt-24">
-        <SectionKicker>chi c’è dall’altra parte</SectionKicker>
-        <h1 className="max-w-3xl font-serif text-5xl leading-[.98] tracking-[-.04em] sm:text-7xl">Ciao, sono <em className="text-[hsl(var(--primary))]">Sofia.</em></h1>
+      <section className="mx-auto grid max-w-[1500px] gap-8 px-5 pb-16 pt-16 md:grid-cols-[1fr_.8fr] md:items-end md:px-10 md:pb-24 md:pt-24">
+        <div><SectionKicker>chi c’è dall’altra parte</SectionKicker><h1 className="max-w-3xl font-serif text-6xl leading-[.9] tracking-[-.06em] sm:text-8xl">Ciao, sono <em className="text-[hsl(var(--primary))]">Sofia.</em></h1></div>
+        <p className="max-w-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Una persona reale, una storia reale, nessuna scelta preconfezionata.</p>
       </section>
-      <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.38)]">
+      <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--primary)/.10)]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:grid-cols-2 md:items-center md:px-8 md:py-20">
-          <AboutImage label="La foto di Sofia" tone="rose" />
+          <AboutImage label="Il modo in cui Sofia accompagna ogni percorso" caption="La persona, non l’algoritmo." tone="rose" />
           <div><SectionKicker>01 / incontriamoci</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Una persona, prima di tutto.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Sono Sofia e mi occupo di orientamento universitario. Il mio lavoro è ascoltare le tue esigenze, aiutarti a confrontare percorsi e atenei e accompagnarti nelle domande che arrivano lungo la strada.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Qui non trovi una scelta già fatta per te: trovi spazio per fare la tua, con più chiarezza.</p></div>
         </div>
       </section>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:items-center md:px-8 md:py-24">
         <div className="md:order-1"><SectionKicker>02 / il percorso</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Perché ho iniziato un percorso all’università telematica.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Lavoravo in un negozio e avevo ottenuto un contratto a tempo indeterminato. Eppure continuavo a chiedermi: sono davvero soddisfatta di quello che sto facendo? Dentro di me c’era un sogno più grande e non volevo fare la commessa per tutta la vita.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Lavorando a tempo pieno, la presenza obbligatoria e gli spostamenti richiesti da un’università tradizionale non erano compatibili con la mia vita. Ho scelto l’università telematica: non la strada più semplice, ma quella più adatta a me.</p><p className="mt-4 border-l-2 border-[hsl(var(--primary))] pl-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Dopo aver confrontato diversi atenei, ho scelto Scienze e Tecniche Psicologiche (L-24) alla Mercatorum. Per ciò che cercavo, mi convinceva il rapporto tra qualità, prezzo e opportunità offerte. Oggi sono felice di aver fatto questa scelta.</p></div>
-        <div className="md:order-2"><AboutImage label="Il percorso universitario online" tone="ivory" /></div>
+        <div className="md:order-2"><AboutImage label="Il percorso universitario online" caption="Una scelta che deve stare nella tua vita." tone="ivory" /></div>
       </section>
-      <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.38)]">
+      <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--primary)/.10)]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:items-center md:px-8 md:py-24">
-          <AboutImage label="Orientamento e supporto all’iscrizione" tone="peach" />
+          <AboutImage label="Orientamento e supporto all’iscrizione" caption="Ateneo. Corso. Una direzione tua." tone="peach" />
           <div><SectionKicker>03 / un supporto reale</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Non devi fare tutto da solo.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Un consulente ti aiuta a confrontare i corsi in base ai tuoi obiettivi, a capire requisiti e scadenze, e a orientarti tra documenti e procedure di iscrizione.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Possiamo verificare insieme anche eventuali agevolazioni o sconti, quando disponibili e se possiedi i requisiti. Nessuna promessa automatica: solo indicazioni personalizzate, passo dopo passo.</p><Link href="/#servizi" className="btn-primary mt-7" data-testid="link-about-orientation">Parliamo del tuo percorso <ArrowRight size={16} /></Link></div>
         </div>
       </section>
@@ -297,15 +306,26 @@ function About() {
   </div>;
 }
 
-function AboutImage({ label, tone }: { label: string; tone: 'rose' | 'ivory' | 'peach' }) {
-  const backgrounds = { rose: 'bg-[hsl(var(--secondary))]', ivory: 'bg-[hsl(var(--card))]', peach: 'bg-[hsl(var(--accent))]' };
-  return <div role="img" aria-label={`Segnaposto immagine: ${label}`} className={`relative flex min-h-[320px] items-center justify-center overflow-hidden border border-[hsl(var(--border))] md:min-h-[430px] ${backgrounds[tone]}`}>
-    <div className="absolute -right-10 -top-10 h-52 w-52 rounded-full border border-[hsl(var(--foreground)/.15)]" />
-    <div className="absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-[hsl(var(--primary)/.25)]" />
-    <div className="relative max-w-[220px] border border-[hsl(var(--foreground)/.16)] bg-[hsl(var(--card)/.78)] px-7 py-9 text-center">
-      <span className="serif text-4xl italic text-[hsl(var(--primary))]">S.</span>
-      <p className="eyebrow mt-5 !text-[.6rem]">spazio per una fotografia</p>
-      <p className="mt-2 text-sm">{label}</p>
+function AboutImage({ label, caption, tone }: { label: string; caption: string; tone: 'rose' | 'ivory' | 'peach' }) {
+  const backgrounds = {
+    rose: 'bg-[hsl(var(--secondary))] text-[hsl(var(--background))]',
+    ivory: 'bg-[hsl(var(--card))]',
+    peach: 'bg-[hsl(var(--accent))]',
+  };
+  return <div role="img" aria-label={label} className={`relative flex min-h-[320px] items-center justify-center overflow-hidden border border-[hsl(var(--foreground)/.25)] md:min-h-[430px] ${backgrounds[tone]}`}>
+    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 500 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <path d="M-30 280 C90 260 65 95 194 142 S304 300 394 211 S430 75 548 94" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" />
+      <circle cx="194" cy="142" r="9" fill="hsl(var(--accent))" />
+      <circle cx="394" cy="211" r="9" fill="hsl(var(--primary))" />
+      <circle cx="436" cy="88" r="12" fill="hsl(var(--accent))" />
+      <circle cx="436" cy="88" r="24" fill="none" stroke="hsl(var(--primary) / .48)" strokeWidth="1" />
+    </svg>
+    <div className="absolute inset-5 border border-[hsl(var(--foreground)/.24)] md:inset-8" />
+    <span className="absolute left-8 top-8 font-mono text-xs tracking-[.16em] text-[hsl(var(--primary))]">S. / 01—03</span>
+    <div className="relative max-w-[260px] border border-[hsl(var(--foreground)/.3)] bg-[hsl(var(--background)/.94)] px-7 py-8 text-center text-[hsl(var(--foreground))] md:px-9 md:py-10">
+      <span className="serif text-6xl font-bold text-[hsl(var(--primary))]">S.</span>
+      <p className="eyebrow mt-5 !text-[.6rem]">una storia in movimento</p>
+      <p className="mt-3 font-serif text-xl leading-snug">{caption}</p>
     </div>
   </div>;
 }
@@ -319,15 +339,16 @@ function Contacts() {
     { name: 'WhatsApp', icon: <MessageCircle size={25} strokeWidth={1.5} />, href: whatsapp ? `https://wa.me/${normalizeItalianPhone(whatsapp)}` : undefined, description: 'Scrivimi direttamente, senza formalità.', config: 'Il numero di Sofia sarà disponibile qui a breve.' },
     { name: 'TikTok', icon: <span className="text-xl font-bold">TT</span>, href: tiktok || undefined, description: 'Seguimi per orientarti con più leggerezza.', config: 'Il profilo di Sofia sarà disponibile qui a breve.' },
   ];
-  return <div className="grain min-h-[100dvh]"><SiteHeader /><main className="page-in">
+  return <div className="grain min-h-[100dvh] route-shell"><SiteHeader /><main className="page-in">
     <section className="mx-auto max-w-7xl px-5 pb-16 pt-16 md:px-8 md:pb-24 md:pt-24"><SectionKicker>parliamone</SectionKicker><div className="grid gap-10 md:grid-cols-[1fr_.8fr] md:items-end"><h1 className="max-w-3xl font-serif text-5xl leading-[.98] sm:text-7xl">La domanda<br /><em className="text-[hsl(var(--primary))]">è il tuo inizio.</em></h1><p className="max-w-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Scrivimi nel modo che preferisci. Ti risponderò personalmente appena possibile.</p></div></section>
-    <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)]"><div className="mx-auto grid max-w-7xl gap-0 px-5 md:grid-cols-2 md:px-8">
+    <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--accent)/.16)]"><div className="mx-auto grid max-w-7xl gap-4 px-5 py-4 md:grid-cols-2 md:px-8 md:py-8">
       {cards.map((card, index) => {
-        const content = <><span className="flex items-center justify-between">{card.icon}{card.href && <ArrowRight className="transition-transform group-hover:translate-x-1" size={19} />}</span><h2 className="mt-12 font-serif text-3xl">{card.name}</h2><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">{card.href ? card.description : card.config}</p></>;
-        const className = `group block py-10 ${index === 0 ? 'border-b border-[hsl(var(--border))] md:border-b-0 md:border-r md:pr-14' : 'md:pl-14'}`;
+        const darkTile = index === 1;
+        const content = <><span className="flex items-center justify-between">{card.icon}{card.href && <ArrowRight className="transition-transform group-hover:translate-x-1" size={19} />}</span><div><h2 className="mt-14 font-serif text-3xl">{card.name}</h2><p className={`mt-3 max-w-sm text-sm leading-relaxed ${darkTile ? 'text-[hsl(var(--background)/.72)]' : 'text-[hsl(var(--foreground)/.72)]'}`}>{card.href ? card.description : card.config}</p></div><span className="eyebrow mt-9 !text-[.58rem]"> {card.href ? 'apri il canale' : 'disponibile a breve'}</span></>;
+        const className = `group flex min-h-[260px] flex-col justify-between border border-[hsl(var(--foreground)/.24)] p-7 transition-transform hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[hsl(var(--primary))] md:p-9 ${darkTile ? 'bg-[hsl(var(--secondary))] text-[hsl(var(--background))]' : 'bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]'}`;
         return card.href
           ? <a key={card.name} href={card.href} target="_blank" rel="noreferrer" data-testid={`link-${card.name.toLowerCase()}`} className={className}>{content}</a>
-          : <div key={card.name} data-testid={`status-${card.name.toLowerCase()}-unconfigured`} className={`${className} opacity-70`}>{content}</div>;
+          : <div key={card.name} data-testid={`status-${card.name.toLowerCase()}-unconfigured`} aria-disabled="true" className={`${className} cursor-not-allowed opacity-80`}>{content}</div>;
       })}
     </div></section>
     <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:px-8 md:py-24"><div><SectionKicker>{email ? 'anche via email' : 'inizia da qui'}</SectionKicker>{email ? <a href={`mailto:${email}`} data-testid="link-email" className="group flex items-center gap-3 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">{email} <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></a> : <Link href="/#servizi" data-testid="link-contact-orientation" className="inline-flex items-center gap-2 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">Invia una richiesta di orientamento <ArrowRight size={18} /></Link>}</div><div><SectionKicker>ovunque tu sia</SectionKicker><p className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-[hsl(var(--primary))]" /> Consulenze online, ovunque tu sia</p></div></section>
@@ -354,7 +375,7 @@ function AdminAuth({ setupComplete }: { setupComplete: boolean }) {
     action.mutate({ data: { username, password } }, { onSuccess: () => client.invalidateQueries({ queryKey: getGetAdminStatusQueryKey() }), onError: (e) => setError(getErrorMessage(e, 'Credenziali non valide o servizio non disponibile.')) });
   };
   const pending = setup.isPending || login.isPending;
-  return <div className="grain flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--secondary)/.4)] px-5 py-12"><div className="w-full max-w-md border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 shadow-[0_20px_50px_hsl(var(--foreground)/.05)] md:p-10"><Link href="/" data-testid="link-admin-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(var(--primary))] font-serif text-lg italic">S</span><span className="font-serif text-lg">sofia / riservata</span></Link><div className="mt-12"><SectionKicker>{setupComplete ? 'accesso protetto' : 'prima configurazione'}</SectionKicker><h1 className="font-serif text-4xl">{setupComplete ? 'Bentornata, Sofia.' : 'Crea il tuo accesso.'}</h1><p className="mt-4 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{setupComplete ? 'Accedi per vedere chi sta cercando il suo prossimo percorso.' : 'Questo account sarà l’unico accesso alla tua area riservata.'}</p></div><form onSubmit={submit} className="mt-8 space-y-5"><label className="text-xs font-semibold">Username<input className="field mt-2" data-testid="input-admin-username" required minLength={3} value={username} onChange={(e) => setUsername(e.target.value)} /></label><label className="text-xs font-semibold">Password<input className="field mt-2" data-testid="input-admin-password" required minLength={10} type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{!setupComplete && <label className="text-xs font-semibold">Ripeti la password<input className="field mt-2" data-testid="input-admin-confirm-password" required minLength={10} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>}{error && <Alert kind="error">{error}</Alert>}<button disabled={pending} className="btn-primary w-full disabled:opacity-60" data-testid="button-admin-submit">{pending ? 'Attendi…' : setupComplete ? 'Accedi alla dashboard' : 'Crea account e accedi'} <ArrowRight size={16} /></button></form></div></div>;
+  return <div className="grain route-shell flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--secondary))] px-5 py-12"><div className="w-full max-w-md border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-7 shadow-[8px_8px_0_hsl(var(--accent))] md:p-10"><Link href="/" data-testid="link-admin-logo" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center bg-[hsl(var(--secondary))] font-serif text-lg text-[hsl(var(--accent))]">S</span><span className="font-serif text-lg">sofia / riservata</span></Link><div className="mt-12"><SectionKicker>{setupComplete ? 'accesso protetto' : 'prima configurazione'}</SectionKicker><h1 className="font-serif text-4xl">{setupComplete ? 'Bentornata, Sofia.' : 'Crea il tuo accesso.'}</h1><p className="mt-4 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">{setupComplete ? 'Accedi per vedere chi sta cercando il suo prossimo percorso.' : 'Questo account sarà l’unico accesso alla tua area riservata.'}</p></div><form onSubmit={submit} className="mt-8 space-y-5"><label className="text-xs font-semibold">Username<input autoComplete="username" className="field mt-2" data-testid="input-admin-username" required minLength={3} value={username} onChange={(e) => setUsername(e.target.value)} /></label><label className="text-xs font-semibold">Password<input autoComplete={setupComplete ? 'current-password' : 'new-password'} className="field mt-2" data-testid="input-admin-password" required minLength={10} type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>{!setupComplete && <label className="text-xs font-semibold">Ripeti la password<input autoComplete="new-password" className="field mt-2" data-testid="input-admin-confirm-password" required minLength={10} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></label>}{error && <Alert kind="error">{error}</Alert>}<button disabled={pending} className="btn-primary w-full disabled:opacity-60" data-testid="button-admin-submit">{pending ? 'Attendi…' : setupComplete ? 'Accedi alla dashboard' : 'Crea account e accedi'} <ArrowRight size={16} /></button></form></div></div>;
 }
 
 function normalizeItalianPhone(phone: string) {
