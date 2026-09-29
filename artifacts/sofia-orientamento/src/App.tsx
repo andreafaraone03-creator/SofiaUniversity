@@ -14,6 +14,7 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react';
+import { FaTiktok, FaWhatsapp } from 'react-icons/fa6';
 import {
   getGetAdminStatusQueryKey,
   getGetAdminSummaryQueryKey,
@@ -336,8 +337,8 @@ function Contacts() {
   const whatsapp = (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined) || '+39 3420662333';
   const email = import.meta.env.VITE_CONTACT_EMAIL as string | undefined;
   const cards = [
-    { name: 'WhatsApp', icon: <MessageCircle size={25} strokeWidth={1.5} />, href: whatsapp ? `https://wa.me/${normalizeItalianPhone(whatsapp)}` : undefined, description: 'Scrivimi direttamente, senza formalità.', config: 'Il numero di Sofia sarà disponibile qui a breve.' },
-    { name: 'TikTok', icon: <span className="text-xl font-bold">TT</span>, href: tiktok || undefined, description: 'Seguimi per orientarti con più leggerezza.', config: 'Il profilo di Sofia sarà disponibile qui a breve.' },
+    { name: 'WhatsApp', icon: <FaWhatsapp aria-hidden="true" focusable="false" className="h-7 w-7 shrink-0 text-[#25D366]" />, href: whatsapp ? `https://wa.me/${normalizeItalianPhone(whatsapp)}` : undefined, description: 'Scrivimi direttamente, senza formalità.', config: 'Il numero di Sofia sarà disponibile qui a breve.' },
+    { name: 'TikTok', icon: <span aria-hidden="true" className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center"><FaTiktok focusable="false" className="absolute -translate-x-[1.5px] translate-y-[1px] text-[#25F4EE]" /><FaTiktok focusable="false" className="absolute translate-x-[1.5px] -translate-y-[1px] text-[#FE2C55]" /><FaTiktok focusable="false" className="relative text-[hsl(var(--background))]" /></span>, href: tiktok || undefined, description: 'Seguimi per orientarti con più leggerezza.', config: 'Il profilo di Sofia sarà disponibile qui a breve.' },
   ];
   return <div className="grain min-h-[100dvh] route-shell"><SiteHeader /><main className="page-in">
     <section className="mx-auto max-w-7xl px-5 pb-16 pt-16 md:px-8 md:pb-24 md:pt-24"><SectionKicker>parliamone</SectionKicker><div className="grid gap-10 md:grid-cols-[1fr_.8fr] md:items-end"><h1 className="max-w-3xl font-serif text-5xl leading-[.98] sm:text-7xl">La domanda<br /><em className="text-[hsl(var(--primary))]">è il tuo inizio.</em></h1><p className="max-w-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Scrivimi nel modo che preferisci. Ti risponderò personalmente appena possibile.</p></div></section>
