@@ -40,3 +40,12 @@ test("admin request table renders an invalid appointment date safely", () => {
   assert.match(markup, /— · 10:30/);
   assert.doesNotMatch(markup, /Invalid Date/);
 });
+
+test("admin request table keeps a valid appointment visible when createdAt is invalid", () => {
+  const item = { ...fixture, createdAt: "not-a-timestamp" };
+  assert.doesNotThrow(() => renderAppointmentCell(item));
+  const markup = renderAppointmentCell(item);
+
+  assert.match(markup, /<span class="whitespace-nowrap">—<\/span>/);
+  assert.match(markup, /20\/03\/2026 · 10:30/);
+});
