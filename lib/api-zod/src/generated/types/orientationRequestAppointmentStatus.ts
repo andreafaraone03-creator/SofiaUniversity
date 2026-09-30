@@ -13,6 +13,7 @@ export type OrientationRequestAppointmentStatus = typeof OrientationRequestAppoi
 
 
 export const OrientationRequestAppointmentStatus = {
+  pending: 'pending',
   confirmed: 'confirmed',
   cancelled: 'cancelled',
 } as const;
