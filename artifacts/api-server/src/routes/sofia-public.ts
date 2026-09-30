@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import {
   CreateOrientationRequestBody,
   CreateOrientationRequestResponse,
@@ -12,19 +12,21 @@ import {
   ListTourSlotsResponse,
 } from "@workspace/api-zod";
 import {
-  bookingColumns,
   courses,
   isBookable,
   nowInRome,
-  orientationColumns,
   sofiaStorage,
   sofiaTransaction,
   type SofiaExecutor,
   tourTimes,
-  type OrientationRequest,
-  type TourBooking,
 } from "../lib/sofia-db";
-import { persistEmailDelivery, sendAutomaticConfirmation } from "../lib/sofia-email";
+import {
+  persistEmailDelivery,
+  sendAdminBookingNotification,
+  sendAutomaticConfirmation,
+  type AdminBookingDetails,
+  type EmailDelivery,
+} from "../lib/sofia-email";
 import {
   CalendarIntegrationError,
   createMeetEvent,
@@ -83,6 +85,39 @@ async function releaseBooking(
     await tx.run(`DELETE FROM ${table} WHERE id = ?`, id);
     await tx.run("DELETE FROM appointment_slots WHERE booking_type = ? AND booking_id = ?", bookingType, id);
   });
+}
+
+async function deliverBookingEmails(
+  req: Request,
+  table: "richieste_corso" | "prenotazioni_tour",
+  id: number,
+  recipient: string,
+  details: AdminBookingDetails,
+): Promise<EmailDelivery> {
+  let delivery: EmailDelivery = {
+    status: "failed",
+    sentAt: null,
+    error: "Servizio email non disponibile.",
+  };
+  try {
+    delivery = await sendAutomaticConfirmation(recipient, details);
+  } catch (error) {
+    req.log.error({ bookingId: id, bookingType: details.type, reason: error instanceof Error ? error.message : "unknown" }, "Customer confirmation failed");
+  }
+  try {
+    await persistEmailDelivery(table, id, delivery);
+  } catch (error) {
+    req.log.error({ bookingId: id, bookingType: details.type, reason: error instanceof Error ? error.message : "unknown" }, "Could not record customer email delivery");
+  }
+  try {
+    const adminDelivery = await sendAdminBookingNotification(details);
+    if (adminDelivery.status === "failed" || adminDelivery.status === "not_configured") {
+      req.log.warn({ bookingId: id, bookingType: details.type, status: adminDelivery.status }, "Admin notification not sent");
+    }
+  } catch (error) {
+    req.log.error({ bookingId: id, bookingType: details.type, reason: error instanceof Error ? error.message : "unknown" }, "Admin notification failed");
+  }
+  return delivery;
 }
 
 async function isAvailable(date: string, time: string): Promise<boolean> {
@@ -192,24 +227,24 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
     return;
   }
 
-  const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
+  const delivery = await deliverBookingEmails(req, "richieste_corso", id, email.trim().toLowerCase(), {
     type: "consultation",
     firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    customerEmail: email.trim().toLowerCase(),
     university,
     courseName: course.name,
     date,
     time,
     meetUrl: meet.meetUrl,
   });
-  await persistEmailDelivery("richieste_corso", id, delivery);
-  const request = await sofiaStorage.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, id) as OrientationRequest;
   const response = CreateOrientationRequestResponse.parse({
-    id: request.id,
+    id,
     date,
     time,
     meetUrl: meet.meetUrl,
-    createdAt: request.createdAt,
-    confirmationEmailStatus: request.confirmationEmailStatus,
+    createdAt,
+    confirmationEmailStatus: delivery.status,
   });
   res.status(201).json(response);
 });
@@ -327,24 +362,24 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
     return;
   }
 
-  const delivery = await sendAutomaticConfirmation(email.trim().toLowerCase(), {
+  const delivery = await deliverBookingEmails(req, "prenotazioni_tour", id, email.trim().toLowerCase(), {
     type: "tour",
     firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    customerEmail: email.trim().toLowerCase(),
     date: dateString,
     time,
     meetUrl,
   });
-  await persistEmailDelivery("prenotazioni_tour", id, delivery);
-  const booking = await sofiaStorage.get<TourBooking>(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`, id) as TourBooking;
   const response = CreateTourBookingResponse.parse({
-    id: booking.id,
-    date: booking.date,
-    time: booking.time,
+    id,
+    date: dateString,
+    time,
     meetUrl,
-    confirmationEmailStatus: booking.confirmationEmailStatus,
+    confirmationEmailStatus: delivery.status,
   });
   // Keep the public date as YYYY-MM-DD rather than a serialized UTC timestamp.
-  res.status(201).json({ ...response, date: booking.date });
+  res.status(201).json({ ...response, date: dateString });
 });
 
 export default router;

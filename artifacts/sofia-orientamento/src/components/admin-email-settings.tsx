@@ -9,6 +9,7 @@ import {
 
 type SettingsDraft = {
   senderEmail: string;
+  adminNotificationEmail: string;
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
@@ -16,6 +17,7 @@ type SettingsDraft = {
 
 const defaultSettings: SettingsDraft = {
   senderEmail: "",
+  adminNotificationEmail: "",
   senderName: "Sofia",
   sendOrientationConfirmations: true,
   sendTourConfirmations: true,
@@ -34,6 +36,7 @@ export function AdminEmailSettings() {
     if (!settingsQuery.data) return;
     setDraft({
       senderEmail: settingsQuery.data.senderEmail ?? "",
+      adminNotificationEmail: settingsQuery.data.adminNotificationEmail ?? "",
       senderName: settingsQuery.data.senderName,
       sendOrientationConfirmations: settingsQuery.data.sendOrientationConfirmations,
       sendTourConfirmations: settingsQuery.data.sendTourConfirmations,
@@ -46,6 +49,7 @@ export function AdminEmailSettings() {
     saveSettings.mutate({
       data: {
         senderEmail: draft.senderEmail.trim() || null,
+        adminNotificationEmail: draft.adminNotificationEmail.trim() || null,
         senderName: draft.senderName.trim() || "Sofia",
         sendOrientationConfirmations: draft.sendOrientationConfirmations,
         sendTourConfirmations: draft.sendTourConfirmations,
@@ -82,6 +86,10 @@ export function AdminEmailSettings() {
               <input className="field mt-2" required maxLength={80} value={draft.senderName} onChange={(event) => setDraft({ ...draft, senderName: event.target.value })} />
             </label>
           </div>
+          <label className="block text-xs font-semibold">Email per notifiche admin
+            <input className="field mt-2" type="email" maxLength={254} value={draft.adminNotificationEmail} onChange={(event) => setDraft({ ...draft, adminNotificationEmail: event.target.value })} placeholder="sofia@tuodominio.it" />
+            <span className="mt-2 block font-normal text-[hsl(var(--muted-foreground))]">Riceverà data, cliente e link Google Meet per ogni nuova consulenza o tour. Se vuoto, le notifiche admin sono disattivate.</span>
+          </label>
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
             <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.sendOrientationConfirmations} onChange={(event) => setDraft({ ...draft, sendOrientationConfirmations: event.target.checked })} /> Invia conferme delle consulenze</label>
             <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.sendTourConfirmations} onChange={(event) => setDraft({ ...draft, sendTourConfirmations: event.target.checked })} /> Invia conferme dei tour</label>

@@ -65,6 +65,7 @@ import {
 } from "../lib/sofia-db";
 import {
   persistEmailDelivery,
+  sendAdminBookingNotification,
   sendAutomaticConfirmation,
   sendForcedConfirmation,
   sendTestEmail,
@@ -87,10 +88,11 @@ function positivePathId(raw: string | string[]): number | null {
 
 async function readEmailSettings(): Promise<EmailSettings> {
   const row = await sofiaStorage.get<{
-    senderEmail: string | null; senderName: string;
+    senderEmail: string | null; adminNotificationEmail: string | null; senderName: string;
     sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
   }>(`
-    SELECT sender_email AS "senderEmail", sender_name AS "senderName",
+    SELECT sender_email AS "senderEmail", admin_notification_email AS "adminNotificationEmail",
+      sender_name AS "senderName",
       send_orientation_confirmations AS "sendOrientationConfirmations",
       send_tour_confirmations AS "sendTourConfirmations"
     FROM impostazioni_email WHERE id = 1
@@ -98,6 +100,7 @@ async function readEmailSettings(): Promise<EmailSettings> {
 
   return {
     senderEmail: row?.senderEmail?.trim() || null,
+    adminNotificationEmail: row?.adminNotificationEmail?.trim() || null,
     senderName: row?.senderName?.trim() || "Sofia",
     sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
     sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
@@ -390,6 +393,22 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
       meetUrl,
     });
     await persistEmailDelivery("prenotazioni_tour", params.data.id, delivery);
+    try {
+      const adminDelivery = await sendAdminBookingNotification({
+        type: "tour",
+        firstName: current.firstName,
+        lastName: current.lastName,
+        customerEmail: current.email,
+        date: current.date,
+        time: current.time,
+        meetUrl,
+      });
+      if (adminDelivery.status === "failed" || adminDelivery.status === "not_configured") {
+        req.log.warn({ bookingId: params.data.id, status: adminDelivery.status }, "Admin notification not sent");
+      }
+    } catch (error) {
+      req.log.error({ bookingId: params.data.id, reason: error instanceof Error ? error.message : "unknown" }, "Admin notification failed");
+    }
   } else {
     await sofiaStorage.run("UPDATE prenotazioni_tour SET status = ? WHERE id = ?", body.data.status, params.data.id);
   }
@@ -727,23 +746,30 @@ router.put("/admin/email-settings", requireAdmin, async (req, res): Promise<void
     return;
   }
   const senderEmail = parsed.data.senderEmail?.trim().toLowerCase() || null;
+  const adminNotificationEmail = parsed.data.adminNotificationEmail?.trim().toLowerCase() || null;
   if (senderEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmail)) {
     res.status(400).json({ error: "Inserisci un indirizzo email valido." });
     return;
   }
+  if (adminNotificationEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminNotificationEmail)) {
+    res.status(400).json({ error: "Inserisci un'email valida per le notifiche admin." });
+    return;
+  }
   await sofiaStorage.run(`
     INSERT INTO impostazioni_email
-      (id, sender_email, sender_name, send_orientation_confirmations,
+      (id, sender_email, admin_notification_email, sender_name, send_orientation_confirmations,
        send_tour_confirmations, updated_at)
-    VALUES (1, ?, ?, ?, ?, ?)
+    VALUES (1, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       sender_email = excluded.sender_email,
+      admin_notification_email = excluded.admin_notification_email,
       sender_name = excluded.sender_name,
       send_orientation_confirmations = excluded.send_orientation_confirmations,
       send_tour_confirmations = excluded.send_tour_confirmations,
       updated_at = excluded.updated_at
   `,
     senderEmail,
+    adminNotificationEmail,
     parsed.data.senderName.trim(),
     Number(parsed.data.sendOrientationConfirmations),
     Number(parsed.data.sendTourConfirmations),

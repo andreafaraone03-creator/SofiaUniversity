@@ -723,8 +723,13 @@ export const UpdateAdminEnrollmentResponse = zod.object({
 /**
  * @summary Legge la configurazione delle email automatiche
  */
+export const getAdminEmailSettingsResponseAdminNotificationEmailMax = 254;
+
+
+
 export const GetAdminEmailSettingsResponse = zod.object({
   "senderEmail": zod.string().nullable(),
+  "adminNotificationEmail": zod.string().email().max(getAdminEmailSettingsResponseAdminNotificationEmailMax).nullable(),
   "senderName": zod.string(),
   "sendOrientationConfirmations": zod.boolean(),
   "sendTourConfirmations": zod.boolean()
@@ -734,19 +739,27 @@ export const GetAdminEmailSettingsResponse = zod.object({
 /**
  * @summary Configura le email automatiche
  */
+export const updateAdminEmailSettingsBodyAdminNotificationEmailMax = 254;
+
 export const updateAdminEmailSettingsBodySenderNameMax = 80;
 
 
 
 export const UpdateAdminEmailSettingsBody = zod.object({
   "senderEmail": zod.string().nullable(),
+  "adminNotificationEmail": zod.string().email().max(updateAdminEmailSettingsBodyAdminNotificationEmailMax).nullable(),
   "senderName": zod.string().min(1).max(updateAdminEmailSettingsBodySenderNameMax),
   "sendOrientationConfirmations": zod.boolean(),
   "sendTourConfirmations": zod.boolean()
 })
 
+export const updateAdminEmailSettingsResponseAdminNotificationEmailMax = 254;
+
+
+
 export const UpdateAdminEmailSettingsResponse = zod.object({
   "senderEmail": zod.string().nullable(),
+  "adminNotificationEmail": zod.string().email().max(updateAdminEmailSettingsResponseAdminNotificationEmailMax).nullable(),
   "senderName": zod.string(),
   "sendOrientationConfirmations": zod.boolean(),
   "sendTourConfirmations": zod.boolean()
