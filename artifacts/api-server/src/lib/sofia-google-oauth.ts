@@ -123,7 +123,7 @@ export async function getGoogleCalendarConnectionStatus(): Promise<GoogleCalenda
   }
 
   const row = await sofiaStorage.get<EncryptedRefreshToken>(`
-    SELECT encrypted_refresh_token AS encryptedRefreshToken, iv, auth_tag AS authTag
+    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv, auth_tag AS "authTag"
     FROM sofia_google_calendar_credentials
     WHERE id = 1
   `);
@@ -247,7 +247,7 @@ export async function getGoogleAccessToken(): Promise<string> {
   }
 
   const record = await sofiaStorage.get<EncryptedRefreshToken>(`
-    SELECT encrypted_refresh_token AS encryptedRefreshToken, iv, auth_tag AS authTag
+    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv, auth_tag AS "authTag"
     FROM sofia_google_calendar_credentials
     WHERE id = 1
   `);
