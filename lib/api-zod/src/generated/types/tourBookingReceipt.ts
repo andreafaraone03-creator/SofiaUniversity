@@ -11,5 +11,6 @@ export interface TourBookingReceipt {
   id: number;
   date: Date;
   time: string;
+  meetUrl: string;
   confirmationEmailStatus: ConfirmationEmailStatus;
 }

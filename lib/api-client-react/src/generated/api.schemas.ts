@@ -9,6 +9,10 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface Error {
+  error: string;
+}
+
 export interface Course {
   id: string;
   university: string;
@@ -47,7 +51,21 @@ export type OrientationRequestInput = ContactInput & {
   university: string;
   /** @minLength 1 */
   courseId: string;
+  date: string;
+  /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
+  time: string;
 };
+
+/**
+ * @nullable
+ */
+export type OrientationRequestAppointmentStatus = typeof OrientationRequestAppointmentStatus[keyof typeof OrientationRequestAppointmentStatus] | null;
+
+
+export const OrientationRequestAppointmentStatus = {
+  confirmed: 'confirmed',
+  cancelled: 'cancelled',
+} as const;
 
 export type OrientationPipelineStatus = typeof OrientationPipelineStatus[keyof typeof OrientationPipelineStatus];
 
@@ -84,6 +102,14 @@ export type OrientationRequest = ContactInput & ({
   university: string;
   courseId: string;
   courseName: string;
+  /** @nullable */
+  appointmentDate: string | null;
+  /** @nullable */
+  appointmentTime: string | null;
+  /** @nullable */
+  appointmentStatus: OrientationRequestAppointmentStatus;
+  /** @nullable */
+  meetUrl: string | null;
   createdAt: string;
   pipelineStatus: OrientationPipelineStatus;
   enrollmentOutcome: EnrollmentOutcome;
@@ -98,6 +124,9 @@ export type OrientationRequest = ContactInput & ({
 
 export interface OrientationRequestReceipt {
   id: number;
+  date: string;
+  time: string;
+  meetUrl: string;
   createdAt: string;
   confirmationEmailStatus: ConfirmationEmailStatus;
 }
@@ -121,6 +150,8 @@ export type TourBooking = ContactInput & ({
   id: number;
   date: string;
   time: string;
+  /** @nullable */
+  meetUrl: string | null;
   status: TourBookingStatus;
   createdAt: string;
   adminNotes: string;
@@ -136,10 +167,16 @@ export interface TourBookingReceipt {
   id: number;
   date: string;
   time: string;
+  meetUrl: string;
   confirmationEmailStatus: ConfirmationEmailStatus;
 }
 
 export interface TourSlot {
+  time: string;
+  available: boolean;
+}
+
+export interface AppointmentSlot {
   time: string;
   available: boolean;
 }
@@ -346,6 +383,10 @@ search?: string;
 };
 
 export type ListTourSlotsParams = {
+date: string;
+};
+
+export type ListAppointmentSlotsParams = {
 date: string;
 };
 

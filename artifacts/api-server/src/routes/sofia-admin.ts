@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { timingSafeEqual } from "node:crypto";
 import {
+  CancelOrientationAppointmentParams,
+  CancelOrientationAppointmentResponse,
   ConfirmOrientationEnrollmentParams,
   ConfirmOrientationEnrollmentResponse,
   CreateAdminEnrollmentBody,
@@ -51,6 +53,7 @@ import {
   bookingColumns,
   courses,
   enrollmentColumns,
+  isBookable,
   nowInRome,
   orientationColumns,
   sqlite,
@@ -61,9 +64,17 @@ import {
 } from "../lib/sofia-db";
 import {
   persistEmailDelivery,
+  sendAutomaticConfirmation,
   sendForcedConfirmation,
   sendTestEmail,
 } from "../lib/sofia-email";
+import {
+  createMeetEvent,
+  deleteMeetEvent,
+  getCalendarBusyRanges,
+  intervalIsBusy,
+  type AppointmentDetails,
+} from "../lib/sofia-calendar";
 
 const router: IRouter = Router();
 const loginAttempts = new Map<string, { count: number; expires: number }>();
@@ -89,8 +100,8 @@ function readEmailSettings(): EmailSettings {
   return {
     senderEmail: row?.senderEmail?.trim() || null,
     senderName: row?.senderName?.trim() || "Sofia",
-    sendOrientationConfirmations: Boolean(row?.sendOrientationConfirmations),
-    sendTourConfirmations: Boolean(row?.sendTourConfirmations),
+    sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
+    sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
   };
 }
 
@@ -220,6 +231,55 @@ router.get("/admin/orientation-requests", requireAdmin, (_req, res): void => {
   res.json(ListAdminOrientationRequestsResponse.parse(rows));
 });
 
+router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async (req, res): Promise<void> => {
+  const id = positivePathId(req.params.id);
+  const params = CancelOrientationAppointmentParams.safeParse({ id });
+  if (!id || !params.success) {
+    res.status(400).json({ error: "Appuntamento non valido." });
+    return;
+  }
+  const appointment = sqlite.prepare(`
+    SELECT appointment_status AS appointmentStatus,
+      google_calendar_event_id AS googleCalendarEventId
+    FROM richieste_corso WHERE id = ?
+  `).get(id) as { appointmentStatus: string | null; googleCalendarEventId: string | null } | undefined;
+  if (!appointment) {
+    res.status(404).json({ error: "Appuntamento non trovato." });
+    return;
+  }
+  if (appointment.appointmentStatus === "cancelled") {
+    res.json(CancelOrientationAppointmentResponse.parse({ success: true }));
+    return;
+  }
+
+  try {
+    if (appointment.googleCalendarEventId) {
+      await deleteMeetEvent(appointment.googleCalendarEventId);
+    }
+  } catch {
+    res.status(503).json({ error: "Non riesco ad aggiornare l'evento nel calendario. Riprova." });
+    return;
+  }
+
+  sqlite.exec("BEGIN IMMEDIATE");
+  try {
+    sqlite.prepare(`
+      UPDATE richieste_corso
+      SET appointment_status = 'cancelled',
+          google_calendar_event_id = NULL,
+          meet_url = NULL
+      WHERE id = ?
+    `).run(id);
+    sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'consultation' AND booking_id = ?")
+      .run(id);
+    sqlite.exec("COMMIT");
+  } catch (error) {
+    sqlite.exec("ROLLBACK");
+    throw error;
+  }
+  res.json(CancelOrientationAppointmentResponse.parse({ success: true }));
+});
+
 router.get("/admin/tour-bookings", requireAdmin, (_req, res): void => {
   const rows = sqlite.prepare(`
     SELECT ${bookingColumns} FROM prenotazioni_tour ORDER BY date DESC, time DESC, id DESC
@@ -228,7 +288,7 @@ router.get("/admin/tour-bookings", requireAdmin, (_req, res): void => {
   res.json(response.map((booking, index) => ({ ...booking, date: rows[index].date })));
 });
 
-router.patch("/admin/tour-bookings/:id", requireAdmin, (req, res): void => {
+router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = UpdateTourBookingStatusParams.safeParse({ id: Number(rawId) });
   const body = UpdateTourBookingStatusBody.safeParse(req.body);
@@ -236,13 +296,126 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, (req, res): void => {
     res.status(400).json({ error: "Prenotazione o stato non validi." });
     return;
   }
-  try {
-    const result = sqlite.prepare("UPDATE prenotazioni_tour SET status = ? WHERE id = ?")
-      .run(body.data.status, params.data.id);
-    if (!result.changes) {
-      res.status(404).json({ error: "Prenotazione non trovata." });
+
+  const current = sqlite.prepare(`
+    SELECT ${bookingColumns}, google_calendar_event_id AS googleCalendarEventId
+    FROM prenotazioni_tour WHERE id = ?
+  `).get(params.data.id) as (TourBooking & { googleCalendarEventId: string | null }) | undefined;
+  if (!current) {
+    res.status(404).json({ error: "Prenotazione non trovata." });
+    return;
+  }
+
+  if (body.data.status === "cancelled" && current.status !== "cancelled") {
+    try {
+      if (current.googleCalendarEventId) await deleteMeetEvent(current.googleCalendarEventId);
+    } catch {
+      res.status(503).json({ error: "Non riesco ad aggiornare l'evento nel calendario. Riprova." });
       return;
     }
+    sqlite.exec("BEGIN IMMEDIATE");
+    try {
+      sqlite.prepare(`
+        UPDATE prenotazioni_tour
+        SET status = 'cancelled', google_calendar_event_id = NULL, meet_url = NULL
+        WHERE id = ?
+      `).run(params.data.id);
+      sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?")
+        .run(params.data.id);
+      sqlite.exec("COMMIT");
+    } catch (error) {
+      sqlite.exec("ROLLBACK");
+      throw error;
+    }
+  } else if (body.data.status === "confirmed" && current.status === "cancelled") {
+    if (!isBookable(current.date, current.time)) {
+      res.status(409).json({ error: "Questo appuntamento non può essere riattivato perché l'orario è passato." });
+      return;
+    }
+    try {
+      const busyRanges = await getCalendarBusyRanges(current.date);
+      const reserved = sqlite.prepare(
+        "SELECT 1 FROM appointment_slots WHERE date = ? AND time = ?",
+      ).get(current.date, current.time);
+      if (reserved || intervalIsBusy(current.date, current.time, busyRanges)) {
+        res.status(409).json({ error: "Questo orario è già occupato nel calendario." });
+        return;
+      }
+    } catch {
+      res.status(503).json({ error: "Non riesco a verificare il calendario. Riprova." });
+      return;
+    }
+
+    sqlite.exec("BEGIN IMMEDIATE");
+    try {
+      sqlite.prepare("UPDATE prenotazioni_tour SET status = 'confirmed' WHERE id = ?")
+        .run(params.data.id);
+      sqlite.prepare(`
+        INSERT INTO appointment_slots (date, time, booking_type, booking_id)
+        VALUES (?, ?, 'tour', ?)
+      `).run(current.date, current.time, params.data.id);
+      sqlite.exec("COMMIT");
+    } catch (error) {
+      sqlite.exec("ROLLBACK");
+      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+        res.status(409).json({ error: "Questo orario è già occupato da un'altra prenotazione." });
+        return;
+      }
+      throw error;
+    }
+
+    let eventId: string | null = null;
+    let meetUrl: string | null = null;
+    try {
+      const meet = await createMeetEvent({
+        kind: "tour",
+        firstName: current.firstName,
+        lastName: current.lastName,
+        email: current.email,
+        date: current.date,
+        time: current.time,
+      } satisfies AppointmentDetails);
+      eventId = meet.eventId;
+      meetUrl = meet.meetUrl;
+      sqlite.prepare(`
+        UPDATE prenotazioni_tour SET google_calendar_event_id = ?, meet_url = ? WHERE id = ?
+      `).run(eventId, meetUrl, params.data.id);
+    } catch {
+      sqlite.exec("BEGIN IMMEDIATE");
+      try {
+        sqlite.prepare(`
+          UPDATE prenotazioni_tour
+          SET status = 'cancelled', google_calendar_event_id = NULL, meet_url = NULL
+          WHERE id = ?
+        `).run(params.data.id);
+        sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?")
+          .run(params.data.id);
+        sqlite.exec("COMMIT");
+      } catch (error) {
+        sqlite.exec("ROLLBACK");
+        throw error;
+      }
+      if (eventId) {
+        try { await deleteMeetEvent(eventId); } catch { /* best-effort cleanup */ }
+      }
+      res.status(503).json({ error: "Non è stato possibile creare il link Google Meet. Riprova." });
+      return;
+    }
+
+    const delivery = await sendAutomaticConfirmation(current.email, {
+      type: "tour",
+      firstName: current.firstName,
+      date: current.date,
+      time: current.time,
+      meetUrl,
+    });
+    persistEmailDelivery("prenotazioni_tour", params.data.id, delivery);
+  } else {
+    sqlite.prepare("UPDATE prenotazioni_tour SET status = ? WHERE id = ?")
+      .run(body.data.status, params.data.id);
+  }
+
+  try {
     const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
       .get(params.data.id) as TourBooking;
     const response = UpdateTourBookingStatusResponse.parse(booking);
@@ -645,11 +818,23 @@ router.post("/admin/orientation-requests/:id/send-confirmation", requireAdmin, a
     res.status(404).json({ error: "Richiesta non trovata." });
     return;
   }
+  if (
+    request.appointmentStatus !== "confirmed" ||
+    !request.appointmentDate ||
+    !request.appointmentTime ||
+    !request.meetUrl
+  ) {
+    res.status(409).json({ error: "Questa prenotazione non ha un link Meet attivo." });
+    return;
+  }
   const delivery = await sendForcedConfirmation(request.email, {
-    type: "orientation",
+    type: "consultation",
     firstName: request.firstName,
     university: request.university,
     courseName: request.courseName,
+    date: request.appointmentDate,
+    time: request.appointmentTime,
+    meetUrl: request.meetUrl,
   });
   persistEmailDelivery("richieste_corso", request.id, delivery);
   if (delivery.status === "failed") {
@@ -676,11 +861,16 @@ router.post("/admin/tour-bookings/:id/send-confirmation", requireAdmin, async (r
     res.status(404).json({ error: "Prenotazione non trovata." });
     return;
   }
+  if (booking.status !== "confirmed" || !booking.meetUrl) {
+    res.status(409).json({ error: "Questa prenotazione non ha un link Meet attivo." });
+    return;
+  }
   const delivery = await sendForcedConfirmation(booking.email, {
     type: "tour",
     firstName: booking.firstName,
     date: booking.date,
     time: booking.time,
+    meetUrl: booking.meetUrl,
   });
   persistEmailDelivery("prenotazioni_tour", booking.id, delivery);
   if (delivery.status === "failed") {

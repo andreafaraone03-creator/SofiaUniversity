@@ -23,6 +23,7 @@ import type {
   AdminCredentials,
   AdminStatus,
   AdminSummary,
+  AppointmentSlot,
   Course,
   EmailActionResult,
   EmailSettings,
@@ -30,7 +31,9 @@ import type {
   Enrollment,
   EnrollmentInput,
   EnrollmentUpdate,
+  Error,
   HealthStatus,
+  ListAppointmentSlotsParams,
   ListCoursesParams,
   ListTourSlotsParams,
   OrientationManagementUpdate,
@@ -395,6 +398,90 @@ export function useListTourSlots<TData = Awaited<ReturnType<typeof listTourSlots
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListTourSlotsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAppointmentSlotsUrl = (params: ListAppointmentSlotsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/appointment-slots?${stringifiedParams}` : `/api/appointment-slots`
+}
+
+/**
+ * @summary Elenca gli orari liberi per consulenze e tour
+ */
+export const listAppointmentSlots = async (params: ListAppointmentSlotsParams, options?: Parameters<typeof customFetch>[1]): Promise<AppointmentSlot[]> => {
+
+  return customFetch<AppointmentSlot[]>(getListAppointmentSlotsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAppointmentSlotsQueryKey = (params?: ListAppointmentSlotsParams,) => {
+    return [
+    `/api/appointment-slots`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAppointmentSlotsQueryOptions = <TData = Awaited<ReturnType<typeof listAppointmentSlots>>, TError = ErrorType<unknown>>(params: ListAppointmentSlotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAppointmentSlots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAppointmentSlotsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAppointmentSlots>>> = ({ signal }) => listAppointmentSlots(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAppointmentSlots>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAppointmentSlotsQueryResult = NonNullable<Awaited<ReturnType<typeof listAppointmentSlots>>>
+export type ListAppointmentSlotsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Elenca gli orari liberi per consulenze e tour
+ */
+
+export function useListAppointmentSlots<TData = Awaited<ReturnType<typeof listAppointmentSlots>>, TError = ErrorType<unknown>>(
+ params: ListAppointmentSlotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAppointmentSlots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAppointmentSlotsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2047,6 +2134,80 @@ export const useResendOrientationConfirmation = <TError = ErrorType<EmailActionR
         TContext
       > => {
       return useMutation(getResendOrientationConfirmationMutationOptions(options));
+    }
+
+export const getCancelOrientationAppointmentUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/appointment`
+}
+
+/**
+ * @summary Annulla l'appuntamento e libera l'orario
+ */
+export const cancelOrientationAppointment = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Success> => {
+
+  return customFetch<Success>(getCancelOrientationAppointmentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelOrientationAppointmentMutationKey = () => ['cancelOrientationAppointment'] as const;
+
+export const getCancelOrientationAppointmentMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrientationAppointment>>, TError,CancelOrientationAppointmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelOrientationAppointment>>, TError,CancelOrientationAppointmentMutationVariables, TContext> => {
+
+const mutationKey = getCancelOrientationAppointmentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelOrientationAppointment>>, CancelOrientationAppointmentMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  cancelOrientationAppointment(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelOrientationAppointmentMutationResult = NonNullable<Awaited<ReturnType<typeof cancelOrientationAppointment>>>
+
+    export type CancelOrientationAppointmentMutationError = ErrorType<Error>
+    export type CancelOrientationAppointmentMutationVariables = {id: number}
+
+    /**
+ * @summary Annulla l'appuntamento e libera l'orario
+ */
+export const useCancelOrientationAppointment = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOrientationAppointment>>, TError,CancelOrientationAppointmentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelOrientationAppointment>>,
+        TError,
+        CancelOrientationAppointmentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCancelOrientationAppointmentMutationOptions(options));
     }
 
 export const getResendTourConfirmationUrl = (id: number,) => {

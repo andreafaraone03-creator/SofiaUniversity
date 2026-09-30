@@ -53,6 +53,7 @@ export const createOrientationRequestBodyOnePhoneMax = 30;
 
 
 
+export const createOrientationRequestBodyTwoTimeRegExp = new RegExp('^[0-2][0-9]:[0-5][0-9]$');
 
 
 export const CreateOrientationRequestBody = zod.object({
@@ -63,11 +64,16 @@ export const CreateOrientationRequestBody = zod.object({
   "phone": zod.string().min(createOrientationRequestBodyOnePhoneMin).max(createOrientationRequestBodyOnePhoneMax)
 }).and(zod.object({
   "university": zod.string().min(1),
-  "courseId": zod.string().min(1)
+  "courseId": zod.string().min(1),
+  "date": zod.coerce.date(),
+  "time": zod.string().regex(createOrientationRequestBodyTwoTimeRegExp)
 }))
 
 export const CreateOrientationRequestResponse = zod.object({
   "id": zod.number().int(),
+  "date": zod.coerce.date(),
+  "time": zod.string(),
+  "meetUrl": zod.string().url(),
   "createdAt": zod.coerce.date(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled'])
 })
@@ -85,6 +91,20 @@ export const ListTourSlotsResponseItem = zod.object({
   "available": zod.boolean()
 })
 export const ListTourSlotsResponse = zod.array(ListTourSlotsResponseItem)
+
+
+/**
+ * @summary Elenca gli orari liberi per consulenze e tour
+ */
+export const ListAppointmentSlotsQueryParams = zod.object({
+  "date": zod.date()
+})
+
+export const ListAppointmentSlotsResponseItem = zod.object({
+  "time": zod.string(),
+  "available": zod.boolean()
+})
+export const ListAppointmentSlotsResponse = zod.array(ListAppointmentSlotsResponseItem)
 
 
 /**
@@ -140,6 +160,7 @@ export const CreateTourBookingResponse = zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
+  "meetUrl": zod.string().url().nullable(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
   "createdAt": zod.coerce.date(),
   "adminNotes": zod.string(),
@@ -246,6 +267,7 @@ export const GetAdminSummaryResponse = zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
+  "meetUrl": zod.string().url().nullable(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
   "createdAt": zod.coerce.date(),
   "adminNotes": zod.string(),
@@ -285,6 +307,10 @@ export const ListAdminOrientationRequestsResponseItem = zod.object({
   "university": zod.string(),
   "courseId": zod.string(),
   "courseName": zod.string(),
+  "appointmentDate": zod.coerce.date().nullable(),
+  "appointmentTime": zod.string().nullable(),
+  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
   "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
@@ -324,6 +350,7 @@ export const ListAdminTourBookingsResponseItem = zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
+  "meetUrl": zod.string().url().nullable(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
   "createdAt": zod.coerce.date(),
   "adminNotes": zod.string(),
@@ -370,6 +397,7 @@ export const UpdateTourBookingStatusResponse = zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
+  "meetUrl": zod.string().url().nullable(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
   "createdAt": zod.coerce.date(),
   "adminNotes": zod.string(),
@@ -422,6 +450,10 @@ export const UpdateOrientationRequestManagementResponse = zod.object({
   "university": zod.string(),
   "courseId": zod.string(),
   "courseName": zod.string(),
+  "appointmentDate": zod.coerce.date().nullable(),
+  "appointmentTime": zod.string().nullable(),
+  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
   "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
@@ -495,6 +527,10 @@ export const MarkOrientationRequestNotEnrolledResponse = zod.object({
   "university": zod.string(),
   "courseId": zod.string(),
   "courseName": zod.string(),
+  "appointmentDate": zod.coerce.date().nullable(),
+  "appointmentTime": zod.string().nullable(),
+  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
   "enrollmentOutcome": zod.enum(['pending', 'enrolled', 'not_enrolled']),
@@ -546,6 +582,7 @@ export const UpdateTourBookingManagementResponse = zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
+  "meetUrl": zod.string().url().nullable(),
   "status": zod.enum(['confirmed', 'cancelled', 'completed']),
   "createdAt": zod.coerce.date(),
   "adminNotes": zod.string(),
@@ -743,6 +780,18 @@ export const ResendOrientationConfirmationResponse = zod.object({
   "success": zod.boolean(),
   "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "message": zod.string()
+})
+
+
+/**
+ * @summary Annulla l'appuntamento e libera l'orario
+ */
+export const CancelOrientationAppointmentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const CancelOrientationAppointmentResponse = zod.object({
+  "success": zod.boolean()
 })
 
 

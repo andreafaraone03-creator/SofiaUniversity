@@ -94,6 +94,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/TourSlot"
+  /appointment-slots:
+    get:
+      operationId: listAppointmentSlots
+      tags: [public]
+      summary: Elenca gli orari liberi per consulenze e tour
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Slot orari con disponibilità condivisa nel calendario di Sofia
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentSlot"
   /tour-bookings:
     post:
       operationId: createTourBooking
@@ -454,6 +475,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailActionResult"
+  /admin/orientation-requests/{id}/appointment:
+    delete:
+      operationId: cancelOrientationAppointment
+      tags: [admin]
+      summary: Annulla l'appuntamento e libera l'orario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Appuntamento annullato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+        "404":
+          description: Appuntamento non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Impossibile aggiornare l'evento nel calendario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /admin/tour-bookings/{id}/send-confirmation:
     post:
       operationId: resendTourConfirmation
@@ -486,6 +536,11 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
     Course:
       type: object
       properties:
@@ -511,7 +566,9 @@ components:
           properties:
             university: { type: string, minLength: 1 }
             courseId: { type: string, minLength: 1 }
-          required: [university, courseId]
+            date: { type: string, format: date }
+            time: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
+          required: [university, courseId, date, time]
     OrientationRequest:
       allOf:
         - $ref: "#/components/schemas/ContactInput"
@@ -521,6 +578,10 @@ components:
             university: { type: string }
             courseId: { type: string }
             courseName: { type: string }
+            appointmentDate: { type: ["string", "null"], format: date }
+            appointmentTime: { type: ["string", "null"] }
+            appointmentStatus: { type: ["string", "null"], enum: [pending, confirmed, cancelled, null] }
+            meetUrl: { type: ["string", "null"], format: uri }
             createdAt: { type: string, format: date-time }
             pipelineStatus: { $ref: "#/components/schemas/OrientationPipelineStatus" }
             enrollmentOutcome: { $ref: "#/components/schemas/EnrollmentOutcome" }
@@ -529,14 +590,17 @@ components:
             confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
             confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
             confirmationEmailError: { type: string }
-          required: [id, university, courseId, courseName, createdAt, pipelineStatus, enrollmentOutcome, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+          required: [id, university, courseId, courseName, appointmentDate, appointmentTime, appointmentStatus, meetUrl, createdAt, pipelineStatus, enrollmentOutcome, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
     OrientationRequestReceipt:
       type: object
       properties:
         id: { type: integer }
+        date: { type: string, format: date }
+        time: { type: string }
+        meetUrl: { type: string, format: uri }
         createdAt: { type: string, format: date-time }
         confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
-      required: [id, createdAt, confirmationEmailStatus]
+      required: [id, date, time, meetUrl, createdAt, confirmationEmailStatus]
     TourBookingInput:
       allOf:
         - $ref: "#/components/schemas/ContactInput"
@@ -553,6 +617,7 @@ components:
             id: { type: integer }
             date: { type: string, format: date }
             time: { type: string }
+            meetUrl: { type: ["string", "null"], format: uri }
             status: { type: string, enum: [confirmed, cancelled, completed] }
             createdAt: { type: string, format: date-time }
             adminNotes: { type: string }
@@ -560,16 +625,23 @@ components:
             confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
             confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
             confirmationEmailError: { type: string }
-          required: [id, date, time, status, createdAt, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+          required: [id, date, time, meetUrl, status, createdAt, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
     TourBookingReceipt:
       type: object
       properties:
         id: { type: integer }
         date: { type: string, format: date }
         time: { type: string }
+        meetUrl: { type: string, format: uri }
         confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
-      required: [id, date, time, confirmationEmailStatus]
+      required: [id, date, time, meetUrl, confirmationEmailStatus]
     TourSlot:
+      type: object
+      properties:
+        time: { type: string }
+        available: { type: boolean }
+      required: [time, available]
+    AppointmentSlot:
       type: object
       properties:
         time: { type: string }

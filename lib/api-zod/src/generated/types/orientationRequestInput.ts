@@ -12,4 +12,7 @@ export type OrientationRequestInput = ContactInput & {
   university: string;
   /** @minLength 1 */
   courseId: string;
+  date: Date;
+  /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
+  time: string;
 };
