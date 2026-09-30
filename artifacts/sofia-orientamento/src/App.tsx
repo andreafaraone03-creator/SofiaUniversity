@@ -132,9 +132,9 @@ function BookingChoiceRow({ href, number, label, title, description, detail, cta
 
 function PartnerTicker() {
   const partners = [
-    { name: 'Università Pegaso', src: 'https://images.ctfassets.net/5bcqzxwt09xw/2P2IePvy4MXoer2sa69Nka/67617a6bdcd02fd420fc993e281dfdcf/logo.png?fm=webp&q=80&h=25' },
-    { name: 'Universitas Mercatorum', src: 'https://images.ctfassets.net/5bcqzxwt09xw/1vWByA5uMp9RSFsHcXiFfZ/8a543b18bf7a17436809f43fcdf8072e/logo-mercatorum.gif?fm=webp&q=80&h=30' },
-    { name: 'Università San Raffaele Roma', src: 'https://images.ctfassets.net/5bcqzxwt09xw/7jxFdLUR9wOmTuj6HOcXk5/c04504f178cdac608805d33f547227de/logo-utsr-2025.png?fm=webp&q=80&h=30' },
+    { name: 'Università Pegaso', src: 'https://images.ctfassets.net/5bcqzxwt09xw/2P2IePvy4MXoer2sa69Nka/67617a6bdcd02fd420fc993e281dfdcf/logo.png?fm=png&q=100&h=160' },
+    { name: 'Universitas Mercatorum', src: 'https://www.unimercatorum.it/img/logo/logo.png?id=74d9efc4d46bb9cb56034eff851faa67' },
+    { name: 'Università San Raffaele Roma', src: 'https://images.ctfassets.net/5bcqzxwt09xw/7jxFdLUR9wOmTuj6HOcXk5/c04504f178cdac608805d33f547227de/logo-utsr-2025.png?fm=png&q=100&h=160' },
   ];
   return <div className="overflow-hidden border-y border-[hsl(var(--border)/.8)] bg-[hsl(var(--card))] py-5" aria-label="Atenei partner">
     <div className="ticker-track flex w-max items-center whitespace-nowrap">
@@ -147,8 +147,8 @@ function PartnerTicker() {
 
 function PartnerLogo({ name, src }: { name: string; src: string }) {
   const [failed, setFailed] = useState(false);
-  return <div className="flex w-44 shrink-0 flex-col items-center justify-center gap-2 md:w-56">
-    {!failed && <img src={src} alt={`Logo ${name}`} onError={() => setFailed(true)} loading="lazy" className="h-[30px] max-w-full object-contain" />}
+  return <div className="flex w-52 shrink-0 flex-col items-center justify-center gap-3 md:w-64">
+    {!failed && <img src={src} alt={`Logo ${name}`} onError={() => setFailed(true)} loading="lazy" decoding="async" className="h-12 w-full object-contain" />}
     <span className="eyebrow !text-[.58rem] text-center">{name}</span>
   </div>;
 }
