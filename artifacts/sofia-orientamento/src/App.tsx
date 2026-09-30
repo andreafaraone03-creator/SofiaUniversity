@@ -51,7 +51,8 @@ import {
 } from '@/components/admin-management';
 import { AdminEmailSettings } from '@/components/admin-email-settings';
 import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
-import { formatDate } from '@/lib/date-format';
+import { OrientationRequestDateCell } from '@/components/orientation-request-date-cell';
+import { formatDate, formatDateTime } from '@/lib/date-format';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -661,12 +662,7 @@ function OrientationRow({
   });
   return <>
     <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
-      <td className="px-4 py-4 text-xs">
-        <span className="whitespace-nowrap">{formatDateTime(item.createdAt)}</span>
-        {item.appointmentDate && <span className="mt-2 block whitespace-nowrap font-semibold">{formatDate(item.appointmentDate)} · {item.appointmentTime}</span>}
-        {item.meetUrl && <a className="mt-1 block whitespace-nowrap font-semibold underline underline-offset-4" href={item.meetUrl} target="_blank" rel="noreferrer">Apri Google Meet</a>}
-        {item.appointmentStatus === "cancelled" && <span className="mt-1 block text-[hsl(var(--muted-foreground))]">Appuntamento annullato</span>}
-      </td>
+      <OrientationRequestDateCell item={item} />
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>
       <td className="px-4 py-4 font-semibold">{item.lastName}</td>
       <td className="px-4 py-4">{item.email}</td>
@@ -754,8 +750,6 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
     {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={11} className="p-5"><TourManagementEditor item={item} /></td></tr>}
   </>;
 }
-
-function formatDateTime(value: string) { return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 
 function Admin() {
   const { data, isLoading, isError } = useGetAdminStatus();
