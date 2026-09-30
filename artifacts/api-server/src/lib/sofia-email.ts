@@ -31,9 +31,9 @@ async function readSettings(): Promise<EmailSettings> {
     senderEmail: string | null; senderName: string;
     sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
   }>(`
-    SELECT sender_email AS senderEmail, sender_name AS senderName,
-      send_orientation_confirmations AS sendOrientationConfirmations,
-      send_tour_confirmations AS sendTourConfirmations
+    SELECT sender_email AS "senderEmail", sender_name AS "senderName",
+      send_orientation_confirmations AS "sendOrientationConfirmations",
+      send_tour_confirmations AS "sendTourConfirmations"
     FROM impostazioni_email WHERE id = 1
   `);
 
