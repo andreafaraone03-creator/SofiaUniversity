@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { getGoogleAccessToken, usesGoogleOAuth } from "./sofia-google-oauth";
 
 const calendarId = "primary";
 const timezone = "Europe/Rome";
@@ -95,6 +96,21 @@ function appointmentEndTime(time: string): string {
 }
 
 async function calendarRequest(path: string, init: CalendarProxyInit): Promise<Response> {
+  if (usesGoogleOAuth()) {
+    try {
+      const accessToken = await getGoogleAccessToken();
+      return await fetch(`https://www.googleapis.com${path}`, {
+        ...init,
+        headers: {
+          ...init.headers,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+    } catch {
+      throw new CalendarIntegrationError();
+    }
+  }
+
   try {
     return await new ReplitConnectors().proxy("google-calendar", path, init);
   } catch {

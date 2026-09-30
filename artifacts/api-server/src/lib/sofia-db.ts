@@ -193,6 +193,13 @@ sqlite.exec(`
     send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    encrypted_refresh_token TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    auth_tag TEXT NOT NULL,
+    connected_at TEXT NOT NULL
+  );
 `);
 }
 
@@ -326,6 +333,13 @@ async function initializePostgres(): Promise<void> {
       sender_name text NOT NULL DEFAULT 'Sofia',
       send_orientation_confirmations integer NOT NULL DEFAULT 1,
       send_tour_confirmations integer NOT NULL DEFAULT 1, updated_at text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
+      id integer PRIMARY KEY CHECK (id=1),
+      encrypted_refresh_token text NOT NULL,
+      iv text NOT NULL,
+      auth_tag text NOT NULL,
+      connected_at text NOT NULL
     );
     CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot ON prenotazioni_tour(date,time) WHERE status <> 'cancelled';
     CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot ON richieste_corso(appointment_date,appointment_time)

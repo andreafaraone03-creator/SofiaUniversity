@@ -19,6 +19,14 @@ services:
           property: connectionString
       - key: SOFIA_RESEND_API_KEY
         sync: false
+      - key: SOFIA_GOOGLE_CLIENT_ID
+        sync: false
+      - key: SOFIA_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SOFIA_GOOGLE_REDIRECT_URI
+        sync: false
+      - key: SOFIA_GOOGLE_TOKEN_ENCRYPTION_KEY
+        generateValue: true
 
 databases:
   - name: sofia-postgres

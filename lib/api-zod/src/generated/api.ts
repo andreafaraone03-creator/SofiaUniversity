@@ -155,6 +155,34 @@ export const GetAdminStatusResponse = zod.object({
 
 
 /**
+ * @summary Verifica lo stato del collegamento a Google Calendar
+ */
+export const GetAdminGoogleCalendarStatusResponse = zod.object({
+  "provider": zod.enum(['replit', 'google_oauth', 'not_configured']),
+  "connected": zod.boolean(),
+  "canConnect": zod.boolean()
+})
+
+
+/**
+ * @summary Avvia l'autorizzazione Google Calendar
+ */
+export const ConnectAdminGoogleCalendarResponse = zod.void()
+
+
+/**
+ * @summary Completa il collegamento Google Calendar
+ */
+export const CompleteAdminGoogleCalendarConnectionQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional(),
+  "error": zod.coerce.string().optional()
+})
+
+export const CompleteAdminGoogleCalendarConnectionResponse = zod.void()
+
+
+/**
  * @summary Crea il primo account amministratore
  */
 export const setupAdminBodyUsernameMin = 3;

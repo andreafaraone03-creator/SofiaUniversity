@@ -145,6 +145,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminStatus"
+  /admin/google-calendar/status:
+    get:
+      operationId: getAdminGoogleCalendarStatus
+      tags: [admin]
+      summary: Verifica lo stato del collegamento a Google Calendar
+      responses:
+        "200":
+          description: Stato del calendario usato per prenotazioni e Meet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleCalendarConnectionStatus"
+        "401":
+          description: Accesso amministrativo richiesto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/google-calendar/connect:
+    get:
+      operationId: connectAdminGoogleCalendar
+      tags: [admin]
+      summary: Avvia l'autorizzazione Google Calendar
+      responses:
+        "302":
+          description: Reindirizza alla schermata di consenso Google
+        "401":
+          description: Accesso amministrativo richiesto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Configurazione OAuth non disponibile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /admin/google-calendar/callback:
+    get:
+      operationId: completeAdminGoogleCalendarConnection
+      tags: [admin]
+      summary: Completa il collegamento Google Calendar
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: error
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Reindirizza alla pagina admin con l'esito del collegamento
+        "400":
+          description: Stato OAuth non valido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /admin/setup:
     post:
       operationId: setupAdmin
@@ -659,6 +727,15 @@ components:
         setupComplete: { type: boolean }
         authenticated: { type: boolean }
       required: [setupComplete, authenticated]
+    GoogleCalendarConnectionStatus:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [replit, google_oauth, not_configured]
+        connected: { type: boolean }
+        canConnect: { type: boolean }
+      required: [provider, connected, canConnect]
     AdminSummary:
       type: object
       properties:

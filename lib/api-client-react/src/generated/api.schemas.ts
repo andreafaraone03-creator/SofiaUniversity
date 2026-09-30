@@ -200,6 +200,21 @@ export interface AdminStatus {
   authenticated: boolean;
 }
 
+export type GoogleCalendarConnectionStatusProvider = typeof GoogleCalendarConnectionStatusProvider[keyof typeof GoogleCalendarConnectionStatusProvider];
+
+
+export const GoogleCalendarConnectionStatusProvider = {
+  replit: 'replit',
+  google_oauth: 'google_oauth',
+  not_configured: 'not_configured',
+} as const;
+
+export interface GoogleCalendarConnectionStatus {
+  provider: GoogleCalendarConnectionStatusProvider;
+  connected: boolean;
+  canConnect: boolean;
+}
+
 export interface AdminSummary {
   orientationRequests: number;
   tourBookings: number;
@@ -389,5 +404,11 @@ date: string;
 
 export type ListAppointmentSlotsParams = {
 date: string;
+};
+
+export type CompleteAdminGoogleCalendarConnectionParams = {
+code?: string;
+state?: string;
+error?: string;
 };
 

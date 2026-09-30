@@ -50,6 +50,7 @@ import {
   type EnrollmentPrefill,
 } from '@/components/admin-management';
 import { AdminEmailSettings } from '@/components/admin-email-settings';
+import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -495,6 +496,7 @@ function Dashboard() {
         <Metric label="Promemoria scaduti" value={summaryLoading ? "—" : summary?.followUpsDue ?? 0} icon={<Bell size={16} />} />
       </div>
       <AdminEmailSettings />
+      <AdminGoogleCalendarSettings />
       {next && <div className="mt-5 flex flex-col justify-between gap-4 border border-[hsl(var(--primary)/.5)] bg-[hsl(var(--primary)/.12)] p-5 sm:flex-row sm:items-center">
         <div><p className="eyebrow !text-[hsl(var(--foreground))]">prossimo appuntamento</p><p className="mt-2 font-serif text-2xl">{next.firstName} {next.lastName}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{formatDate(next.date)} · {next.time}</p></div>
         <WhatsAppButton phone={next.phone} id={`next-${next.id}`} text={`Ciao ${next.firstName}, sono Sofia! Ti confermo il nostro Meet del ${formatDate(next.date)} alle ${next.time}.`} />

@@ -26,6 +26,9 @@ Portale responsive per richieste di orientamento universitario, prenotazione tou
 - `SOFIA_DATABASE_URL` — connessione PostgreSQL usata su Render; il backend non deve sostituirla con il `DATABASE_URL` condiviso di Replit
 - `SOFIA_DB_PATH` — percorso facoltativo per SQLite locale; per impostazione predefinita usa `artifacts/api-server/data/sofia.sqlite`
 - `SOFIA_RESEND_API_KEY` — chiave Resend isolata per Sofia; impostarla tramite Secrets, mai nel repository
+- `SOFIA_GOOGLE_CLIENT_ID`, `SOFIA_GOOGLE_CLIENT_SECRET` — credenziali del client OAuth Google Web usato in produzione su Render
+- `SOFIA_GOOGLE_REDIRECT_URI` — URI esatto `https://<host-render>/api/admin/google-calendar/callback`, da autorizzare anche nel client Google
+- `SOFIA_GOOGLE_TOKEN_ENCRYPTION_KEY` — chiave stabile usata per cifrare il refresh token Google nel database; Render la genera dal Blueprint
 - `VITE_TIKTOK_URL` — sovrascrive il link pubblico predefinito al profilo TikTok di Sofia, se impostato
 - `VITE_WHATSAPP_NUMBER` — sovrascrive il numero WhatsApp pubblico predefinito, se impostato; usare il prefisso internazionale
 - `VITE_CONTACT_EMAIL` — email pubblica facoltativa
@@ -38,5 +41,7 @@ Al primo accesso ad `/admin`, Sofia crea l'unico account amministratore; farlo p
 - Su Render, il Blueprint collega il servizio a PostgreSQL tramite `SOFIA_DATABASE_URL`; la produzione deve arrestarsi se la variabile manca, senza fallback silenzioso a SQLite.
 - Il database PostgreSQL su Render parte vuoto. Prenotazioni, account amministratore e impostazioni email presenti nel database SQLite non vengono copiati automaticamente.
 - Su un nuovo database, creare l'account admin e impostare il mittente verificato nelle impostazioni email.
-
-L'integrazione Google Calendar attuale usa il connettore Replit e non viene trasferita da `render.yaml`. Prima di accettare prenotazioni su Render, sostituirla con un'autenticazione Google configurata per Render e verificare disponibilità, creazione eventi e link Meet.
+- In sviluppo Replit, Calendar continua a usare il connettore Google Calendar di Replit.
+- In produzione Render, Calendar usa OAuth diretto: abilitare Google Calendar API nel progetto Google Cloud, creare un client OAuth di tipo Web, autorizzare l'URI di callback configurato sopra e inserire client ID, client secret e redirect URI nelle variabili Render.
+- Se la schermata di consenso Google è in modalità di test, aggiungere l'account Google di Sofia tra gli utenti di test. Dopo il primo accesso admin su Render, collegare Calendar dalla sezione “Google Calendar e Meet”.
+- Il refresh token viene cifrato prima di essere salvato in PostgreSQL. Non ruotare `SOFIA_GOOGLE_TOKEN_ENCRYPTION_KEY` senza ricollegare Calendar; non salvare credenziali o token nel repository.

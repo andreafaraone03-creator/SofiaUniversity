@@ -24,6 +24,7 @@ import type {
   AdminStatus,
   AdminSummary,
   AppointmentSlot,
+  CompleteAdminGoogleCalendarConnectionParams,
   Course,
   EmailActionResult,
   EmailSettings,
@@ -32,6 +33,7 @@ import type {
   EnrollmentInput,
   EnrollmentUpdate,
   Error,
+  GoogleCalendarConnectionStatus,
   HealthStatus,
   ListAppointmentSlotsParams,
   ListCoursesParams,
@@ -648,6 +650,244 @@ export function useGetAdminStatus<TData = Awaited<ReturnType<typeof getAdminStat
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAdminStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminGoogleCalendarStatusUrl = () => {
+
+
+
+
+  return `/api/admin/google-calendar/status`
+}
+
+/**
+ * @summary Verifica lo stato del collegamento a Google Calendar
+ */
+export const getAdminGoogleCalendarStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<GoogleCalendarConnectionStatus> => {
+
+  return customFetch<GoogleCalendarConnectionStatus>(getGetAdminGoogleCalendarStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminGoogleCalendarStatusQueryKey = () => {
+    return [
+    `/api/admin/google-calendar/status`
+    ] as const;
+    }
+
+
+export const getGetAdminGoogleCalendarStatusQueryOptions = <TData = Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminGoogleCalendarStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>> = ({ signal }) => getAdminGoogleCalendarStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminGoogleCalendarStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>>
+export type GetAdminGoogleCalendarStatusQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Verifica lo stato del collegamento a Google Calendar
+ */
+
+export function useGetAdminGoogleCalendarStatus<TData = Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminGoogleCalendarStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminGoogleCalendarStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getConnectAdminGoogleCalendarUrl = () => {
+
+
+
+
+  return `/api/admin/google-calendar/connect`
+}
+
+/**
+ * @summary Avvia l'autorizzazione Google Calendar
+ */
+export const connectAdminGoogleCalendar = async ( options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getConnectAdminGoogleCalendarUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getConnectAdminGoogleCalendarQueryKey = () => {
+    return [
+    `/api/admin/google-calendar/connect`
+    ] as const;
+    }
+
+
+export const getConnectAdminGoogleCalendarQueryOptions = <TData = Awaited<ReturnType<typeof connectAdminGoogleCalendar>>, TError = ErrorType<void | Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof connectAdminGoogleCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getConnectAdminGoogleCalendarQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof connectAdminGoogleCalendar>>> = ({ signal }) => connectAdminGoogleCalendar({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof connectAdminGoogleCalendar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ConnectAdminGoogleCalendarQueryResult = NonNullable<Awaited<ReturnType<typeof connectAdminGoogleCalendar>>>
+export type ConnectAdminGoogleCalendarQueryError = ErrorType<void | Error>
+
+
+/**
+ * @summary Avvia l'autorizzazione Google Calendar
+ */
+
+export function useConnectAdminGoogleCalendar<TData = Awaited<ReturnType<typeof connectAdminGoogleCalendar>>, TError = ErrorType<void | Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof connectAdminGoogleCalendar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getConnectAdminGoogleCalendarQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCompleteAdminGoogleCalendarConnectionUrl = (params?: CompleteAdminGoogleCalendarConnectionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/google-calendar/callback?${stringifiedParams}` : `/api/admin/google-calendar/callback`
+}
+
+/**
+ * @summary Completa il collegamento Google Calendar
+ */
+export const completeAdminGoogleCalendarConnection = async (params?: CompleteAdminGoogleCalendarConnectionParams, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
+
+  return customFetch<unknown>(getCompleteAdminGoogleCalendarConnectionUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCompleteAdminGoogleCalendarConnectionQueryKey = (params?: CompleteAdminGoogleCalendarConnectionParams,) => {
+    return [
+    `/api/admin/google-calendar/callback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCompleteAdminGoogleCalendarConnectionQueryOptions = <TData = Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>, TError = ErrorType<void | Error>>(params?: CompleteAdminGoogleCalendarConnectionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCompleteAdminGoogleCalendarConnectionQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>> = ({ signal }) => completeAdminGoogleCalendarConnection(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type CompleteAdminGoogleCalendarConnectionQueryResult = NonNullable<Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>>
+export type CompleteAdminGoogleCalendarConnectionQueryError = ErrorType<void | Error>
+
+
+/**
+ * @summary Completa il collegamento Google Calendar
+ */
+
+export function useCompleteAdminGoogleCalendarConnection<TData = Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>, TError = ErrorType<void | Error>>(
+ params?: CompleteAdminGoogleCalendarConnectionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof completeAdminGoogleCalendarConnection>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getCompleteAdminGoogleCalendarConnectionQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
