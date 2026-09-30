@@ -23,7 +23,7 @@ Portale responsive per richieste di orientamento universitario, prenotazione tou
 ## Configurazione
 
 - `SESSION_SECRET` — segreto necessario per firmare la sessione amministrativa; deve avere almeno 24 caratteri
-- `SOFIA_DATABASE_URL` — connessione PostgreSQL usata su Render; il backend non deve sostituirla con il `DATABASE_URL` condiviso di Replit
+- `SOFIA_DATABASE_URL` — connection string PostgreSQL di Neon usata in produzione; impostarla su Render e non sostituirla con il `DATABASE_URL` condiviso di Replit
 - `SOFIA_DB_PATH` — percorso facoltativo per SQLite locale; per impostazione predefinita usa `artifacts/api-server/data/sofia.sqlite`
 - `SOFIA_RESEND_API_KEY` — chiave Resend isolata per Sofia; impostarla tramite Secrets, mai nel repository
 - `SOFIA_GOOGLE_CLIENT_ID`, `SOFIA_GOOGLE_CLIENT_SECRET` — credenziali del client OAuth Google Web usato in produzione su Render
@@ -38,8 +38,8 @@ Al primo accesso ad `/admin`, Sofia crea l'unico account amministratore; farlo p
 ## Database e deployment
 
 - In sviluppo Replit, il backend usa SQLite e `SOFIA_DB_PATH`.
-- Su Render, il Blueprint collega il servizio a PostgreSQL tramite `SOFIA_DATABASE_URL`; la produzione deve arrestarsi se la variabile manca, senza fallback silenzioso a SQLite.
-- Il database PostgreSQL su Render parte vuoto. Prenotazioni, account amministratore e impostazioni email presenti nel database SQLite non vengono copiati automaticamente.
+- In produzione, impostare `SOFIA_DATABASE_URL` con la connection string pooled di Neon; il backend deve arrestarsi se la variabile manca, senza fallback silenzioso a SQLite.
+- Il database Neon parte vuoto. Prenotazioni, account amministratore e impostazioni email presenti nel database SQLite non vengono copiati automaticamente; lo schema PostgreSQL viene creato all'avvio.
 - Su un nuovo database, creare l'account admin e impostare il mittente verificato nelle impostazioni email.
 - In sviluppo Replit, Calendar continua a usare il connettore Google Calendar di Replit.
 - In produzione Render, Calendar usa OAuth diretto: abilitare Google Calendar API nel progetto Google Cloud, creare un client OAuth di tipo Web, autorizzare l'URI di callback configurato sopra e inserire client ID, client secret e redirect URI nelle variabili Render.
