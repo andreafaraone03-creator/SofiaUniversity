@@ -1,4 +1,3 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import { sqlite, type EmailSettings } from "./sofia-db";
 
 export type EmailDeliveryStatus = "sent" | "failed" | "not_configured" | "disabled";
@@ -78,12 +77,23 @@ async function sendEmail(
   if (!settings.senderEmail) {
     return { status: "not_configured", sentAt: null, error: "Imposta un indirizzo mittente verificato in Resend." };
   }
+  const resendApiKey = process.env.SOFIA_RESEND_API_KEY?.trim();
+  if (!resendApiKey) {
+    return {
+      status: "not_configured",
+      sentAt: null,
+      error: "Aggiungi la chiave API di Resend nei Secrets di questo progetto.",
+    };
+  }
 
   const safeName = settings.senderName.replace(/[\r\n<>"]/g, " ").trim() || "Sofia";
   try {
-    const response = await new ReplitConnectors().proxy("resend", "/emails", {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         from: `${safeName} <${settings.senderEmail}>`,
         to: [to],

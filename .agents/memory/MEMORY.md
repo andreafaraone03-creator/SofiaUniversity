@@ -1,2 +1,3 @@
 - [OpenAPI codegen recovery](openapi-codegen.md) — Orval clears generated outputs before validation, so fix the source spec and rerun codegen instead of patching generated files.
 - [GitHub transport authentication](github-git-auth.md) — the GitHub connector's API access does not authenticate `git push`; CLI pushes need separate Git transport credentials.
+- [Sofia Resend isolation](sofia-resend-isolation.md) — use a project-scoped secret for Sofia email delivery; do not change the Personal Resend connector shared with another app.
