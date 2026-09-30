@@ -17,7 +17,9 @@ import {
   isBookable,
   nowInRome,
   orientationColumns,
-  sqlite,
+  sofiaStorage,
+  sofiaTransaction,
+  type SofiaExecutor,
   tourTimes,
   type OrientationRequest,
   type TourBooking,
@@ -44,8 +46,7 @@ async function listAvailableSlots(date: string) {
   const [busyRanges, reserved] = await Promise.all([
     getCalendarBusyRanges(date),
     Promise.resolve(
-      sqlite.prepare("SELECT time FROM appointment_slots WHERE date = ?")
-        .all(date) as { time: string }[],
+      sofiaStorage.all<{ time: string }>("SELECT time FROM appointment_slots WHERE date = ?", date),
     ),
   ]);
   const reservedTimes = new Set(reserved.map((row) => row.time));
@@ -57,49 +58,39 @@ async function listAvailableSlots(date: string) {
   }));
 }
 
-function reserveSlot(
+async function reserveSlot(
   date: string,
   time: string,
   bookingType: "consultation" | "tour",
-  createBooking: () => number,
-): number {
-  sqlite.exec("BEGIN IMMEDIATE");
-  try {
-    const id = createBooking();
-    sqlite.prepare(`
+  createBooking: (tx: SofiaExecutor) => Promise<number>,
+): Promise<number> {
+  return sofiaTransaction(async (tx) => {
+    const id = await createBooking(tx);
+    await tx.run(`
       INSERT INTO appointment_slots (date, time, booking_type, booking_id)
       VALUES (?, ?, ?, ?)
-    `).run(date, time, bookingType, id);
-    sqlite.exec("COMMIT");
+    `, date, time, bookingType, id);
     return id;
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
-  }
+  });
 }
 
-function releaseBooking(
+async function releaseBooking(
   table: "richieste_corso" | "prenotazioni_tour",
   id: number,
   bookingType: "consultation" | "tour",
-): void {
-  sqlite.exec("BEGIN IMMEDIATE");
-  try {
-    sqlite.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
-    sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = ? AND booking_id = ?")
-      .run(bookingType, id);
-    sqlite.exec("COMMIT");
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
-  }
+): Promise<void> {
+  await sofiaTransaction(async (tx) => {
+    await tx.run(`DELETE FROM ${table} WHERE id = ?`, id);
+    await tx.run("DELETE FROM appointment_slots WHERE booking_type = ? AND booking_id = ?", bookingType, id);
+  });
 }
 
 async function isAvailable(date: string, time: string): Promise<boolean> {
   if (!isBookable(date, time)) return false;
-  const reserved = sqlite.prepare(
+  const reserved = await sofiaStorage.get(
     "SELECT 1 FROM appointment_slots WHERE date = ? AND time = ?",
-  ).get(date, time);
+    date, time,
+  );
   if (reserved) return false;
   const busyRanges = await getCalendarBusyRanges(date);
   return !intervalIsBusy(date, time, busyRanges);
@@ -154,20 +145,21 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
   const createdAt = new Date().toISOString();
   let id: number;
   try {
-    id = reserveSlot(date, time, "consultation", () => {
-      const result = sqlite.prepare(`
+    id = await reserveSlot(date, time, "consultation", async (tx) => {
+      const result = await tx.run(`
         INSERT INTO richieste_corso
           (first_name, last_name, email, province, phone, university, course_id,
            course_name, appointment_date, appointment_time, appointment_status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-      `).run(
+        RETURNING id
+      `, 
         firstName.trim(), lastName.trim(), email.trim().toLowerCase(), province.trim(),
         phone.trim(), university, courseId, course.name, date, time, createdAt,
       );
       return Number(result.lastInsertRowid);
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+    if (error instanceof Error && (error.message.includes("UNIQUE constraint failed") || error.message.includes("duplicate key"))) {
       res.status(409).json({ error: "Questo orario è stato appena prenotato. Scegline un altro." });
       return;
     }
@@ -186,16 +178,16 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
       university,
       courseName: course.name,
     } satisfies AppointmentDetails);
-    sqlite.prepare(`
+    await sofiaStorage.run(`
       UPDATE richieste_corso
       SET google_calendar_event_id = ?, meet_url = ?, appointment_status = 'confirmed'
       WHERE id = ?
-    `).run(meet.eventId, meet.meetUrl, id);
+    `, meet.eventId, meet.meetUrl, id);
   } catch (error) {
     if (meet?.eventId) {
       try { await deleteMeetEvent(meet.eventId); } catch { /* best-effort cleanup */ }
     }
-    releaseBooking("richieste_corso", id, "consultation");
+    await releaseBooking("richieste_corso", id, "consultation");
     res.status(503).json({ error: "Non è stato possibile creare il link Google Meet. Riprova tra poco." });
     return;
   }
@@ -209,9 +201,8 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
     time,
     meetUrl: meet.meetUrl,
   });
-  persistEmailDelivery("richieste_corso", id, delivery);
-  const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-    .get(id) as OrientationRequest;
+  await persistEmailDelivery("richieste_corso", id, delivery);
+  const request = await sofiaStorage.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, id) as OrientationRequest;
   const response = CreateOrientationRequestResponse.parse({
     id: request.id,
     date,
@@ -291,19 +282,20 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
   const createdAt = new Date().toISOString();
   let id: number;
   try {
-    id = reserveSlot(dateString, time, "tour", () => {
-      const result = sqlite.prepare(`
+    id = await reserveSlot(dateString, time, "tour", async (tx) => {
+      const result = await tx.run(`
         INSERT INTO prenotazioni_tour
           (first_name, last_name, email, province, phone, date, time, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
-      `).run(
+        RETURNING id
+      `,
         firstName.trim(), lastName.trim(), email.trim().toLowerCase(), province.trim(),
         phone.trim(), dateString, time, createdAt,
       );
       return Number(result.lastInsertRowid);
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+    if (error instanceof Error && (error.message.includes("UNIQUE constraint failed") || error.message.includes("duplicate key"))) {
       res.status(409).json({ error: "Questo orario è stato appena prenotato. Scegline un altro." });
       return;
     }
@@ -323,14 +315,14 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
     } satisfies AppointmentDetails);
     eventId = meet.eventId;
     meetUrl = meet.meetUrl;
-    sqlite.prepare(`
+    await sofiaStorage.run(`
       UPDATE prenotazioni_tour SET google_calendar_event_id = ?, meet_url = ? WHERE id = ?
-    `).run(eventId, meetUrl, id);
+    `, eventId, meetUrl, id);
   } catch {
     if (eventId) {
       try { await deleteMeetEvent(eventId); } catch { /* best-effort cleanup */ }
     }
-    releaseBooking("prenotazioni_tour", id, "tour");
+    await releaseBooking("prenotazioni_tour", id, "tour");
     res.status(503).json({ error: "Non è stato possibile creare il link Google Meet. Riprova tra poco." });
     return;
   }
@@ -342,9 +334,8 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
     time,
     meetUrl,
   });
-  persistEmailDelivery("prenotazioni_tour", id, delivery);
-  const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
-    .get(id) as TourBooking;
+  await persistEmailDelivery("prenotazioni_tour", id, delivery);
+  const booking = await sofiaStorage.get<TourBooking>(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`, id) as TourBooking;
   const response = CreateTourBookingResponse.parse({
     id: booking.id,
     date: booking.date,

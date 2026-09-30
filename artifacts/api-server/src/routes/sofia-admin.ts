@@ -56,7 +56,8 @@ import {
   isBookable,
   nowInRome,
   orientationColumns,
-  sqlite,
+  sofiaStorage,
+  sofiaTransaction,
   type EmailSettings,
   type Enrollment,
   type OrientationRequest,
@@ -84,18 +85,16 @@ function positivePathId(raw: string | string[]): number | null {
   return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
-function readEmailSettings(): EmailSettings {
-  const row = sqlite.prepare(`
+async function readEmailSettings(): Promise<EmailSettings> {
+  const row = await sofiaStorage.get<{
+    senderEmail: string | null; senderName: string;
+    sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
+  }>(`
     SELECT sender_email AS senderEmail, sender_name AS senderName,
       send_orientation_confirmations AS sendOrientationConfirmations,
       send_tour_confirmations AS sendTourConfirmations
     FROM impostazioni_email WHERE id = 1
-  `).get() as {
-    senderEmail: string | null;
-    senderName: string;
-    sendOrientationConfirmations: number;
-    sendTourConfirmations: number;
-  } | undefined;
+  `);
 
   return {
     senderEmail: row?.senderEmail?.trim() || null,
@@ -105,39 +104,39 @@ function readEmailSettings(): EmailSettings {
   };
 }
 
-function setupComplete(): boolean {
-  return Boolean(sqlite.prepare("SELECT id FROM utenti_admin WHERE id = 1").get());
+async function setupComplete(): Promise<boolean> {
+  return Boolean(await sofiaStorage.get("SELECT id FROM utenti_admin WHERE id = 1"));
 }
 
-router.get("/admin/status", (req, res): void => {
+router.get("/admin/status", async (req, res): Promise<void> => {
   res.json(GetAdminStatusResponse.parse({
-    setupComplete: setupComplete(),
-    authenticated: isAdminAuthenticated(req),
+    setupComplete: await setupComplete(),
+    authenticated: await isAdminAuthenticated(req),
   }));
 });
 
-router.post("/admin/setup", (req, res): void => {
+router.post("/admin/setup", async (req, res): Promise<void> => {
   const parsed = SetupAdminBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Inserisci un nome utente e una password di almeno 10 caratteri." });
     return;
   }
-  if (setupComplete()) {
+  if (await setupComplete()) {
     res.status(409).json({ error: "L'account amministratore è già configurato." });
     return;
   }
 
   const { username, password } = parsed.data;
   const salt = newPasswordSalt();
-  sqlite.prepare(`
+  await sofiaStorage.run(`
     INSERT INTO utenti_admin (id, username, password_hash, password_salt, created_at)
     VALUES (1, ?, ?, ?, ?)
-  `).run(username.trim().toLowerCase(), hashPassword(password, salt), salt, new Date().toISOString());
+  `, username.trim().toLowerCase(), hashPassword(password, salt), salt, new Date().toISOString());
   setAdminSession(req, res);
   res.status(201).json(SetupAdminResponse.parse({ setupComplete: true, authenticated: true }));
 });
 
-router.post("/admin/login", (req, res): void => {
+router.post("/admin/login", async (req, res): Promise<void> => {
   const key = req.ip ?? "unknown";
   const attempt = loginAttempts.get(key);
   if (attempt && attempt.expires > Date.now() && attempt.count >= 5) {
@@ -149,8 +148,9 @@ router.post("/admin/login", (req, res): void => {
     res.status(400).json({ error: "Inserisci nome utente e password." });
     return;
   }
-  const row = sqlite.prepare("SELECT username, password_hash, password_salt FROM utenti_admin WHERE id = 1")
-    .get() as { username: string; password_hash: string; password_salt: string } | undefined;
+  const row = await sofiaStorage.get<{ username: string; password_hash: string; password_salt: string }>(
+    "SELECT username, password_hash, password_salt FROM utenti_admin WHERE id = 1",
+  );
   const submittedHash = hashPassword(parsed.data.password, row?.password_salt ?? "invalid-salt");
   const validHash = row?.password_hash ? Buffer.from(row.password_hash, "hex") : Buffer.alloc(64);
   const suppliedHash = Buffer.from(submittedHash, "hex");
@@ -172,47 +172,46 @@ router.post("/admin/logout", (_req, res): void => {
   res.json(LogoutAdminResponse.parse({ success: true }));
 });
 
-router.get("/admin/summary", requireAdmin, (_req, res): void => {
+router.get("/admin/summary", requireAdmin, async (_req, res): Promise<void> => {
   const { date, time } = nowInRome();
-  const orientationRequests = (sqlite.prepare("SELECT COUNT(*) AS total FROM richieste_corso WHERE enrollment_outcome = 'pending'")
-    .get() as { total: number }).total;
-  const tourBookings = (sqlite.prepare("SELECT COUNT(*) AS total FROM prenotazioni_tour")
-    .get() as { total: number }).total;
-  const upcomingBookings = (sqlite.prepare(`
+  const now = new Date().toISOString();
+  const orientationRequests = Number((await sofiaStorage.get<{ total: number | string }>("SELECT COUNT(*) AS total FROM richieste_corso WHERE enrollment_outcome = 'pending'"))?.total ?? 0);
+  const tourBookings = Number((await sofiaStorage.get<{ total: number | string }>("SELECT COUNT(*) AS total FROM prenotazioni_tour"))?.total ?? 0);
+  const upcomingBookings = Number((await sofiaStorage.get<{ total: number | string }>(`
     SELECT COUNT(*) AS total FROM prenotazioni_tour
     WHERE status = 'confirmed' AND (date > ? OR (date = ? AND time > ?))
-  `).get(date, date, time) as { total: number }).total;
-  const enrollmentTotals = sqlite.prepare(`
+  `, date, date, time))?.total ?? 0);
+  const enrollmentTotals = await sofiaStorage.get<{ total: number | string; pendingCents: number | string; paidCents: number | string }>(`
     SELECT COUNT(*) AS total,
       COALESCE(SUM(CASE WHEN commission_status = 'pending' THEN commission_cents ELSE 0 END), 0) AS pendingCents,
       COALESCE(SUM(CASE WHEN commission_status = 'paid' THEN commission_cents ELSE 0 END), 0) AS paidCents
     FROM iscrizioni_universita
     WHERE status = 'active'
-  `).get() as { total: number; pendingCents: number; paidCents: number };
-  const dueLeads = (sqlite.prepare(`
+  `);
+  const dueLeads = Number((await sofiaStorage.get<{ total: number | string }>(`
     SELECT COUNT(*) AS total FROM richieste_corso
-    WHERE follow_up_at IS NOT NULL AND datetime(follow_up_at) <= datetime('now')
+    WHERE follow_up_at IS NOT NULL AND follow_up_at <= ?
       AND pipeline_status NOT IN ('enrolled', 'closed')
       AND enrollment_outcome = 'pending'
-  `).get() as { total: number }).total;
-  const dueTours = (sqlite.prepare(`
+  `, now))?.total ?? 0);
+  const dueTours = Number((await sofiaStorage.get<{ total: number | string }>(`
     SELECT COUNT(*) AS total FROM prenotazioni_tour
-    WHERE follow_up_at IS NOT NULL AND datetime(follow_up_at) <= datetime('now')
+    WHERE follow_up_at IS NOT NULL AND follow_up_at <= ?
       AND status != 'cancelled'
-  `).get() as { total: number }).total;
+  `, now))?.total ?? 0);
   const followUpsDue = dueLeads + dueTours;
-  const nextBooking = sqlite.prepare(`
+  const nextBooking = await sofiaStorage.get<TourBooking>(`
     SELECT ${bookingColumns} FROM prenotazioni_tour
     WHERE status = 'confirmed' AND (date > ? OR (date = ? AND time > ?))
     ORDER BY date ASC, time ASC LIMIT 1
-  `).get(date, date, time) as TourBooking | undefined;
+  `, date, date, time);
   const response = GetAdminSummaryResponse.parse({
     orientationRequests,
     tourBookings,
     upcomingBookings,
-    enrollmentsTotal: enrollmentTotals.total,
-    commissionsPendingCents: enrollmentTotals.pendingCents,
-    commissionsPaidCents: enrollmentTotals.paidCents,
+    enrollmentsTotal: Number(enrollmentTotals?.total ?? 0),
+    commissionsPendingCents: Number(enrollmentTotals?.pendingCents ?? 0),
+    commissionsPaidCents: Number(enrollmentTotals?.paidCents ?? 0),
     followUpsDue,
     nextBooking: nextBooking ?? null,
   });
@@ -224,10 +223,10 @@ router.get("/admin/summary", requireAdmin, (_req, res): void => {
   });
 });
 
-router.get("/admin/orientation-requests", requireAdmin, (_req, res): void => {
-  const rows = sqlite.prepare(`
+router.get("/admin/orientation-requests", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await sofiaStorage.all<OrientationRequest>(`
     SELECT ${orientationColumns} FROM richieste_corso ORDER BY created_at DESC, id DESC
-  `).all() as OrientationRequest[];
+  `);
   res.json(ListAdminOrientationRequestsResponse.parse(rows));
 });
 
@@ -238,11 +237,11 @@ router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async
     res.status(400).json({ error: "Appuntamento non valido." });
     return;
   }
-  const appointment = sqlite.prepare(`
+  const appointment = await sofiaStorage.get<{ appointmentStatus: string | null; googleCalendarEventId: string | null }>(`
     SELECT appointment_status AS appointmentStatus,
       google_calendar_event_id AS googleCalendarEventId
     FROM richieste_corso WHERE id = ?
-  `).get(id) as { appointmentStatus: string | null; googleCalendarEventId: string | null } | undefined;
+  `, id);
   if (!appointment) {
     res.status(404).json({ error: "Appuntamento non trovato." });
     return;
@@ -261,29 +260,23 @@ router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async
     return;
   }
 
-  sqlite.exec("BEGIN IMMEDIATE");
-  try {
-    sqlite.prepare(`
+  await sofiaTransaction(async (tx) => {
+    await tx.run(`
       UPDATE richieste_corso
       SET appointment_status = 'cancelled',
           google_calendar_event_id = NULL,
           meet_url = NULL
       WHERE id = ?
-    `).run(id);
-    sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'consultation' AND booking_id = ?")
-      .run(id);
-    sqlite.exec("COMMIT");
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
-  }
+    `, id);
+    await tx.run("DELETE FROM appointment_slots WHERE booking_type = 'consultation' AND booking_id = ?", id);
+  });
   res.json(CancelOrientationAppointmentResponse.parse({ success: true }));
 });
 
-router.get("/admin/tour-bookings", requireAdmin, (_req, res): void => {
-  const rows = sqlite.prepare(`
+router.get("/admin/tour-bookings", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await sofiaStorage.all<TourBooking>(`
     SELECT ${bookingColumns} FROM prenotazioni_tour ORDER BY date DESC, time DESC, id DESC
-  `).all() as TourBooking[];
+  `);
   const response = ListAdminTourBookingsResponse.parse(rows);
   res.json(response.map((booking, index) => ({ ...booking, date: rows[index].date })));
 });
@@ -297,10 +290,10 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
     return;
   }
 
-  const current = sqlite.prepare(`
+  const current = await sofiaStorage.get<TourBooking & { googleCalendarEventId: string | null }>(`
     SELECT ${bookingColumns}, google_calendar_event_id AS googleCalendarEventId
     FROM prenotazioni_tour WHERE id = ?
-  `).get(params.data.id) as (TourBooking & { googleCalendarEventId: string | null }) | undefined;
+  `, params.data.id);
   if (!current) {
     res.status(404).json({ error: "Prenotazione non trovata." });
     return;
@@ -313,20 +306,14 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
       res.status(503).json({ error: "Non riesco ad aggiornare l'evento nel calendario. Riprova." });
       return;
     }
-    sqlite.exec("BEGIN IMMEDIATE");
-    try {
-      sqlite.prepare(`
+    await sofiaTransaction(async (tx) => {
+      await tx.run(`
         UPDATE prenotazioni_tour
         SET status = 'cancelled', google_calendar_event_id = NULL, meet_url = NULL
         WHERE id = ?
-      `).run(params.data.id);
-      sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?")
-        .run(params.data.id);
-      sqlite.exec("COMMIT");
-    } catch (error) {
-      sqlite.exec("ROLLBACK");
-      throw error;
-    }
+      `, params.data.id);
+      await tx.run("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?", params.data.id);
+    });
   } else if (body.data.status === "confirmed" && current.status === "cancelled") {
     if (!isBookable(current.date, current.time)) {
       res.status(409).json({ error: "Questo appuntamento non può essere riattivato perché l'orario è passato." });
@@ -334,9 +321,10 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
     }
     try {
       const busyRanges = await getCalendarBusyRanges(current.date);
-      const reserved = sqlite.prepare(
+      const reserved = await sofiaStorage.get(
         "SELECT 1 FROM appointment_slots WHERE date = ? AND time = ?",
-      ).get(current.date, current.time);
+        current.date, current.time,
+      );
       if (reserved || intervalIsBusy(current.date, current.time, busyRanges)) {
         res.status(409).json({ error: "Questo orario è già occupato nel calendario." });
         return;
@@ -346,18 +334,16 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
       return;
     }
 
-    sqlite.exec("BEGIN IMMEDIATE");
     try {
-      sqlite.prepare("UPDATE prenotazioni_tour SET status = 'confirmed' WHERE id = ?")
-        .run(params.data.id);
-      sqlite.prepare(`
+      await sofiaTransaction(async (tx) => {
+        await tx.run("UPDATE prenotazioni_tour SET status = 'confirmed' WHERE id = ?", params.data.id);
+        await tx.run(`
         INSERT INTO appointment_slots (date, time, booking_type, booking_id)
         VALUES (?, ?, 'tour', ?)
-      `).run(current.date, current.time, params.data.id);
-      sqlite.exec("COMMIT");
+        `, current.date, current.time, params.data.id);
+      });
     } catch (error) {
-      sqlite.exec("ROLLBACK");
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+      if (error instanceof Error && (error.message.includes("UNIQUE constraint failed") || error.message.includes("duplicate key"))) {
         res.status(409).json({ error: "Questo orario è già occupato da un'altra prenotazione." });
         return;
       }
@@ -377,24 +363,18 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
       } satisfies AppointmentDetails);
       eventId = meet.eventId;
       meetUrl = meet.meetUrl;
-      sqlite.prepare(`
+      await sofiaStorage.run(`
         UPDATE prenotazioni_tour SET google_calendar_event_id = ?, meet_url = ? WHERE id = ?
-      `).run(eventId, meetUrl, params.data.id);
+      `, eventId, meetUrl, params.data.id);
     } catch {
-      sqlite.exec("BEGIN IMMEDIATE");
-      try {
-        sqlite.prepare(`
+      await sofiaTransaction(async (tx) => {
+        await tx.run(`
           UPDATE prenotazioni_tour
           SET status = 'cancelled', google_calendar_event_id = NULL, meet_url = NULL
           WHERE id = ?
-        `).run(params.data.id);
-        sqlite.prepare("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?")
-          .run(params.data.id);
-        sqlite.exec("COMMIT");
-      } catch (error) {
-        sqlite.exec("ROLLBACK");
-        throw error;
-      }
+        `, params.data.id);
+        await tx.run("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?", params.data.id);
+      });
       if (eventId) {
         try { await deleteMeetEvent(eventId); } catch { /* best-effort cleanup */ }
       }
@@ -409,19 +389,17 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
       time: current.time,
       meetUrl,
     });
-    persistEmailDelivery("prenotazioni_tour", params.data.id, delivery);
+    await persistEmailDelivery("prenotazioni_tour", params.data.id, delivery);
   } else {
-    sqlite.prepare("UPDATE prenotazioni_tour SET status = ? WHERE id = ?")
-      .run(body.data.status, params.data.id);
+    await sofiaStorage.run("UPDATE prenotazioni_tour SET status = ? WHERE id = ?", body.data.status, params.data.id);
   }
 
   try {
-    const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
-      .get(params.data.id) as TourBooking;
+    const booking = await sofiaStorage.get<TourBooking>(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`, params.data.id) as TourBooking;
     const response = UpdateTourBookingStatusResponse.parse(booking);
     res.json({ ...response, date: booking.date });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+    if (error instanceof Error && (error.message.includes("UNIQUE constraint failed") || error.message.includes("duplicate key"))) {
       res.status(409).json({ error: "Lo slot è già occupato da un'altra prenotazione." });
       return;
     }
@@ -429,7 +407,7 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
   }
 });
 
-router.patch("/admin/orientation-requests/:id/management", requireAdmin, (req, res): void => {
+router.patch("/admin/orientation-requests/:id/management", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = UpdateOrientationRequestManagementParams.safeParse({ id });
   const body = UpdateOrientationRequestManagementBody.safeParse(req.body);
@@ -453,19 +431,18 @@ router.patch("/admin/orientation-requests/:id/management", requireAdmin, (req, r
     values.push(body.data.followUpAt ? body.data.followUpAt.toISOString() : null);
   }
 
-  const result = sqlite.prepare(`
+  const result = await sofiaStorage.run(`
     UPDATE richieste_corso SET ${assignments.join(", ")} WHERE id = ?
-  `).run(...values, params.data.id);
+  `, ...values, params.data.id);
   if (!result.changes) {
     res.status(404).json({ error: "Richiesta non trovata." });
     return;
   }
-  const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-    .get(params.data.id) as OrientationRequest;
+  const request = await sofiaStorage.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, params.data.id) as OrientationRequest;
   res.json(UpdateOrientationRequestManagementResponse.parse(request));
 });
 
-router.post("/admin/orientation-requests/:id/confirm-enrollment", requireAdmin, (req, res): void => {
+router.post("/admin/orientation-requests/:id/confirm-enrollment", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = ConfirmOrientationEnrollmentParams.safeParse({ id });
   if (!id || !params.success) {
@@ -473,35 +450,25 @@ router.post("/admin/orientation-requests/:id/confirm-enrollment", requireAdmin, 
     return;
   }
 
-  sqlite.exec("BEGIN IMMEDIATE");
-  let enrollmentId: number;
-  try {
-    const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-      .get(params.data.id) as OrientationRequest | undefined;
-    if (!request) {
-      sqlite.exec("ROLLBACK");
-      res.status(404).json({ error: "Richiesta non trovata." });
-      return;
-    }
-
-    const existing = sqlite.prepare(`
+  const outcome = await sofiaTransaction(async (tx) => {
+    const request = await tx.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, params.data.id);
+    if (!request) return { error: "missing" as const };
+    const existing = await tx.get<{ id: number }>(`
       SELECT id FROM iscrizioni_universita WHERE orientation_request_id = ? LIMIT 1
-    `).get(params.data.id) as { id: number } | undefined;
+    `, params.data.id);
     if (existing) {
-      sqlite.exec("ROLLBACK");
-      res.status(409).json({ error: "Esiste già un'iscrizione collegata. Controlla la scheda iscrizioni." });
-      return;
+      return { error: "exists" as const };
     }
 
     const createdAt = new Date().toISOString();
     const enrolledAt = nowInRome().date;
-    const result = sqlite.prepare(`
+    const result = await tx.run(`
       INSERT INTO iscrizioni_universita
         (orientation_request_id, first_name, last_name, email, university, course_id,
          course_name, enrolled_at, commission_cents, commission_status,
          commission_paid_at, status, notes, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 18000, 'paid', ?, 'active', ?, ?)
-    `).run(
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 18000, 'paid', ?, 'active', ?, ?) RETURNING id
+    `,
       request.id,
       request.firstName,
       request.lastName,
@@ -514,25 +481,30 @@ router.post("/admin/orientation-requests/:id/confirm-enrollment", requireAdmin, 
       "Confermata con spunta nell'area admin.",
       createdAt,
     );
-    enrollmentId = Number(result.lastInsertRowid);
-    sqlite.prepare(`
+    const enrollmentId = Number(result.lastInsertRowid);
+    await tx.run(`
       UPDATE richieste_corso
       SET pipeline_status = 'enrolled', enrollment_outcome = 'enrolled'
       WHERE id = ?
-    `).run(request.id);
-    sqlite.exec("COMMIT");
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
+    `, request.id);
+    return { enrollmentId };
+  });
+  if (outcome.error === "missing") {
+    res.status(404).json({ error: "Richiesta non trovata." });
+    return;
+  }
+  if (outcome.error === "exists") {
+    res.status(409).json({ error: "Esiste già un'iscrizione collegata. Controlla la scheda iscrizioni." });
+    return;
   }
 
-  const enrollment = sqlite.prepare(`
+  const enrollment = await sofiaStorage.get<Enrollment>(`
     SELECT ${enrollmentColumns} FROM iscrizioni_universita WHERE id = ?
-  `).get(enrollmentId) as Enrollment;
+  `, outcome.enrollmentId) as Enrollment;
   res.status(201).json(ConfirmOrientationEnrollmentResponse.parse(enrollment));
 });
 
-router.post("/admin/orientation-requests/:id/mark-not-enrolled", requireAdmin, (req, res): void => {
+router.post("/admin/orientation-requests/:id/mark-not-enrolled", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = MarkOrientationRequestNotEnrolledParams.safeParse({ id });
   if (!id || !params.success) {
@@ -540,48 +512,45 @@ router.post("/admin/orientation-requests/:id/mark-not-enrolled", requireAdmin, (
     return;
   }
 
-  sqlite.exec("BEGIN IMMEDIATE");
-  try {
-    const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-      .get(params.data.id) as OrientationRequest | undefined;
-    if (!request) {
-      sqlite.exec("ROLLBACK");
-      res.status(404).json({ error: "Richiesta non trovata." });
-      return;
-    }
-
-    const existing = sqlite.prepare(`
+  const outcome = await sofiaTransaction(async (tx) => {
+    const request = await tx.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, params.data.id);
+    if (!request) return { error: "missing" as const };
+    const existing = await tx.get<{ id: number }>(`
       SELECT id FROM iscrizioni_universita WHERE orientation_request_id = ? LIMIT 1
-    `).get(params.data.id) as { id: number } | undefined;
+    `, params.data.id);
     if (existing || request.enrollmentOutcome === "enrolled") {
-      sqlite.exec("ROLLBACK");
-      res.status(409).json({ error: "La richiesta ha già un'iscrizione registrata." });
-      return;
+      return { error: "exists" as const };
     }
     if (request.enrollmentOutcome === "not_enrolled") {
-      sqlite.exec("ROLLBACK");
-      res.json(MarkOrientationRequestNotEnrolledResponse.parse(request));
-      return;
+      return { request };
     }
 
-    sqlite.prepare(`
+    await tx.run(`
       UPDATE richieste_corso
       SET enrollment_outcome = 'not_enrolled',
           pipeline_status = CASE WHEN pipeline_status = 'enrolled' THEN 'considering' ELSE pipeline_status END
       WHERE id = ?
-    `).run(params.data.id);
-    sqlite.exec("COMMIT");
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
+    `, params.data.id);
+    return { updated: true as const };
+  });
+  if (outcome.error === "missing") {
+    res.status(404).json({ error: "Richiesta non trovata." });
+    return;
+  }
+  if (outcome.error === "exists") {
+    res.status(409).json({ error: "La richiesta ha già un'iscrizione registrata." });
+    return;
+  }
+  if (outcome.request) {
+    res.json(MarkOrientationRequestNotEnrolledResponse.parse(outcome.request));
+    return;
   }
 
-  const updated = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-    .get(params.data.id) as OrientationRequest;
+  const updated = await sofiaStorage.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, params.data.id) as OrientationRequest;
   res.json(MarkOrientationRequestNotEnrolledResponse.parse(updated));
 });
 
-router.patch("/admin/tour-bookings/:id/management", requireAdmin, (req, res): void => {
+router.patch("/admin/tour-bookings/:id/management", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = UpdateTourBookingManagementParams.safeParse({ id });
   const body = UpdateTourBookingManagementBody.safeParse(req.body);
@@ -600,28 +569,27 @@ router.patch("/admin/tour-bookings/:id/management", requireAdmin, (req, res): vo
     assignments.push("follow_up_at = ?");
     values.push(body.data.followUpAt ? body.data.followUpAt.toISOString() : null);
   }
-  const result = sqlite.prepare(`
+  const result = await sofiaStorage.run(`
     UPDATE prenotazioni_tour SET ${assignments.join(", ")} WHERE id = ?
-  `).run(...values, params.data.id);
+  `, ...values, params.data.id);
   if (!result.changes) {
     res.status(404).json({ error: "Prenotazione non trovata." });
     return;
   }
-  const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
-    .get(params.data.id) as TourBooking;
+  const booking = await sofiaStorage.get<TourBooking>(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`, params.data.id) as TourBooking;
   const response = UpdateTourBookingManagementResponse.parse(booking);
   res.json({ ...response, date: booking.date });
 });
 
-router.get("/admin/enrollments", requireAdmin, (_req, res): void => {
-  const rows = sqlite.prepare(`
+router.get("/admin/enrollments", requireAdmin, async (_req, res): Promise<void> => {
+  const rows = await sofiaStorage.all<Enrollment>(`
     SELECT ${enrollmentColumns} FROM iscrizioni_universita
     ORDER BY enrolled_at DESC, id DESC
-  `).all() as Enrollment[];
+  `);
   res.json(ListAdminEnrollmentsResponse.parse(rows));
 });
 
-router.post("/admin/enrollments", requireAdmin, (req, res): void => {
+router.post("/admin/enrollments", requireAdmin, async (req, res): Promise<void> => {
   const parsed = CreateAdminEnrollmentBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Controlla i dati dell'iscrizione e riprova." });
@@ -642,10 +610,10 @@ router.post("/admin/enrollments", requireAdmin, (req, res): void => {
     email: data.email.trim().toLowerCase(),
   };
   if (orientationRequestId !== null) {
-    const lead = sqlite.prepare(`
+    const lead = await sofiaStorage.get<{ firstName: string; lastName: string; email: string }>(`
       SELECT first_name AS firstName, last_name AS lastName, email
       FROM richieste_corso WHERE id = ?
-    `).get(orientationRequestId) as { firstName: string; lastName: string; email: string } | undefined;
+    `, orientationRequestId);
     if (!lead) {
       res.status(404).json({ error: "La richiesta collegata non esiste più." });
       return;
@@ -658,16 +626,14 @@ router.post("/admin/enrollments", requireAdmin, (req, res): void => {
     : String(data.enrolledAt).slice(0, 10);
   const createdAt = new Date().toISOString();
   const commissionPaidAt = data.commissionStatus === "paid" ? createdAt : null;
-  sqlite.exec("BEGIN IMMEDIATE");
-  let enrollmentId: number;
-  try {
-    const result = sqlite.prepare(`
+  const enrollmentId = await sofiaTransaction(async (tx) => {
+    const result = await tx.run(`
       INSERT INTO iscrizioni_universita
         (orientation_request_id, first_name, last_name, email, university, course_id,
          course_name, enrolled_at, commission_cents, commission_status,
          commission_paid_at, status, notes, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
-    `).run(
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?) RETURNING id
+    `,
       orientationRequestId,
       contact.firstName,
       contact.lastName,
@@ -682,28 +648,24 @@ router.post("/admin/enrollments", requireAdmin, (req, res): void => {
       data.notes ?? "",
       createdAt,
     );
-    enrollmentId = Number(result.lastInsertRowid);
+    const id = Number(result.lastInsertRowid);
     if (orientationRequestId !== null) {
-      sqlite.prepare(`
+      await tx.run(`
         UPDATE richieste_corso
         SET pipeline_status = 'enrolled', enrollment_outcome = 'enrolled'
         WHERE id = ?
-      `)
-        .run(orientationRequestId);
+      `, orientationRequestId);
     }
-    sqlite.exec("COMMIT");
-  } catch (error) {
-    sqlite.exec("ROLLBACK");
-    throw error;
-  }
+    return id;
+  });
 
-  const enrollment = sqlite.prepare(`
+  const enrollment = await sofiaStorage.get<Enrollment>(`
     SELECT ${enrollmentColumns} FROM iscrizioni_universita WHERE id = ?
-  `).get(enrollmentId) as Enrollment;
+  `, enrollmentId) as Enrollment;
   res.status(201).json(CreateAdminEnrollmentResponse.parse(enrollment));
 });
 
-router.patch("/admin/enrollments/:id", requireAdmin, (req, res): void => {
+router.patch("/admin/enrollments/:id", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = UpdateAdminEnrollmentParams.safeParse({ id });
   const body = UpdateAdminEnrollmentBody.safeParse(req.body);
@@ -712,9 +674,9 @@ router.patch("/admin/enrollments/:id", requireAdmin, (req, res): void => {
     return;
   }
 
-  const current = sqlite.prepare(`
+  const current = await sofiaStorage.get<Enrollment>(`
     SELECT ${enrollmentColumns} FROM iscrizioni_universita WHERE id = ?
-  `).get(params.data.id) as Enrollment | undefined;
+  `, params.data.id);
   if (!current) {
     res.status(404).json({ error: "Iscrizione non trovata." });
     return;
@@ -741,24 +703,24 @@ router.patch("/admin/enrollments/:id", requireAdmin, (req, res): void => {
     assignments.push("notes = ?");
     values.push(body.data.notes);
   }
-  const result = sqlite.prepare(`
+  const result = await sofiaStorage.run(`
     UPDATE iscrizioni_universita SET ${assignments.join(", ")} WHERE id = ?
-  `).run(...values, params.data.id);
+  `, ...values, params.data.id);
   if (!result.changes) {
     res.status(404).json({ error: "Iscrizione non trovata." });
     return;
   }
-  const enrollment = sqlite.prepare(`
+  const enrollment = await sofiaStorage.get<Enrollment>(`
     SELECT ${enrollmentColumns} FROM iscrizioni_universita WHERE id = ?
-  `).get(params.data.id) as Enrollment;
+  `, params.data.id) as Enrollment;
   res.json(UpdateAdminEnrollmentResponse.parse(enrollment));
 });
 
-router.get("/admin/email-settings", requireAdmin, (_req, res): void => {
-  res.json(GetAdminEmailSettingsResponse.parse(readEmailSettings()));
+router.get("/admin/email-settings", requireAdmin, async (_req, res): Promise<void> => {
+  res.json(GetAdminEmailSettingsResponse.parse(await readEmailSettings()));
 });
 
-router.put("/admin/email-settings", requireAdmin, (req, res): void => {
+router.put("/admin/email-settings", requireAdmin, async (req, res): Promise<void> => {
   const parsed = UpdateAdminEmailSettingsBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Controlla i dati del mittente." });
@@ -769,7 +731,7 @@ router.put("/admin/email-settings", requireAdmin, (req, res): void => {
     res.status(400).json({ error: "Inserisci un indirizzo email valido." });
     return;
   }
-  sqlite.prepare(`
+  await sofiaStorage.run(`
     INSERT INTO impostazioni_email
       (id, sender_email, sender_name, send_orientation_confirmations,
        send_tour_confirmations, updated_at)
@@ -780,14 +742,14 @@ router.put("/admin/email-settings", requireAdmin, (req, res): void => {
       send_orientation_confirmations = excluded.send_orientation_confirmations,
       send_tour_confirmations = excluded.send_tour_confirmations,
       updated_at = excluded.updated_at
-  `).run(
+  `,
     senderEmail,
     parsed.data.senderName.trim(),
     Number(parsed.data.sendOrientationConfirmations),
     Number(parsed.data.sendTourConfirmations),
     new Date().toISOString(),
   );
-  res.json(UpdateAdminEmailSettingsResponse.parse(readEmailSettings()));
+  res.json(UpdateAdminEmailSettingsResponse.parse(await readEmailSettings()));
 });
 
 router.post("/admin/email-settings/test", requireAdmin, async (req, res): Promise<void> => {
@@ -812,8 +774,7 @@ router.post("/admin/orientation-requests/:id/send-confirmation", requireAdmin, a
     res.status(400).json({ error: "Richiesta non valida." });
     return;
   }
-  const request = sqlite.prepare(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`)
-    .get(params.data.id) as OrientationRequest | undefined;
+  const request = await sofiaStorage.get<OrientationRequest>(`SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`, params.data.id);
   if (!request) {
     res.status(404).json({ error: "Richiesta non trovata." });
     return;
@@ -836,7 +797,7 @@ router.post("/admin/orientation-requests/:id/send-confirmation", requireAdmin, a
     time: request.appointmentTime,
     meetUrl: request.meetUrl,
   });
-  persistEmailDelivery("richieste_corso", request.id, delivery);
+  await persistEmailDelivery("richieste_corso", request.id, delivery);
   if (delivery.status === "failed") {
     req.log.warn({ requestId: request.id }, "Orientation confirmation retry failed");
   }
@@ -855,8 +816,7 @@ router.post("/admin/tour-bookings/:id/send-confirmation", requireAdmin, async (r
     res.status(400).json({ error: "Prenotazione non valida." });
     return;
   }
-  const booking = sqlite.prepare(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`)
-    .get(params.data.id) as TourBooking | undefined;
+  const booking = await sofiaStorage.get<TourBooking>(`SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`, params.data.id);
   if (!booking) {
     res.status(404).json({ error: "Prenotazione non trovata." });
     return;
@@ -872,7 +832,7 @@ router.post("/admin/tour-bookings/:id/send-confirmation", requireAdmin, async (r
     time: booking.time,
     meetUrl: booking.meetUrl,
   });
-  persistEmailDelivery("prenotazioni_tour", booking.id, delivery);
+  await persistEmailDelivery("prenotazioni_tour", booking.id, delivery);
   if (delivery.status === "failed") {
     req.log.warn({ bookingId: booking.id }, "Tour confirmation retry failed");
   }

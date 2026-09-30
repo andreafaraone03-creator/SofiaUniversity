@@ -1,4 +1,4 @@
-import { sqlite, type EmailSettings } from "./sofia-db";
+import { sofiaStorage, type EmailSettings } from "./sofia-db";
 
 export type EmailDeliveryStatus = "sent" | "failed" | "not_configured" | "disabled";
 
@@ -26,18 +26,16 @@ type ConfirmationDetails =
       meetUrl: string;
     };
 
-function readSettings(): EmailSettings {
-  const row = sqlite.prepare(`
+async function readSettings(): Promise<EmailSettings> {
+  const row = await sofiaStorage.get<{
+    senderEmail: string | null; senderName: string;
+    sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
+  }>(`
     SELECT sender_email AS senderEmail, sender_name AS senderName,
       send_orientation_confirmations AS sendOrientationConfirmations,
       send_tour_confirmations AS sendTourConfirmations
     FROM impostazioni_email WHERE id = 1
-  `).get() as {
-    senderEmail: string | null;
-    senderName: string;
-    sendOrientationConfirmations: number;
-    sendTourConfirmations: number;
-  } | undefined;
+  `);
 
   return {
     senderEmail: row?.senderEmail?.trim() || null,
@@ -125,7 +123,7 @@ export async function sendAutomaticConfirmation(
   recipient: string,
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
-  const settings = readSettings();
+  const settings = await readSettings();
   const enabled = details.type === "consultation"
     ? settings.sendOrientationConfirmations
     : settings.sendTourConfirmations;
@@ -139,7 +137,7 @@ export async function sendForcedConfirmation(
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
   const content = confirmationContent(details);
-  return sendEmail(recipient, content.subject, content.text, content.html, readSettings());
+  return sendEmail(recipient, content.subject, content.text, content.html, await readSettings());
 }
 
 function confirmationContent(details: ConfirmationDetails) {
@@ -174,7 +172,7 @@ function confirmationContent(details: ConfirmationDetails) {
 }
 
 export async function sendTestEmail(recipient: string): Promise<EmailDelivery> {
-  const settings = readSettings();
+  const settings = await readSettings();
   return sendEmail(
     recipient,
     "Email di prova — Sofia",
@@ -184,15 +182,15 @@ export async function sendTestEmail(recipient: string): Promise<EmailDelivery> {
   );
 }
 
-export function persistEmailDelivery(
+export async function persistEmailDelivery(
   table: "richieste_corso" | "prenotazioni_tour",
   id: number,
   delivery: EmailDelivery,
 ) {
-  sqlite.prepare(`
+  await sofiaStorage.run(`
     UPDATE ${table}
     SET confirmation_email_status = ?, confirmation_email_sent_at = ?,
         confirmation_email_error = ?
     WHERE id = ?
-  `).run(delivery.status, delivery.sentAt, delivery.error, id);
+  `, delivery.status, delivery.sentAt, delivery.error, id);
 }

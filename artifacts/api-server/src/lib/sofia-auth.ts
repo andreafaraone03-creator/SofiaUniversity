@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
-import { sqlite } from "./sofia-db";
+import { sofiaStorage } from "./sofia-db";
 
 const secret = process.env.SESSION_SECRET;
 if (!secret || secret.length < 24) {
@@ -38,7 +38,7 @@ export function clearAdminSession(res: Response): void {
   res.clearCookie(cookieName, { path: "/api", sameSite: "strict" });
 }
 
-export function isAdminAuthenticated(req: Request): boolean {
+export async function isAdminAuthenticated(req: Request): Promise<boolean> {
   const token = req.cookies?.[cookieName];
   if (typeof token !== "string") return false;
   const [payload, sentSignature, extra] = token.split(".");
@@ -52,14 +52,14 @@ export function isAdminAuthenticated(req: Request): boolean {
       data.id !== 1 || typeof data.exp !== "number" || data.exp <= Date.now()) {
       return false;
     }
-    return Boolean(sqlite.prepare("SELECT id FROM utenti_admin WHERE id = 1").get());
+    return Boolean(await sofiaStorage.get("SELECT id FROM utenti_admin WHERE id = 1"));
   } catch {
     return false;
   }
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (!isAdminAuthenticated(req)) {
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!await isAdminAuthenticated(req)) {
     res.status(401).json({ error: "Accedi per vedere l'area riservata." });
     return;
   }
