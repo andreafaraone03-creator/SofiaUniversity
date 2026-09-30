@@ -51,6 +51,7 @@ import {
 } from '@/components/admin-management';
 import { AdminEmailSettings } from '@/components/admin-email-settings';
 import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
+import { formatDate } from '@/lib/date-format';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -754,18 +755,6 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
   </>;
 }
 
-function formatDate(value: string | Date | null | undefined) {
-  if (!value || (value instanceof Date && Number.isNaN(value.getTime()))) return "—";
-  const serialized = value instanceof Date ? value.toISOString() : value;
-  const dateOnly = /^(\d{4}-\d{2}-\d{2})(?:T|$)/.exec(serialized)?.[1];
-  const date = new Date(dateOnly ? `${dateOnly}T12:00:00` : serialized);
-  if (Number.isNaN(date.getTime())) return "—";
-  if (dateOnly) {
-    const [year, month, day] = dateOnly.split("-").map(Number);
-    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "—";
-  }
-  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
-}
 function formatDateTime(value: string) { return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 
 function Admin() {

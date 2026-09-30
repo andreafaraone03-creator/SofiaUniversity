@@ -41,6 +41,7 @@ import {
   UpdateTourBookingStatusParams,
   UpdateTourBookingStatusResponse,
 } from "@workspace/api-zod";
+import { preserveAppointmentDateOnlyStrings } from "../lib/sofia-admin-date-response";
 import {
   clearAdminSession,
   hashPassword,
@@ -231,12 +232,7 @@ router.get("/admin/orientation-requests", requireAdmin, async (_req, res): Promi
     SELECT ${orientationColumns} FROM richieste_corso ORDER BY created_at DESC, id DESC
   `);
   const response = ListAdminOrientationRequestsResponse.parse(rows);
-  // Zod coerces OpenAPI date fields to Date objects; restore the API's
-  // date-only string so clients don't receive an ISO timestamp here.
-  res.json(response.map((request, index) => ({
-    ...request,
-    appointmentDate: rows[index]?.appointmentDate ?? null,
-  })));
+  res.json(preserveAppointmentDateOnlyStrings(response, rows));
 });
 
 router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async (req, res): Promise<void> => {
