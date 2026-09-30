@@ -9,12 +9,21 @@ import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 import type { ContactInput } from './contactInput';
 import type { EnrollmentOutcome } from './enrollmentOutcome';
 import type { OrientationPipelineStatus } from './orientationPipelineStatus';
+import type { OrientationRequestAppointmentStatus } from './orientationRequestAppointmentStatus';
 
 export type OrientationRequest = ContactInput & ({
   id: number;
   university: string;
   courseId: string;
   courseName: string;
+  /** @nullable */
+  appointmentDate: Date | null;
+  /** @nullable */
+  appointmentTime: string | null;
+  /** @nullable */
+  appointmentStatus: OrientationRequestAppointmentStatus;
+  /** @nullable */
+  meetUrl: string | null;
   createdAt: Date;
   pipelineStatus: OrientationPipelineStatus;
   enrollmentOutcome: EnrollmentOutcome;

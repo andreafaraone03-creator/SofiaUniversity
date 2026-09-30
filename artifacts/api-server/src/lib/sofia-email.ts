@@ -11,16 +11,20 @@ export type EmailDelivery = {
 
 type ConfirmationDetails =
   | {
-      type: "orientation";
+      type: "consultation";
       firstName: string;
       university: string;
       courseName: string;
+      date: string;
+      time: string;
+      meetUrl: string;
     }
   | {
       type: "tour";
       firstName: string;
       date: string;
       time: string;
+      meetUrl: string;
     };
 
 function readSettings(): EmailSettings {
@@ -39,8 +43,8 @@ function readSettings(): EmailSettings {
   return {
     senderEmail: row?.senderEmail?.trim() || null,
     senderName: row?.senderName?.trim() || "Sofia",
-    sendOrientationConfirmations: Boolean(row?.sendOrientationConfirmations),
-    sendTourConfirmations: Boolean(row?.sendTourConfirmations),
+    sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
+    sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
   };
 }
 
@@ -112,58 +116,51 @@ export async function sendAutomaticConfirmation(
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
   const settings = readSettings();
-  if (!settings.senderEmail) {
-    return { status: "not_configured", sentAt: null, error: "Imposta un indirizzo mittente verificato in Resend." };
-  }
-
-  const enabled = details.type === "orientation"
+  const enabled = details.type === "consultation"
     ? settings.sendOrientationConfirmations
     : settings.sendTourConfirmations;
   if (!enabled) return { status: "disabled", sentAt: null, error: "" };
-
-  const firstName = escapeHtml(details.firstName);
-  if (details.type === "orientation") {
-    const university = escapeHtml(details.university);
-    const course = escapeHtml(details.courseName);
-    const subject = "Abbiamo ricevuto la tua richiesta di orientamento";
-    const text = `Ciao ${details.firstName},\n\nabbiamo ricevuto la tua richiesta di orientamento per ${details.courseName} presso ${details.university}. Sofia ti contatterà presto.\n\nA presto,\nSofia`;
-    const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>abbiamo ricevuto la tua richiesta di orientamento per <strong>${course}</strong> presso <strong>${university}</strong>.</p><p>Sofia ti contatterà presto.</p><p>A presto,<br>Sofia</p></div>`;
-    return sendEmail(recipient, subject, text, html, settings);
-  }
-
-  const date = formatTourDate(details.date);
-  const subject = "Il tuo tour della piattaforma è prenotato";
-  const text = `Ciao ${details.firstName},\n\nil tuo tour della piattaforma Sofia è prenotato per ${date} alle ${details.time}.\n\nSofia ti invierà i dettagli per partecipare.\n\nA presto,\nSofia`;
-  const html = `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>il tuo tour della piattaforma Sofia è prenotato per <strong>${escapeHtml(date)} alle ${escapeHtml(details.time)}</strong>.</p><p>Sofia ti invierà i dettagli per partecipare.</p><p>A presto,<br>Sofia</p></div>`;
-  return sendEmail(recipient, subject, text, html, settings);
+  const content = confirmationContent(details);
+  return sendEmail(recipient, content.subject, content.text, content.html, settings);
 }
 
 export async function sendForcedConfirmation(
   recipient: string,
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
-  const settings = readSettings();
-  const firstName = escapeHtml(details.firstName);
-  if (details.type === "orientation") {
-    const university = escapeHtml(details.university);
-    const course = escapeHtml(details.courseName);
-    return sendEmail(
-      recipient,
-      "Abbiamo ricevuto la tua richiesta di orientamento",
-      `Ciao ${details.firstName},\n\nabbiamo ricevuto la tua richiesta di orientamento per ${details.courseName} presso ${details.university}. Sofia ti contatterà presto.\n\nA presto,\nSofia`,
-      `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>abbiamo ricevuto la tua richiesta di orientamento per <strong>${course}</strong> presso <strong>${university}</strong>.</p><p>Sofia ti contatterà presto.</p><p>A presto,<br>Sofia</p></div>`,
-      settings,
-    );
-  }
+  const content = confirmationContent(details);
+  return sendEmail(recipient, content.subject, content.text, content.html, readSettings());
+}
 
+function confirmationContent(details: ConfirmationDetails) {
   const date = formatTourDate(details.date);
-  return sendEmail(
-    recipient,
-    "Il tuo tour della piattaforma è prenotato",
-    `Ciao ${details.firstName},\n\nil tuo tour della piattaforma Sofia è prenotato per ${date} alle ${details.time}.\n\nSofia ti invierà i dettagli per partecipare.\n\nA presto,\nSofia`,
-    `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>il tuo tour della piattaforma Sofia è prenotato per <strong>${escapeHtml(date)} alle ${escapeHtml(details.time)}</strong>.</p><p>Sofia ti invierà i dettagli per partecipare.</p><p>A presto,<br>Sofia</p></div>`,
-    settings,
-  );
+  const firstName = escapeHtml(details.firstName);
+  const safeDate = escapeHtml(date);
+  const safeTime = escapeHtml(details.time);
+  const meetLink = escapeHtml(details.meetUrl);
+  const isConsultation = details.type === "consultation";
+  const subject = isConsultation
+    ? "La tua consulenza universitaria è prenotata"
+    : "Il tuo tour della piattaforma è prenotato";
+  const appointment = isConsultation
+    ? `la tua consulenza universitaria con Sofia è prenotata per ${date} alle ${details.time}`
+    : `il tuo tour della piattaforma con Sofia è prenotato per ${date} alle ${details.time}`;
+  const htmlAppointment = isConsultation
+    ? `la tua consulenza universitaria con Sofia è prenotata per <strong>${safeDate} alle ${safeTime}</strong>.`
+    : `il tuo tour della piattaforma con Sofia è prenotato per <strong>${safeDate} alle ${safeTime}</strong>.`;
+  const question = isConsultation
+    ? "C’è un aspetto del corso o della scelta universitaria che vuoi approfondire? Rispondi a questa email."
+    : "C’è una funzione della piattaforma che vuoi vedere durante il tour? Rispondi a questa email.";
+  const context = isConsultation
+    ? `\nAteneo: ${details.university}\nCorso: ${details.courseName}\n`
+    : "\n";
+  return {
+    subject,
+    text: `Ciao ${details.firstName},\n\n${appointment}.\n${context}\nPartecipa su Google Meet: ${details.meetUrl}\n\n${question}\n\nA presto,\nSofia`,
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>${htmlAppointment}</p>${isConsultation
+        ? `<p>Ateneo: <strong>${escapeHtml(details.university)}</strong><br>Corso: <strong>${escapeHtml(details.courseName)}</strong></p>`
+        : ""}<p><a href="${meetLink}">Partecipa su Google Meet</a></p><p>${escapeHtml(question)}</p><p>A presto,<br>Sofia</p></div>`,
+  };
 }
 
 export async function sendTestEmail(recipient: string): Promise<EmailDelivery> {

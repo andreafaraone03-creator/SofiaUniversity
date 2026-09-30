@@ -13,6 +13,8 @@ export type TourBooking = ContactInput & ({
   id: number;
   date: Date;
   time: string;
+  /** @nullable */
+  meetUrl: string | null;
   status: TourBookingStatus;
   createdAt: Date;
   adminNotes: string;

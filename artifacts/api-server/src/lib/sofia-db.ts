@@ -22,6 +22,10 @@ export type OrientationRequest = {
   university: string;
   courseId: string;
   courseName: string;
+  appointmentDate: string | null;
+  appointmentTime: string | null;
+  appointmentStatus: "pending" | "confirmed" | "cancelled" | null;
+  meetUrl: string | null;
   createdAt: string;
   pipelineStatus: "new" | "contacted" | "considering" | "enrolled" | "closed";
   enrollmentOutcome: "pending" | "enrolled" | "not_enrolled";
@@ -41,6 +45,7 @@ export type TourBooking = {
   phone: string;
   date: string;
   time: string;
+  meetUrl: string | null;
   status: "confirmed" | "cancelled" | "completed";
   createdAt: string;
   adminNotes: string;
@@ -93,6 +98,11 @@ sqlite.exec(`
     university TEXT NOT NULL,
     course_id TEXT NOT NULL,
     course_name TEXT NOT NULL,
+    appointment_date TEXT,
+    appointment_time TEXT,
+    appointment_status TEXT CHECK (appointment_status IN ('pending', 'confirmed', 'cancelled')),
+    google_calendar_event_id TEXT,
+    meet_url TEXT,
     created_at TEXT NOT NULL,
     pipeline_status TEXT NOT NULL DEFAULT 'new'
       CHECK (pipeline_status IN ('new', 'contacted', 'considering', 'enrolled', 'closed')),
@@ -114,6 +124,8 @@ sqlite.exec(`
     phone TEXT NOT NULL,
     date TEXT NOT NULL,
     time TEXT NOT NULL,
+    google_calendar_event_id TEXT,
+    meet_url TEXT,
     status TEXT NOT NULL DEFAULT 'confirmed'
       CHECK (status IN ('confirmed', 'cancelled', 'completed')),
     created_at TEXT NOT NULL,
@@ -126,6 +138,14 @@ sqlite.exec(`
   );
   CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot
     ON prenotazioni_tour(date, time) WHERE status != 'cancelled';
+  CREATE TABLE IF NOT EXISTS appointment_slots (
+    date TEXT NOT NULL,
+    time TEXT NOT NULL,
+    booking_type TEXT NOT NULL CHECK (booking_type IN ('consultation', 'tour')),
+    booking_id INTEGER NOT NULL,
+    PRIMARY KEY (date, time),
+    UNIQUE (booking_type, booking_id)
+  );
   CREATE TABLE IF NOT EXISTS utenti_admin (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     username TEXT NOT NULL UNIQUE,
@@ -157,8 +177,8 @@ sqlite.exec(`
     id INTEGER PRIMARY KEY CHECK (id = 1),
     sender_email TEXT,
     sender_name TEXT NOT NULL DEFAULT 'Sofia',
-    send_orientation_confirmations INTEGER NOT NULL DEFAULT 0,
-    send_tour_confirmations INTEGER NOT NULL DEFAULT 0,
+    send_orientation_confirmations INTEGER NOT NULL DEFAULT 1,
+    send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
   );
 `);
@@ -179,11 +199,31 @@ ensureColumn("richieste_corso", "follow_up_at", "TEXT");
 ensureColumn("richieste_corso", "confirmation_email_status", "TEXT NOT NULL DEFAULT 'not_configured'");
 ensureColumn("richieste_corso", "confirmation_email_sent_at", "TEXT");
 ensureColumn("richieste_corso", "confirmation_email_error", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("richieste_corso", "appointment_date", "TEXT");
+ensureColumn("richieste_corso", "appointment_time", "TEXT");
+ensureColumn("richieste_corso", "appointment_status", "TEXT");
+ensureColumn("richieste_corso", "google_calendar_event_id", "TEXT");
+ensureColumn("richieste_corso", "meet_url", "TEXT");
 ensureColumn("prenotazioni_tour", "admin_notes", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("prenotazioni_tour", "follow_up_at", "TEXT");
 ensureColumn("prenotazioni_tour", "confirmation_email_status", "TEXT NOT NULL DEFAULT 'not_configured'");
 ensureColumn("prenotazioni_tour", "confirmation_email_sent_at", "TEXT");
 ensureColumn("prenotazioni_tour", "confirmation_email_error", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("prenotazioni_tour", "google_calendar_event_id", "TEXT");
+ensureColumn("prenotazioni_tour", "meet_url", "TEXT");
+
+sqlite.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot
+    ON richieste_corso(appointment_date, appointment_time)
+    WHERE appointment_status IN ('pending', 'confirmed');
+  INSERT OR IGNORE INTO appointment_slots (date, time, booking_type, booking_id)
+    SELECT date, time, 'tour', id FROM prenotazioni_tour WHERE status != 'cancelled';
+  INSERT OR IGNORE INTO appointment_slots (date, time, booking_type, booking_id)
+    SELECT appointment_date, appointment_time, 'consultation', id
+    FROM richieste_corso
+    WHERE appointment_status IN ('pending', 'confirmed')
+      AND appointment_date IS NOT NULL AND appointment_time IS NOT NULL;
+`);
 
 sqlite.exec(`
   UPDATE richieste_corso
@@ -205,6 +245,8 @@ export const courses = JSON.parse(
 export const orientationColumns = `
   id, first_name AS firstName, last_name AS lastName, email, province, phone,
   university, course_id AS courseId, course_name AS courseName, created_at AS createdAt,
+  appointment_date AS appointmentDate, appointment_time AS appointmentTime,
+  appointment_status AS appointmentStatus, meet_url AS meetUrl,
   pipeline_status AS pipelineStatus, enrollment_outcome AS enrollmentOutcome,
   admin_notes AS adminNotes, follow_up_at AS followUpAt,
   confirmation_email_status AS confirmationEmailStatus,
@@ -214,7 +256,7 @@ export const orientationColumns = `
 
 export const bookingColumns = `
   id, first_name AS firstName, last_name AS lastName, email, province, phone,
-  date, time, status, created_at AS createdAt, admin_notes AS adminNotes,
+  date, time, meet_url AS meetUrl, status, created_at AS createdAt, admin_notes AS adminNotes,
   follow_up_at AS followUpAt, confirmation_email_status AS confirmationEmailStatus,
   confirmation_email_sent_at AS confirmationEmailSentAt,
   confirmation_email_error AS confirmationEmailError

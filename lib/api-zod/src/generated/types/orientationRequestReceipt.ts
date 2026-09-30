@@ -9,6 +9,9 @@ import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 
 export interface OrientationRequestReceipt {
   id: number;
+  date: Date;
+  time: string;
+  meetUrl: string;
   createdAt: Date;
   confirmationEmailStatus: ConfirmationEmailStatus;
 }

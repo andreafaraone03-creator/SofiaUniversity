@@ -1,0 +1,1 @@
+- [OpenAPI codegen recovery](openapi-codegen.md) — Orval clears generated outputs before validation, so fix the source spec and rerun codegen instead of patching generated files.
