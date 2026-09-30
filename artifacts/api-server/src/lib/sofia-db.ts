@@ -200,6 +200,12 @@ sqlite.exec(`
     auth_tag TEXT NOT NULL,
     connected_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
+    state_hash TEXT PRIMARY KEY,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
+    ON sofia_google_calendar_oauth_states(expires_at);
 `);
 }
 
@@ -342,6 +348,12 @@ async function initializePostgres(): Promise<void> {
       auth_tag text NOT NULL,
       connected_at text NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
+      state_hash text PRIMARY KEY,
+      expires_at text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
+      ON sofia_google_calendar_oauth_states(expires_at);
     CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot ON prenotazioni_tour(date,time) WHERE status <> 'cancelled';
     CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot ON richieste_corso(appointment_date,appointment_time)
       WHERE appointment_status IN ('pending','confirmed');
