@@ -76,7 +76,6 @@ export type Enrollment = {
 
 export type EmailSettings = {
   senderEmail: string | null;
-  adminNotificationEmail: string | null;
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
@@ -189,7 +188,6 @@ sqlite.exec(`
   CREATE TABLE IF NOT EXISTS impostazioni_email (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     sender_email TEXT,
-    admin_notification_email TEXT,
     sender_name TEXT NOT NULL DEFAULT 'Sofia',
     send_orientation_confirmations INTEGER NOT NULL DEFAULT 1,
     send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
@@ -243,11 +241,7 @@ export async function withSofiaTransaction<T>(
 
 function pgSql(sql: string): string {
   let index = 0;
-  // PostgreSQL folds unquoted camelCase aliases to lowercase, unlike SQLite.
-  // Preserve the names expected by API response schemas.
-  return sql
-    .replace(/\bAS\s+([a-z_][a-zA-Z0-9_]*[A-Z][a-zA-Z0-9_]*)\b/g, (_match, alias: string) => `AS "${alias}"`)
-    .replace(/\?/g, () => `$${++index}`);
+  return sql.replace(/\?/g, () => `$${++index}`);
 }
 
 export type SofiaResult = { changes: number; lastInsertRowid?: number };
@@ -342,7 +336,7 @@ async function initializePostgres(): Promise<void> {
       notes text NOT NULL DEFAULT '', created_at text NOT NULL
     );
     CREATE TABLE IF NOT EXISTS impostazioni_email (
-      id integer PRIMARY KEY CHECK (id=1), sender_email text, admin_notification_email text,
+      id integer PRIMARY KEY CHECK (id=1), sender_email text,
       sender_name text NOT NULL DEFAULT 'Sofia',
       send_orientation_confirmations integer NOT NULL DEFAULT 1,
       send_tour_confirmations integer NOT NULL DEFAULT 1, updated_at text NOT NULL
@@ -360,7 +354,6 @@ async function initializePostgres(): Promise<void> {
     );
     CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
       ON sofia_google_calendar_oauth_states(expires_at);
-    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_notification_email text;
     CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot ON prenotazioni_tour(date,time) WHERE status <> 'cancelled';
     CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot ON richieste_corso(appointment_date,appointment_time)
       WHERE appointment_status IN ('pending','confirmed');
@@ -401,7 +394,6 @@ ensureColumn("prenotazioni_tour", "confirmation_email_sent_at", "TEXT");
 ensureColumn("prenotazioni_tour", "confirmation_email_error", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("prenotazioni_tour", "google_calendar_event_id", "TEXT");
 ensureColumn("prenotazioni_tour", "meet_url", "TEXT");
-ensureColumn("impostazioni_email", "admin_notification_email", "TEXT");
 
 sqlite.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot
@@ -436,23 +428,23 @@ export const courses = JSON.parse(
 ) as Course[];
 
 export const orientationColumns = `
-  id, first_name AS firstName, last_name AS lastName, email, province, phone,
-  university, course_id AS courseId, course_name AS courseName, created_at AS createdAt,
-  appointment_date AS appointmentDate, appointment_time AS appointmentTime,
-  appointment_status AS appointmentStatus, meet_url AS meetUrl,
-  pipeline_status AS pipelineStatus, enrollment_outcome AS enrollmentOutcome,
-  admin_notes AS adminNotes, follow_up_at AS followUpAt,
-  confirmation_email_status AS confirmationEmailStatus,
-  confirmation_email_sent_at AS confirmationEmailSentAt,
-  confirmation_email_error AS confirmationEmailError
+  id, first_name AS "firstName", last_name AS "lastName", email, province, phone,
+  university, course_id AS "courseId", course_name AS "courseName", created_at AS "createdAt",
+  appointment_date AS "appointmentDate", appointment_time AS "appointmentTime",
+  appointment_status AS "appointmentStatus", meet_url AS "meetUrl",
+  pipeline_status AS "pipelineStatus", enrollment_outcome AS "enrollmentOutcome",
+  admin_notes AS "adminNotes", follow_up_at AS "followUpAt",
+  confirmation_email_status AS "confirmationEmailStatus",
+  confirmation_email_sent_at AS "confirmationEmailSentAt",
+  confirmation_email_error AS "confirmationEmailError"
 `;
 
 export const bookingColumns = `
-  id, first_name AS firstName, last_name AS lastName, email, province, phone,
-  date, time, meet_url AS meetUrl, status, created_at AS createdAt, admin_notes AS adminNotes,
-  follow_up_at AS followUpAt, confirmation_email_status AS confirmationEmailStatus,
-  confirmation_email_sent_at AS confirmationEmailSentAt,
-  confirmation_email_error AS confirmationEmailError
+  id, first_name AS "firstName", last_name AS "lastName", email, province, phone,
+  date, time, meet_url AS "meetUrl", status, created_at AS "createdAt", admin_notes AS "adminNotes",
+  follow_up_at AS "followUpAt", confirmation_email_status AS "confirmationEmailStatus",
+  confirmation_email_sent_at AS "confirmationEmailSentAt",
+  confirmation_email_error AS "confirmationEmailError"
 `;
 
 export const enrollmentColumns = `

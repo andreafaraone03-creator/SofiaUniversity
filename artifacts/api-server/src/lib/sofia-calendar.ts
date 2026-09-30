@@ -176,7 +176,7 @@ export async function createMeetEvent(appointment: AppointmentDetails): Promise<
     ? `Consulenza universitaria con Sofia.\nAteneo: ${appointment.university ?? ""}\nCorso: ${appointment.courseName ?? ""}`
     : "Tour online della piattaforma con Sofia.";
   const response = await calendarRequest(
-    `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=all&conferenceDataVersion=1`,
+    `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none&conferenceDataVersion=1`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -185,7 +185,6 @@ export async function createMeetEvent(appointment: AppointmentDetails): Promise<
         description,
         start: { dateTime: romeDateTime(appointment.date, appointment.time), timeZone: timezone },
         end: { dateTime: romeDateTime(appointment.date, appointmentEndTime(appointment.time)), timeZone: timezone },
-        attendees: [{ email: appointment.email }],
         conferenceData: {
           createRequest: {
             requestId: randomUUID(),
