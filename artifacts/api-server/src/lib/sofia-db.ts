@@ -246,18 +246,19 @@ export type SofiaExecutor = {
 };
 
 function executor(client?: PoolClient): SofiaExecutor {
+  const postgres = client ?? sofiaPool;
   return {
     async get<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
-      if (client) return (await client.query<T>(pgSql(sql), params)).rows[0];
+      if (postgres) return (await postgres.query<T>(pgSql(sql), params)).rows[0];
       return sqlite.prepare(sql).get(...params as any[]) as T | undefined;
     },
     async all<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
-      if (client) return (await client.query<T>(pgSql(sql), params)).rows;
+      if (postgres) return (await postgres.query<T>(pgSql(sql), params)).rows;
       return sqlite.prepare(sql).all(...params as any[]) as T[];
     },
     async run(sql, ...params) {
-      if (client) {
-        const result = await client.query(pgSql(sql), params);
+      if (postgres) {
+        const result = await postgres.query(pgSql(sql), params);
         return { changes: result.rowCount ?? 0, lastInsertRowid: result.rows[0]?.id };
       }
       const result = sqlite.prepare(sql).run(...params as any[]);
