@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "Sofia | Consulenza universitaria"
-description = "Portale di Sofia per l’orientamento universitario e la prenotazione di tour personalizzati della piattaforma Meet, con area amministrativa riservata."
+description = "Portale di Sofia per la consulenza universitaria e la prenotazione di tour personalizzati della piattaforma Meet, con area amministrativa riservata."
 version = "1.0.0"
 id = "artifacts/sofia-orientamento"
 router = "path"

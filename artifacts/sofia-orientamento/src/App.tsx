@@ -83,7 +83,7 @@ function SiteHeader() {
       <div className="mx-auto flex h-[76px] max-w-[1500px] items-center justify-between px-5 md:px-10">
         <Link href="/" data-testid="link-logo" className="group flex shrink-0 items-center gap-3">
           <span className="relative flex h-10 w-10 items-center justify-center bg-[hsl(var(--secondary))] text-[hsl(var(--accent))] font-bold">S<span className="absolute -bottom-1 -right-1 h-3 w-3 bg-[hsl(var(--primary))]" /></span>
-          <span className="leading-none"><strong className="block font-serif text-xl font-bold tracking-[-.06em]">sofia<span className="text-[hsl(var(--primary))]">.</span></strong><small className="eyebrow block !text-[.5rem] !tracking-[.2em]">orientamento</small></span>
+          <span className="leading-none"><strong className="block font-serif text-xl font-bold tracking-[-.06em]">sofia<span className="text-[hsl(var(--primary))]">.</span></strong><small className="eyebrow block !text-[.5rem] !tracking-[.2em]">consulenza</small></span>
         </Link>
         <nav className="hidden items-center md:flex" aria-label="Navigazione principale">
           {nav.map((item) => <Link key={item.href} href={item.href} aria-current={location === item.href ? 'page' : undefined} data-testid={`link-nav-${item.label.toLowerCase().replace(' ', '-')}`} className={`relative px-4 py-3 text-sm transition-colors hover:text-[hsl(var(--primary))] before:absolute before:left-0 before:top-1/2 before:h-4 before:-translate-y-1/2 before:border-l before:border-[hsl(var(--border))] first:before:hidden ${activeLink(item.href)}`}>{item.label}</Link>)}
@@ -247,7 +247,7 @@ function Home() {
       <svg className="route-map" viewBox="0 0 1200 620" preserveAspectRatio="none" aria-hidden="true"><path className="route-line" d="M10 500 C180 420 160 130 360 180 S500 510 690 390 S820 110 1160 170" /><circle cx="360" cy="180" r="9" /><circle cx="690" cy="390" r="9" /><circle className="route-pin" cx="1015" cy="150" r="13" /></svg>
       <div className="route-copy mx-auto grid min-h-[610px] max-w-[1500px] items-center gap-10 px-5 py-20 md:grid-cols-[1.05fr_.95fr] md:px-10 md:py-24">
         <div className="page-in">
-          <p className="eyebrow !text-[hsl(var(--primary))]">orientamento universitario · roma / online</p>
+          <p className="eyebrow !text-[hsl(var(--primary))]">consulenza universitaria · roma / online</p>
           <h1 className="mt-6 max-w-4xl text-6xl leading-[.9] sm:text-8xl md:text-[8.5rem]">Trova la<br /><span className="text-[hsl(var(--primary))]">tua rotta.</span></h1>
           <p className="mt-8 max-w-xl text-lg leading-relaxed text-[hsl(var(--foreground)/.75)] md:text-xl">L’università non è una risposta da indovinare. È una direzione da mettere a fuoco, insieme.</p>
           <div className="mt-9 flex flex-wrap items-center gap-4"><a href="#servizi" className="btn-rose" data-testid="link-discover-services">Inizia da qui <ArrowRight size={16} /></a><Link href="/chi-sono" className="inline-flex items-center gap-2 border-b border-[hsl(var(--primary))] py-2 text-sm text-[hsl(var(--foreground))]" data-testid="link-meet-sofia">Conosci Sofia <ArrowRight size={15} /></Link></div>
@@ -264,7 +264,7 @@ function Home() {
       <div className="grid gap-12 md:grid-cols-[.65fr_1.35fr] md:gap-20">
         <div className="max-w-md md:sticky md:top-28 md:self-start"><SectionKicker>scegli il prossimo punto</SectionKicker><h2 className="font-serif text-5xl leading-[.94] md:text-7xl">Da quale<br /><em className="text-[hsl(var(--primary))]">direzione</em><br />partiamo?</h2><p className="mt-7 text-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Due incontri diversi, una cosa in comune: nessuna pressione. Scegli quello che ti serve adesso.</p></div>
         <div className="grid gap-6">
-          <BookingChoiceRow href="/prenota-orientamento" number="01" label="METTERE A FUOCO" title="Orientamento sul corso di laurea" description="Confrontiamo atenei e corsi a partire dai tuoi obiettivi, non da un catalogo." detail="ATENEO · CORSO DI LAUREA" cta="Prenota una consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
+          <BookingChoiceRow href="/prenota-consulenza" number="01" label="METTERE A FUOCO" title="Consulenza sul corso di laurea" description="Confrontiamo atenei e corsi a partire dai tuoi obiettivi, non da un catalogo." detail="ATENEO · CORSO DI LAUREA" cta="Prenota una consulenza" Icon={GraduationCap} testId="link-booking-orientation" />
           <BookingChoiceRow href="/prenota-tour" number="02" label="VEDERE DA VICINO" title="Tour guidato con Sofia" description="Un incontro online per scoprire la piattaforma e fare tutte le domande che vuoi." detail="MEET · 1 ORA" cta="Prenota il tour" Icon={Video} testId="link-booking-tour" />
         </div>
       </div>
@@ -285,7 +285,7 @@ function BookingPageLayout({ step, title, description, children }: { step: strin
 }
 
 function OrientationBookingPage() {
-  return <BookingPageLayout step="01 / orientamento corso" title="Prenota un orientamento" description="Scegli l’ateneo e il corso che ti interessano, poi lasciami i tuoi recapiti. Ti ricontatterò per parlarne insieme.">
+  return <BookingPageLayout step="01 / scelta del corso" title="Prenota una consulenza" description="Scegli l’ateneo e il corso che ti interessano, poi lasciami i tuoi recapiti. Ti ricontatterò per parlarne insieme.">
     <h2 className="mb-6 font-serif text-2xl">La tua richiesta</h2><OrientationForm />
   </BookingPageLayout>;
 }
@@ -307,7 +307,7 @@ function About() {
       <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--primary)/.10)]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:grid-cols-2 md:items-center md:px-8 md:py-20">
           <AboutImage label="Il modo in cui Sofia accompagna ogni percorso" caption="La persona, non l’algoritmo." tone="rose" />
-          <div><SectionKicker>01 / incontriamoci</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Una persona, prima di tutto.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Sono Sofia e mi occupo di orientamento universitario. Il mio lavoro è ascoltare le tue esigenze, aiutarti a confrontare percorsi e atenei e accompagnarti nelle domande che arrivano lungo la strada.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Qui non trovi una scelta già fatta per te: trovi spazio per fare la tua, con più chiarezza.</p></div>
+          <div><SectionKicker>01 / incontriamoci</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Una persona, prima di tutto.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Sono Sofia e mi occupo di consulenza universitaria. Il mio lavoro è ascoltare le tue esigenze, aiutarti a confrontare percorsi e atenei e accompagnarti nelle domande che arrivano lungo la strada.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Qui non trovi una scelta già fatta per te: trovi spazio per fare la tua, con più chiarezza.</p></div>
         </div>
       </section>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:items-center md:px-8 md:py-24">
@@ -316,8 +316,8 @@ function About() {
       </section>
       <section className="border-y border-[hsl(var(--border))] bg-[hsl(var(--primary)/.10)]">
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:items-center md:px-8 md:py-24">
-          <AboutImage label="Orientamento e supporto all’iscrizione" caption="Ateneo. Corso. Una direzione tua." tone="peach" />
-          <div><SectionKicker>03 / un supporto reale</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Non devi fare tutto da solo.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Un consulente ti aiuta a confrontare i corsi in base ai tuoi obiettivi, a capire requisiti e scadenze, e a orientarti tra documenti e procedure di iscrizione.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Possiamo verificare insieme anche eventuali agevolazioni o sconti, quando disponibili e se possiedi i requisiti. Nessuna promessa automatica: solo indicazioni personalizzate, passo dopo passo.</p><Link href="/#servizi" className="btn-primary mt-7" data-testid="link-about-orientation">Parliamo del tuo percorso <ArrowRight size={16} /></Link></div>
+          <AboutImage label="Consulenza e supporto all’iscrizione" caption="Ateneo. Corso. Una direzione tua." tone="peach" />
+          <div><SectionKicker>03 / un supporto reale</SectionKicker><h2 className="font-serif text-4xl leading-tight md:text-5xl">Non devi fare tutto da solo.</h2><p className="mt-6 leading-relaxed text-[hsl(var(--muted-foreground))]">Un consulente ti aiuta a confrontare i corsi in base ai tuoi obiettivi, a capire requisiti e scadenze, e a muoverti tra documenti e procedure di iscrizione.</p><p className="mt-4 leading-relaxed text-[hsl(var(--muted-foreground))]">Possiamo verificare insieme anche eventuali agevolazioni o sconti, quando disponibili e se possiedi i requisiti. Nessuna promessa automatica: solo indicazioni personalizzate, passo dopo passo.</p><Link href="/#servizi" className="btn-primary mt-7" data-testid="link-about-orientation">Parliamo del tuo percorso <ArrowRight size={16} /></Link></div>
         </div>
       </section>
     </main><SiteFooter />
@@ -355,7 +355,7 @@ function Contacts() {
   const email = import.meta.env.VITE_CONTACT_EMAIL as string | undefined;
   const cards = [
     { name: 'WhatsApp', icon: <FaWhatsapp aria-hidden="true" focusable="false" className="h-7 w-7 shrink-0 text-[#25D366]" />, href: whatsapp ? `https://wa.me/${normalizeItalianPhone(whatsapp)}` : undefined, description: 'Scrivimi direttamente, senza formalità.', config: 'Il numero di Sofia sarà disponibile qui a breve.' },
-    { name: 'TikTok', icon: <span aria-hidden="true" className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center"><FaTiktok focusable="false" className="absolute -translate-x-[1.5px] translate-y-[1px] text-[#25F4EE]" /><FaTiktok focusable="false" className="absolute translate-x-[1.5px] -translate-y-[1px] text-[#FE2C55]" /><FaTiktok focusable="false" className="relative text-[hsl(var(--background))]" /></span>, href: tiktok || undefined, description: 'Seguimi per orientarti con più leggerezza.', config: 'Il profilo di Sofia sarà disponibile qui a breve.' },
+    { name: 'TikTok', icon: <span aria-hidden="true" className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center"><FaTiktok focusable="false" className="absolute -translate-x-[1.5px] translate-y-[1px] text-[#25F4EE]" /><FaTiktok focusable="false" className="absolute translate-x-[1.5px] -translate-y-[1px] text-[#FE2C55]" /><FaTiktok focusable="false" className="relative text-[hsl(var(--background))]" /></span>, href: tiktok || undefined, description: 'Seguimi per scegliere con più leggerezza.', config: 'Il profilo di Sofia sarà disponibile qui a breve.' },
   ];
   return <div className="grain min-h-[100dvh] route-shell"><SiteHeader /><main className="page-in">
     <section className="mx-auto max-w-7xl px-5 pb-16 pt-16 md:px-8 md:pb-24 md:pt-24"><SectionKicker>parliamone</SectionKicker><div className="grid gap-10 md:grid-cols-[1fr_.8fr] md:items-end"><h1 className="max-w-3xl font-serif text-5xl leading-[.98] sm:text-7xl">La domanda<br /><em className="text-[hsl(var(--primary))]">è il tuo inizio.</em></h1><p className="max-w-sm leading-relaxed text-[hsl(var(--muted-foreground))]">Scrivimi nel modo che preferisci. Ti risponderò personalmente appena possibile.</p></div></section>
@@ -369,7 +369,7 @@ function Contacts() {
           : <div key={card.name} data-testid={`status-${card.name.toLowerCase()}-unconfigured`} aria-disabled="true" className={`${className} cursor-not-allowed opacity-80`}>{content}</div>;
       })}
     </div></section>
-    <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:px-8 md:py-24"><div><SectionKicker>{email ? 'anche via email' : 'inizia da qui'}</SectionKicker>{email ? <a href={`mailto:${email}`} data-testid="link-email" className="group flex items-center gap-3 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">{email} <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></a> : <Link href="/#servizi" data-testid="link-contact-orientation" className="inline-flex items-center gap-2 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">Invia una richiesta di orientamento <ArrowRight size={18} /></Link>}</div><div><SectionKicker>ovunque tu sia</SectionKicker><p className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-[hsl(var(--primary))]" /> Consulenze online, ovunque tu sia</p></div></section>
+    <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 md:px-8 md:py-24"><div><SectionKicker>{email ? 'anche via email' : 'inizia da qui'}</SectionKicker>{email ? <a href={`mailto:${email}`} data-testid="link-email" className="group flex items-center gap-3 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">{email} <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" /></a> : <Link href="/#servizi" data-testid="link-contact-orientation" className="inline-flex items-center gap-2 font-serif text-2xl underline decoration-[hsl(var(--primary))] decoration-2 underline-offset-8">Invia una richiesta di consulenza <ArrowRight size={18} /></Link>}</div><div><SectionKicker>ovunque tu sia</SectionKicker><p className="flex items-center gap-2 text-sm"><MapPin size={16} className="text-[hsl(var(--primary))]" /> Consulenze online, ovunque tu sia</p></div></section>
     <section className="mx-5 mb-16 bg-[hsl(var(--foreground))] px-6 py-14 text-center text-[hsl(var(--background))] md:mx-8 md:mb-24 md:py-20"><p className="eyebrow !text-[hsl(var(--accent))]">una frase da ricordare</p><p className="mx-auto mt-5 max-w-2xl font-serif text-3xl leading-tight md:text-5xl">La conoscenza è l'investimento che paga i migliori interessi. Sii il protagonista del tuo futuro.</p></section>
   </main><SiteFooter /></div>;
 }
@@ -548,7 +548,7 @@ function OrientationTable({
   if (!data?.length) return <div className="p-10 text-center md:p-12">
     <p className="font-serif text-2xl">{view === "requests" ? "Ancora nessuna richiesta." : "Nessuna pratica non conclusa."}</p>
     <p className="mx-auto mt-2 max-w-2xl text-sm text-[hsl(var(--muted-foreground))]">{view === "requests"
-      ? "Le nuove richieste inviate dal modulo di orientamento compaiono qui automaticamente. L’elenco si aggiorna ogni 15 secondi."
+      ? "Le nuove richieste inviate dal modulo di consulenza compaiono qui automaticamente. L’elenco si aggiorna ogni 15 secondi."
       : "Le persone contrassegnate con X compaiono qui, senza provvigione. Se l’esito cambia, puoi ancora registrare l’iscrizione con ✓."}</p>
   </div>;
   return <div className="p-5 md:p-7">
@@ -609,7 +609,7 @@ function OrientationRow({
       <td className="px-4 py-4 text-xs">{item.enrollmentOutcome === "pending" ? "In attesa" : item.enrollmentOutcome === "enrolled" ? "Iscritta" : "Non iscritta"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="px-4 py-4"><EnrollmentDecisionActions item={item} onEnrollmentRecorded={onEnrollmentRecorded} onMarkedNotEnrolled={onMarkedNotEnrolled} /></td>
-      <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di orientamento per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
+      <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di consulenza per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
     </tr>
     {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={13} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
   </>;
@@ -676,8 +676,8 @@ function Router() {
   const [location] = useLocation();
   useEffect(() => {
     const pages: Record<string, { title: string; description: string }> = {
-      '/': { title: 'Sofia | Orientamento universitario personalizzato', description: 'Trova il corso di laurea adatto a te tra Pegaso, Mercatorum e San Raffaele. Richiedi una consulenza con Sofia o prenota un tour online della piattaforma.' },
-      '/prenota-orientamento': { title: 'Prenota un orientamento | Sofia', description: 'Scegli l’ateneo e il corso di laurea e invia a Sofia la tua richiesta di orientamento.' },
+      '/': { title: 'Sofia | Consulenza universitaria personalizzata', description: 'Trova il corso di laurea adatto a te tra Pegaso, Mercatorum e San Raffaele. Richiedi una consulenza con Sofia o prenota un tour online della piattaforma.' },
+      '/prenota-consulenza': { title: 'Prenota una consulenza | Sofia', description: 'Scegli l’ateneo e il corso di laurea e invia a Sofia la tua richiesta di consulenza.' },
       '/prenota-tour': { title: 'Prenota il tour della piattaforma | Sofia', description: 'Scegli la data e l’orario per prenotare il tour online della piattaforma con Sofia.' },
       '/chi-sono': { title: 'Chi sono | Sofia, consulente universitaria', description: 'Conosci Sofia e scopri come un supporto personale può aiutarti a scegliere il tuo percorso universitario online.' },
       '/contatti': { title: 'Contatti | Parla con Sofia', description: 'Contatta Sofia per una consulenza universitaria personalizzata e inizia a valutare le tue possibilità di studio.' },
@@ -697,7 +697,7 @@ function Router() {
       document.querySelector(selector)?.setAttribute('content', content);
     }
   }, [location]);
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/prenota-orientamento" component={OrientationBookingPage} /><Route path="/prenota-tour" component={TourBookingPage} /><Route path="/chi-sono" component={About} /><Route path="/contatti" component={Contacts} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/prenota-consulenza" component={OrientationBookingPage} /><Route path="/prenota-tour" component={TourBookingPage} /><Route path="/chi-sono" component={About} /><Route path="/contatti" component={Contacts} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {
