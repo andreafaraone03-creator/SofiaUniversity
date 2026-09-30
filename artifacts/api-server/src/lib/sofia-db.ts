@@ -76,6 +76,7 @@ export type Enrollment = {
 
 export type EmailSettings = {
   senderEmail: string | null;
+  adminNotificationEmail: string | null;
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
@@ -188,6 +189,7 @@ sqlite.exec(`
   CREATE TABLE IF NOT EXISTS impostazioni_email (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     sender_email TEXT,
+    admin_notification_email TEXT,
     sender_name TEXT NOT NULL DEFAULT 'Sofia',
     send_orientation_confirmations INTEGER NOT NULL DEFAULT 1,
     send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
@@ -200,6 +202,12 @@ sqlite.exec(`
     auth_tag TEXT NOT NULL,
     connected_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
+    state_hash TEXT PRIMARY KEY,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
+    ON sofia_google_calendar_oauth_states(expires_at);
 `);
 }
 
@@ -235,7 +243,11 @@ export async function withSofiaTransaction<T>(
 
 function pgSql(sql: string): string {
   let index = 0;
-  return sql.replace(/\?/g, () => `$${++index}`);
+  // PostgreSQL folds unquoted camelCase aliases to lowercase, unlike SQLite.
+  // Preserve the names expected by API response schemas.
+  return sql
+    .replace(/\bAS\s+([a-z_][a-zA-Z0-9_]*[A-Z][a-zA-Z0-9_]*)\b/g, (_match, alias: string) => `AS "${alias}"`)
+    .replace(/\?/g, () => `$${++index}`);
 }
 
 export type SofiaResult = { changes: number; lastInsertRowid?: number };
@@ -246,18 +258,19 @@ export type SofiaExecutor = {
 };
 
 function executor(client?: PoolClient): SofiaExecutor {
+  const postgres = client ?? sofiaPool;
   return {
     async get<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
-      if (client) return (await client.query<T>(pgSql(sql), params)).rows[0];
+      if (postgres) return (await postgres.query<T>(pgSql(sql), params)).rows[0];
       return sqlite.prepare(sql).get(...params as any[]) as T | undefined;
     },
     async all<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
-      if (client) return (await client.query<T>(pgSql(sql), params)).rows;
+      if (postgres) return (await postgres.query<T>(pgSql(sql), params)).rows;
       return sqlite.prepare(sql).all(...params as any[]) as T[];
     },
     async run(sql, ...params) {
-      if (client) {
-        const result = await client.query(pgSql(sql), params);
+      if (postgres) {
+        const result = await postgres.query(pgSql(sql), params);
         return { changes: result.rowCount ?? 0, lastInsertRowid: result.rows[0]?.id };
       }
       const result = sqlite.prepare(sql).run(...params as any[]);
@@ -329,7 +342,7 @@ async function initializePostgres(): Promise<void> {
       notes text NOT NULL DEFAULT '', created_at text NOT NULL
     );
     CREATE TABLE IF NOT EXISTS impostazioni_email (
-      id integer PRIMARY KEY CHECK (id=1), sender_email text,
+      id integer PRIMARY KEY CHECK (id=1), sender_email text, admin_notification_email text,
       sender_name text NOT NULL DEFAULT 'Sofia',
       send_orientation_confirmations integer NOT NULL DEFAULT 1,
       send_tour_confirmations integer NOT NULL DEFAULT 1, updated_at text NOT NULL
@@ -341,6 +354,13 @@ async function initializePostgres(): Promise<void> {
       auth_tag text NOT NULL,
       connected_at text NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
+      state_hash text PRIMARY KEY,
+      expires_at text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
+      ON sofia_google_calendar_oauth_states(expires_at);
+    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_notification_email text;
     CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot ON prenotazioni_tour(date,time) WHERE status <> 'cancelled';
     CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot ON richieste_corso(appointment_date,appointment_time)
       WHERE appointment_status IN ('pending','confirmed');
@@ -381,6 +401,7 @@ ensureColumn("prenotazioni_tour", "confirmation_email_sent_at", "TEXT");
 ensureColumn("prenotazioni_tour", "confirmation_email_error", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("prenotazioni_tour", "google_calendar_event_id", "TEXT");
 ensureColumn("prenotazioni_tour", "meet_url", "TEXT");
+ensureColumn("impostazioni_email", "admin_notification_email", "TEXT");
 
 sqlite.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot

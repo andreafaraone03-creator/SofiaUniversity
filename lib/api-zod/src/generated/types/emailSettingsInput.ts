@@ -10,6 +10,11 @@ export interface EmailSettingsInput {
   /** @nullable */
   senderEmail: string | null;
   /**
+     * @maxLength 254
+     * @nullable
+     */
+  adminNotificationEmail: string | null;
+  /**
      * @minLength 1
      * @maxLength 80
      */

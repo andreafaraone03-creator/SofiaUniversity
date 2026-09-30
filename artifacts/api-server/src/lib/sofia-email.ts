@@ -26,19 +26,26 @@ type ConfirmationDetails =
       meetUrl: string;
     };
 
+export type AdminBookingDetails = ConfirmationDetails & {
+  lastName: string;
+  customerEmail: string;
+};
+
 async function readSettings(): Promise<EmailSettings> {
   const row = await sofiaStorage.get<{
-    senderEmail: string | null; senderName: string;
+    senderEmail: string | null; adminNotificationEmail: string | null; senderName: string;
     sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
   }>(`
-    SELECT sender_email AS senderEmail, sender_name AS senderName,
-      send_orientation_confirmations AS sendOrientationConfirmations,
-      send_tour_confirmations AS sendTourConfirmations
+    SELECT sender_email AS "senderEmail", admin_notification_email AS "adminNotificationEmail",
+      sender_name AS "senderName",
+      send_orientation_confirmations AS "sendOrientationConfirmations",
+      send_tour_confirmations AS "sendTourConfirmations"
     FROM impostazioni_email WHERE id = 1
   `);
 
   return {
     senderEmail: row?.senderEmail?.trim() || null,
+    adminNotificationEmail: row?.adminNotificationEmail?.trim() || null,
     senderName: row?.senderName?.trim() || "Sofia",
     sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
     sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
@@ -130,6 +137,30 @@ export async function sendAutomaticConfirmation(
   if (!enabled) return { status: "disabled", sentAt: null, error: "" };
   const content = confirmationContent(details);
   return sendEmail(recipient, content.subject, content.text, content.html, settings);
+}
+
+export async function sendAdminBookingNotification(details: AdminBookingDetails): Promise<EmailDelivery> {
+  const settings = await readSettings();
+  if (!settings.adminNotificationEmail) {
+    return { status: "disabled", sentAt: null, error: "" };
+  }
+  const isConsultation = details.type === "consultation";
+  const label = isConsultation ? "consulenza universitaria" : "tour della piattaforma";
+  const date = formatTourDate(details.date);
+  const customerName = `${details.firstName} ${details.lastName}`.trim();
+  const context = isConsultation
+    ? `Ateneo: ${details.university}\nCorso: ${details.courseName}\n`
+    : "";
+  const htmlContext = isConsultation
+    ? `<p>Ateneo: <strong>${escapeHtml(details.university)}</strong><br>Corso: <strong>${escapeHtml(details.courseName)}</strong></p>`
+    : "";
+  return sendEmail(
+    settings.adminNotificationEmail,
+    `Nuova prenotazione: ${label}`,
+    `Nuova prenotazione per ${label}.\n\nCliente: ${customerName}\nEmail: ${details.customerEmail}\nData: ${date} alle ${details.time}\n${context}\nPartecipa su Google Meet: ${details.meetUrl}\n`,
+    `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Nuova prenotazione per ${escapeHtml(label)}.</p><p>Cliente: <strong>${escapeHtml(customerName)}</strong><br>Email: ${escapeHtml(details.customerEmail)}<br>Data: <strong>${escapeHtml(date)} alle ${escapeHtml(details.time)}</strong></p>${htmlContext}<p><a href="${escapeHtml(details.meetUrl)}">Partecipa su Google Meet</a></p></div>`,
+    settings,
+  );
 }
 
 export async function sendForcedConfirmation(

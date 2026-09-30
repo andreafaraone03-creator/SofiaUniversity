@@ -9,6 +9,11 @@
 export interface EmailSettings {
   /** @nullable */
   senderEmail: string | null;
+  /**
+     * @maxLength 254
+     * @nullable
+     */
+  adminNotificationEmail: string | null;
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
