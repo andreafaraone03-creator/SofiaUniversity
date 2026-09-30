@@ -764,9 +764,9 @@ function formatDate(value: string | Date | null | undefined) {
     const [year, month, day] = dateOnly.split("-").map(Number);
     if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "—";
   }
-  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 }
-function formatDateTime(value: string) { return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
+function formatDateTime(value: string) { return new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
 
 function Admin() {
   const { data, isLoading, isError } = useGetAdminStatus();

@@ -55,7 +55,7 @@ function euro(cents: number) {
 }
 
 function dateLabel(value: string | Date) {
-  return new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
 }
 
 function invalidateCRM(client: ReturnType<typeof useQueryClient>) {

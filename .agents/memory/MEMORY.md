@@ -2,4 +2,5 @@
 - [OpenAPI date-only responses](openapi-date-coercion.md) — Zod coercion creates Dates; restore raw date-only strings before JSON serialization.
 - [GitHub transport authentication](github-git-auth.md) — the GitHub connector's API access does not authenticate `git push`; CLI pushes need separate Git transport credentials.
 - [Remote main drift](remote-main-drift.md) — compare production `main` with local files before committing; remote-only fixes may not exist in the workspace.
+- [Render deployment verification](render-deployment-verification.md) — a successful push does not prove Render is live; verify the service URL and health response.
 - [Sofia Resend isolation](sofia-resend-isolation.md) — use a project-scoped secret for Sofia email delivery; do not change the Personal Resend connector shared with another app.
