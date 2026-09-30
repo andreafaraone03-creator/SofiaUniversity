@@ -136,39 +136,13 @@ export const CreateTourBookingBody = zod.object({
   "time": zod.string().regex(createTourBookingBodyTwoTimeRegExp)
 }))
 
-export const createTourBookingResponseOneFirstNameMax = 80;
-
-export const createTourBookingResponseOneLastNameMax = 80;
-
-export const createTourBookingResponseOneEmailMax = 254;
-
-export const createTourBookingResponseOneProvinceMin = 2;
-export const createTourBookingResponseOneProvinceMax = 60;
-
-export const createTourBookingResponseOnePhoneMin = 6;
-export const createTourBookingResponseOnePhoneMax = 30;
-
-
-
 export const CreateTourBookingResponse = zod.object({
-  "firstName": zod.string().min(1).max(createTourBookingResponseOneFirstNameMax),
-  "lastName": zod.string().min(1).max(createTourBookingResponseOneLastNameMax),
-  "email": zod.string().email().max(createTourBookingResponseOneEmailMax),
-  "province": zod.string().min(createTourBookingResponseOneProvinceMin).max(createTourBookingResponseOneProvinceMax),
-  "phone": zod.string().min(createTourBookingResponseOnePhoneMin).max(createTourBookingResponseOnePhoneMax)
-}).and(zod.object({
   "id": zod.number().int(),
   "date": zod.coerce.date(),
   "time": zod.string(),
-  "meetUrl": zod.string().url().nullable(),
-  "status": zod.enum(['confirmed', 'cancelled', 'completed']),
-  "createdAt": zod.coerce.date(),
-  "adminNotes": zod.string(),
-  "followUpAt": zod.coerce.date().nullable(),
-  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
-  "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
-}))
+  "meetUrl": zod.string().url(),
+  "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled'])
+})
 
 
 /**
@@ -178,6 +152,34 @@ export const GetAdminStatusResponse = zod.object({
   "setupComplete": zod.boolean(),
   "authenticated": zod.boolean()
 })
+
+
+/**
+ * @summary Verifica lo stato del collegamento a Google Calendar
+ */
+export const GetAdminGoogleCalendarStatusResponse = zod.object({
+  "provider": zod.enum(['replit', 'google_oauth', 'not_configured']),
+  "connected": zod.boolean(),
+  "canConnect": zod.boolean()
+})
+
+
+/**
+ * @summary Avvia l'autorizzazione Google Calendar
+ */
+export const ConnectAdminGoogleCalendarResponse = zod.void()
+
+
+/**
+ * @summary Completa il collegamento Google Calendar
+ */
+export const CompleteAdminGoogleCalendarConnectionQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional(),
+  "error": zod.coerce.string().optional()
+})
+
+export const CompleteAdminGoogleCalendarConnectionResponse = zod.void()
 
 
 /**
@@ -309,7 +311,7 @@ export const ListAdminOrientationRequestsResponseItem = zod.object({
   "courseName": zod.string(),
   "appointmentDate": zod.coerce.date().nullable(),
   "appointmentTime": zod.string().nullable(),
-  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "appointmentStatus": zod.union([zod.literal('pending'),zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
@@ -452,7 +454,7 @@ export const UpdateOrientationRequestManagementResponse = zod.object({
   "courseName": zod.string(),
   "appointmentDate": zod.coerce.date().nullable(),
   "appointmentTime": zod.string().nullable(),
-  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "appointmentStatus": zod.union([zod.literal('pending'),zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),
@@ -529,7 +531,7 @@ export const MarkOrientationRequestNotEnrolledResponse = zod.object({
   "courseName": zod.string(),
   "appointmentDate": zod.coerce.date().nullable(),
   "appointmentTime": zod.string().nullable(),
-  "appointmentStatus": zod.union([zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
+  "appointmentStatus": zod.union([zod.literal('pending'),zod.literal('confirmed'),zod.literal('cancelled'),zod.literal(null)]).nullable(),
   "meetUrl": zod.string().url().nullable(),
   "createdAt": zod.coerce.date(),
   "pipelineStatus": zod.enum(['new', 'contacted', 'considering', 'enrolled', 'closed']),

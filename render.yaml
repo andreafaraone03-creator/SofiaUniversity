@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: sofia-orientamento
+    runtime: node
+    region: frankfurt
+    buildCommand: pnpm install --frozen-lockfile && BASE_PATH=/ PORT=10000 pnpm --filter @workspace/sofia-orientamento run build && pnpm --filter @workspace/api-server run build
+    startCommand: pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.1
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SOFIA_DATABASE_URL
+        sync: false
+      - key: SOFIA_RESEND_API_KEY
+        sync: false
+      - key: SOFIA_GOOGLE_CLIENT_ID
+        sync: false
+      - key: SOFIA_GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SOFIA_GOOGLE_REDIRECT_URI
+        sync: false
+      - key: SOFIA_GOOGLE_TOKEN_ENCRYPTION_KEY
+        generateValue: true

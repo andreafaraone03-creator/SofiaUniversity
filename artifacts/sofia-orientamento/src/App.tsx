@@ -22,21 +22,24 @@ import {
   getGetAdminSummaryQueryKey,
   getListAdminOrientationRequestsQueryKey,
   getListAdminTourBookingsQueryKey,
-  getListTourSlotsQueryKey,
+  getListAppointmentSlotsQueryKey,
+  useCancelOrientationAppointment,
   useCreateOrientationRequest,
   useCreateTourBooking,
   useGetAdminStatus,
   useGetAdminSummary,
   useListAdminOrientationRequests,
   useListAdminTourBookings,
+  useListAppointmentSlots,
   useListCourses,
-  useListTourSlots,
   useLoginAdmin,
   useLogoutAdmin,
+  useResendOrientationConfirmation,
+  useResendTourConfirmation,
   useSetupAdmin,
   useUpdateTourBookingStatus,
 } from '@workspace/api-client-react';
-import type { OrientationRequest, TourBooking, TourSlot } from '@workspace/api-client-react';
+import type { AppointmentSlot, OrientationRequest, TourBooking } from '@workspace/api-client-react';
 import { Link, Route, Router as WouterRouter, Switch, useLocation } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import {
@@ -46,6 +49,8 @@ import {
   TourManagementEditor,
   type EnrollmentPrefill,
 } from '@/components/admin-management';
+import { AdminEmailSettings } from '@/components/admin-email-settings';
+import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -172,21 +177,40 @@ function Alert({ kind, children }: { kind: 'success' | 'error'; children: string
 }
 
 function OrientationForm() {
+  const client = useQueryClient();
   const { data: courses, isLoading, isError, refetch } = useListCourses();
   const create = useCreateOrientationRequest();
   const [values, setValues] = useState<ContactValues>(contactDefaults);
   const [university, setUniversity] = useState('');
   const [courseId, setCourseId] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [meetUrl, setMeetUrl] = useState('');
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const sortedCourses = useMemo(() => (courses ?? []).filter((course) => !university || course.university === university), [courses, university]);
+  const slotsQuery = useListAppointmentSlots(
+    { date },
+    { query: { enabled: Boolean(date), queryKey: getListAppointmentSlotsQueryKey({ date }) } },
+  );
+  const slots = slotsQuery.data ?? [];
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    setMeetUrl('');
     if (!university || !courseId) { setMessage({ kind: 'error', text: 'Scegli un ateneo e un corso per continuare.' }); return; }
-    create.mutate({ data: { ...values, university, courseId } }, {
-      onSuccess: () => {
-        setMessage({ kind: 'success', text: 'Grazie, ho ricevuto la tua richiesta. Sofia ti contatterà presto.' });
-        setValues(contactDefaults); setUniversity(''); setCourseId('');
+    if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli una data e un orario disponibile.' }); return; }
+    if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
+    create.mutate({ data: { ...values, university, courseId, date, time } }, {
+      onSuccess: (receipt) => {
+        setMeetUrl(receipt.meetUrl);
+        setMessage({
+          kind: 'success',
+          text: receipt.confirmationEmailStatus === 'sent'
+            ? 'La tua consulenza è prenotata. Il link è anche nella mail di conferma.'
+            : 'La tua consulenza è prenotata. Usa il link qui sotto; la mail di conferma non è stata inviata.',
+        });
+        void client.invalidateQueries({ queryKey: getListAppointmentSlotsQueryKey({ date }) });
+        setValues(contactDefaults); setUniversity(''); setCourseId(''); setDate(''); setTime('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile inviare la richiesta. Riprova tra poco.') }),
     });
@@ -199,9 +223,15 @@ function OrientationForm() {
         return options.length > 0 && <optgroup key={category} label={category}>{options.map((course) => <option key={course.id} value={course.id}>{course.name} · {course.duration}</option>)}</optgroup>;
       })}</select></label>
     </div>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <label className="text-xs font-semibold">Data della consulenza<input className="field mt-2" data-testid="input-consultation-date" required type="date" min={romeToday()} value={date} onChange={(event) => { setDate(event.target.value); setTime(''); }} /></label>
+      <div><span className="text-xs font-semibold">Orario <span className="font-normal text-[hsl(var(--muted-foreground))]">09:00 — 20:00</span></span><div className="mt-2 grid grid-cols-4 gap-2">{!date ? <p className="col-span-4 border border-dashed border-[hsl(var(--border))] p-3 text-xs text-[hsl(var(--muted-foreground))]">Scegli una data per vedere gli orari.</p> : slotsQuery.isLoading ? <div className="col-span-4 h-10 animate-pulse bg-[hsl(var(--muted))]" /> : slotsQuery.isError ? <p className="col-span-4 text-xs text-[hsl(var(--destructive))]">Impossibile caricare gli orari.</p> : slots.length === 0 ? <p className="col-span-4 text-xs text-[hsl(var(--muted-foreground))]">Nessun orario disponibile per questa data.</p> : slots.map((slot: AppointmentSlot) => <button type="button" key={slot.time} disabled={!slot.available} onClick={() => setTime(slot.time)} data-testid={`button-consultation-slot-${slot.time}`} className={`border px-2 py-2 text-xs transition-colors ${time === slot.time ? 'border-[hsl(var(--foreground))] bg-[hsl(var(--foreground))] text-[hsl(var(--background))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary))]'} disabled:cursor-not-allowed disabled:opacity-30`}>{slot.time}</button>)}</div></div>
+    </div>
+    <p className="text-xs text-[hsl(var(--muted-foreground))]">L’incontro dura un’ora. Gli orari già occupati nel calendario non sono selezionabili.</p>
     {isError && <div className="flex items-center justify-between border border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)] p-3 text-sm"><span>Non riesco a caricare i corsi.</span><button type="button" onClick={() => refetch()} className="font-semibold underline" data-testid="button-retry-courses">Riprova</button></div>}
     <div className="border-t border-[hsl(var(--border))] pt-6"><p className="mb-4 text-sm text-[hsl(var(--muted-foreground))]">Lasciami i tuoi recapiti: partiremo da qui, senza impegno.</p><ContactFields values={values} setValues={setValues} /></div>
     {message && <Alert kind={message.kind}>{message.text}</Alert>}
+    {meetUrl && <a className="inline-flex border border-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold underline underline-offset-4" href={meetUrl} target="_blank" rel="noreferrer">Apri il link Google Meet</a>}
     <button type="submit" disabled={create.isPending} className="btn-primary w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-orientation">{create.isPending ? 'Invio in corso…' : <>Invia la richiesta <ArrowRight size={16} /></>}</button>
   </form>;
 }
@@ -210,20 +240,28 @@ function TourForm() {
   const client = useQueryClient();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [meetUrl, setMeetUrl] = useState('');
   const [values, setValues] = useState<ContactValues>(contactDefaults);
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const create = useCreateTourBooking();
-  const slotsQuery = useListTourSlots({ date }, { query: { enabled: Boolean(date), queryKey: getListTourSlotsQueryKey({ date }) } });
-  const slots = (slotsQuery.data ?? []) as TourSlot[];
+  const slotsQuery = useListAppointmentSlots({ date }, { query: { enabled: Boolean(date), queryKey: getListAppointmentSlotsQueryKey({ date }) } });
+  const slots = slotsQuery.data ?? [];
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
+    setMeetUrl('');
     if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli prima una data e un orario disponibile.' }); return; }
     if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
     create.mutate({ data: { ...values, date, time } }, {
-      onSuccess: () => {
-        client.invalidateQueries({ queryKey: getListTourSlotsQueryKey({ date }) });
-        setMessage({ kind: 'success', text: 'Il tuo Meet è prenotato. Sofia ti condividerà personalmente i dettagli per partecipare.' });
+      onSuccess: (receipt) => {
+        void client.invalidateQueries({ queryKey: getListAppointmentSlotsQueryKey({ date }) });
+        setMeetUrl(receipt.meetUrl);
+        setMessage({
+          kind: 'success',
+          text: receipt.confirmationEmailStatus === 'sent'
+            ? 'Il tuo tour è prenotato. Il link è anche nella mail di conferma.'
+            : 'Il tuo tour è prenotato. Usa il link qui sotto; la mail di conferma non è stata inviata.',
+        });
         setValues(contactDefaults); setDate(''); setTime('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile prenotare il tour. Riprova tra poco.') }),
@@ -234,9 +272,10 @@ function TourForm() {
       <label className="text-xs font-semibold">Data del Meet<input className="field mt-2" data-testid="input-tour-date" required type="date" min={romeToday()} value={date} onChange={(e) => { setDate(e.target.value); setTime(''); }} /></label>
       <div><span className="text-xs font-semibold">Orario <span className="font-normal text-[hsl(var(--muted-foreground))]">09:00 — 20:00</span></span><div className="mt-2 grid grid-cols-4 gap-2">{!date ? <p className="col-span-4 border border-dashed border-[hsl(var(--border))] p-3 text-xs text-[hsl(var(--muted-foreground))]">Scegli una data per vedere gli orari.</p> : slotsQuery.isLoading ? <div className="col-span-4 h-10 animate-pulse bg-[hsl(var(--muted))]" /> : slotsQuery.isError ? <p className="col-span-4 text-xs text-[hsl(var(--destructive))]">Impossibile caricare gli orari.</p> : slots.length === 0 ? <p className="col-span-4 text-xs text-[hsl(var(--muted-foreground))]">Nessun orario disponibile per questa data.</p> : slots.map((slot) => <button type="button" key={slot.time} disabled={!slot.available} onClick={() => setTime(slot.time)} data-testid={`button-slot-${slot.time}`} className={`border px-2 py-2 text-xs transition-colors ${time === slot.time ? 'border-[hsl(var(--foreground))] bg-[hsl(var(--foreground))] text-[hsl(var(--background))]' : 'border-[hsl(var(--border))] hover:border-[hsl(var(--primary))]'} disabled:cursor-not-allowed disabled:opacity-30`}>{slot.time}</button>)}</div></div>
     </div>
-    <p className="text-xs text-[hsl(var(--muted-foreground))]">Gli appuntamenti iniziano ogni ora dalle 09:00 alle 20:00 e terminano entro le 21:00.</p>
+    <p className="text-xs text-[hsl(var(--muted-foreground))]">Gli appuntamenti durano un’ora e iniziano ogni ora dalle 09:00 alle 20:00.</p>
     <div className="border-t border-[hsl(var(--border))] pt-6"><p className="mb-4 text-sm text-[hsl(var(--muted-foreground))]">Un incontro concreto, dal tuo computer, con tutto il tempo per le tue domande.</p><ContactFields values={values} setValues={setValues} /></div>
     {message && <Alert kind={message.kind}>{message.text}</Alert>}
+    {meetUrl && <a className="inline-flex border border-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold underline underline-offset-4" href={meetUrl} target="_blank" rel="noreferrer">Apri il link Google Meet</a>}
     <button type="submit" disabled={create.isPending} className="btn-rose w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-tour">{create.isPending ? 'Prenotazione in corso…' : <>Prenota il tuo Meet <CalendarDays size={16} /></>}</button>
   </form>;
 }
@@ -285,8 +324,8 @@ function BookingPageLayout({ step, title, description, children }: { step: strin
 }
 
 function OrientationBookingPage() {
-  return <BookingPageLayout step="01 / scelta del corso" title="Prenota una consulenza" description="Scegli l’ateneo e il corso che ti interessano, poi lasciami i tuoi recapiti. Ti ricontatterò per parlarne insieme.">
-    <h2 className="mb-6 font-serif text-2xl">La tua richiesta</h2><OrientationForm />
+  return <BookingPageLayout step="01 / prenota" title="Prenota una consulenza" description="Scegli l’ateneo, il corso, la data e l’orario. Il link Google Meet sarà disponibile appena confermi.">
+    <h2 className="mb-6 font-serif text-2xl">Il tuo appuntamento</h2><OrientationForm />
   </BookingPageLayout>;
 }
 
@@ -456,6 +495,8 @@ function Dashboard() {
         <Metric label="Provvigioni incassate" value={paidCommission} icon={<Check size={16} />} />
         <Metric label="Promemoria scaduti" value={summaryLoading ? "—" : summary?.followUpsDue ?? 0} icon={<Bell size={16} />} />
       </div>
+      <AdminEmailSettings />
+      <AdminGoogleCalendarSettings />
       {next && <div className="mt-5 flex flex-col justify-between gap-4 border border-[hsl(var(--primary)/.5)] bg-[hsl(var(--primary)/.12)] p-5 sm:flex-row sm:items-center">
         <div><p className="eyebrow !text-[hsl(var(--foreground))]">prossimo appuntamento</p><p className="mt-2 font-serif text-2xl">{next.firstName} {next.lastName}</p><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{formatDate(next.date)} · {next.time}</p></div>
         <WhatsAppButton phone={next.phone} id={`next-${next.id}`} text={`Ciao ${next.firstName}, sono Sofia! Ti confermo il nostro Meet del ${formatDate(next.date)} alle ${next.time}.`} />
@@ -594,10 +635,37 @@ function OrientationRow({
   onEnrollmentRecorded: () => void;
   onMarkedNotEnrolled: () => void;
 }) {
+  const client = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+  const cancelAppointment = useCancelOrientationAppointment();
+  const resendConfirmation = useResendOrientationConfirmation();
+  const activeAppointment = item.appointmentStatus === "confirmed";
+  const cancel = () => {
+    if (!window.confirm("Annullare l’appuntamento? L’evento Google Calendar verrà rimosso e l’orario liberato.")) return;
+    cancelAppointment.mutate({ id: item.id }, {
+      onSuccess: async () => {
+        setActionMessage("Appuntamento annullato.");
+        await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
+      },
+      onError: (error) => setActionMessage(getErrorMessage(error, "Non riesco ad annullare l’appuntamento.")),
+    });
+  };
+  const resend = () => resendConfirmation.mutate({ id: item.id }, {
+    onSuccess: async (result) => {
+      setActionMessage(result.message);
+      await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
+    },
+    onError: (error) => setActionMessage(getErrorMessage(error, "Non riesco a inviare la conferma.")),
+  });
   return <>
     <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
-      <td className="whitespace-nowrap px-4 py-4 text-xs">{formatDateTime(item.createdAt)}</td>
+      <td className="px-4 py-4 text-xs">
+        <span className="whitespace-nowrap">{formatDateTime(item.createdAt)}</span>
+        {item.appointmentDate && <span className="mt-2 block whitespace-nowrap font-semibold">{formatDate(item.appointmentDate)} · {item.appointmentTime}</span>}
+        {item.meetUrl && <a className="mt-1 block whitespace-nowrap font-semibold underline underline-offset-4" href={item.meetUrl} target="_blank" rel="noreferrer">Apri Google Meet</a>}
+        {item.appointmentStatus === "cancelled" && <span className="mt-1 block text-[hsl(var(--muted-foreground))]">Appuntamento annullato</span>}
+      </td>
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>
       <td className="px-4 py-4 font-semibold">{item.lastName}</td>
       <td className="px-4 py-4">{item.email}</td>
@@ -609,7 +677,14 @@ function OrientationRow({
       <td className="px-4 py-4 text-xs">{item.enrollmentOutcome === "pending" ? "In attesa" : item.enrollmentOutcome === "enrolled" ? "Iscritta" : "Non iscritta"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="px-4 py-4"><EnrollmentDecisionActions item={item} onEnrollmentRecorded={onEnrollmentRecorded} onMarkedNotEnrolled={onMarkedNotEnrolled} /></td>
-      <td className="whitespace-nowrap px-4 py-4"><div className="flex items-center gap-3"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di consulenza per ${item.courseName}.`} /><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></div></td>
+      <td className="px-4 py-4"><div className="flex min-w-48 flex-col items-start gap-2"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ho ricevuto la tua richiesta di consulenza per ${item.courseName}.`} />
+        <div className="flex flex-wrap gap-3">
+          {activeAppointment && item.confirmationEmailStatus !== "sent" && <button type="button" disabled={resendConfirmation.isPending} onClick={resend} className="text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendConfirmation.isPending ? "Invio…" : "Reinvia email"}</button>}
+          {activeAppointment && <button type="button" disabled={cancelAppointment.isPending} onClick={cancel} className="text-xs font-semibold text-[hsl(var(--destructive))] underline underline-offset-4 disabled:opacity-50">{cancelAppointment.isPending ? "Annullamento…" : "Annulla appuntamento"}</button>}
+          <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button>
+        </div>
+        {actionMessage && <span role="status" className="max-w-64 whitespace-normal text-xs text-[hsl(var(--muted-foreground))]">{actionMessage}</span>}
+      </div></td>
     </tr>
     {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={13} className="p-5"><OrientationManagementEditor item={item} onRecordEnrollment={onRecordEnrollment} /></td></tr>}
   </>;
@@ -642,10 +717,24 @@ function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourB
 }
 
 function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
+  const client = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
+  const resendConfirmation = useResendTourConfirmation();
+  const resend = () => resendConfirmation.mutate({ id: item.id }, {
+    onSuccess: async (result) => {
+      setEmailMessage(result.message);
+      await client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
+    },
+    onError: (error) => setEmailMessage(getErrorMessage(error, "Non riesco a inviare la conferma.")),
+  });
   return <>
     <tr data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
-      <td className="whitespace-nowrap px-4 py-4">{formatDate(item.date)} · {item.time}</td>
+      <td className="px-4 py-4">
+        <span className="whitespace-nowrap">{formatDate(item.date)} · {item.time}</span>
+        {item.meetUrl && <a className="mt-1 block whitespace-nowrap text-xs font-semibold underline underline-offset-4" href={item.meetUrl} target="_blank" rel="noreferrer">Apri Google Meet</a>}
+        {!item.meetUrl && item.status !== "cancelled" && <span className="mt-1 block text-xs text-[hsl(var(--muted-foreground))]">Link non disponibile</span>}
+      </td>
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>
       <td className="px-4 py-4 font-semibold">{item.lastName}</td>
       <td className="px-4 py-4">{item.email}</td>
@@ -655,7 +744,11 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
       <td className="whitespace-nowrap px-4 py-4"><WhatsAppButton phone={item.phone} id={item.id} text={`Ciao ${item.firstName}, sono Sofia! Ti scrivo per il nostro Meet del ${formatDate(item.date)} alle ${item.time}.`} /></td>
       <td className="whitespace-nowrap px-4 py-4 text-xs">{item.followUpAt ? formatDateTime(item.followUpAt) : "—"}</td>
       <td className="whitespace-nowrap px-4 py-4 text-xs text-[hsl(var(--muted-foreground))]">{formatDateTime(item.createdAt)}</td>
-      <td className="px-4 py-4"><button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button></td>
+      <td className="px-4 py-4"><div className="flex flex-col items-start gap-2">
+        {item.status === "confirmed" && item.meetUrl && item.confirmationEmailStatus !== "sent" && <button type="button" disabled={resendConfirmation.isPending} onClick={resend} className="whitespace-nowrap text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendConfirmation.isPending ? "Invio…" : "Reinvia email"}</button>}
+        <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button>
+        {emailMessage && <span role="status" className="max-w-56 whitespace-normal text-xs text-[hsl(var(--muted-foreground))]">{emailMessage}</span>}
+      </div></td>
     </tr>
     {expanded && <tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.2)]"><td colSpan={11} className="p-5"><TourManagementEditor item={item} /></td></tr>}
   </>;
@@ -677,7 +770,7 @@ function Router() {
   useEffect(() => {
     const pages: Record<string, { title: string; description: string }> = {
       '/': { title: 'Sofia | Consulenza universitaria personalizzata', description: 'Trova il corso di laurea adatto a te tra Pegaso, Mercatorum e San Raffaele. Richiedi una consulenza con Sofia o prenota un tour online della piattaforma.' },
-      '/prenota-consulenza': { title: 'Prenota una consulenza | Sofia', description: 'Scegli l’ateneo e il corso di laurea e invia a Sofia la tua richiesta di consulenza.' },
+      '/prenota-consulenza': { title: 'Prenota una consulenza | Sofia', description: 'Scegli ateneo, corso, data e orario per prenotare una consulenza con Sofia.' },
       '/prenota-tour': { title: 'Prenota il tour della piattaforma | Sofia', description: 'Scegli la data e l’orario per prenotare il tour online della piattaforma con Sofia.' },
       '/chi-sono': { title: 'Chi sono | Sofia, consulente universitaria', description: 'Conosci Sofia e scopri come un supporto personale può aiutarti a scegliere il tuo percorso universitario online.' },
       '/contatti': { title: 'Contatti | Parla con Sofia', description: 'Contatta Sofia per una consulenza universitaria personalizzata e inizia a valutare le tue possibilità di studio.' },

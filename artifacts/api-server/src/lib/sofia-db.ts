@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
+import { createPool, type PoolClient, type QueryResult, type QueryResultRow } from "@workspace/db/pool";
 
 export type Course = {
   id: string;
@@ -80,12 +81,23 @@ export type EmailSettings = {
   sendTourConfirmations: boolean;
 };
 
-// The server bundle lives in dist/index.mjs, next to the data directory.
+const sofiaDatabaseUrl = process.env.SOFIA_DATABASE_URL?.trim();
+if (process.env.NODE_ENV === "production" && !sofiaDatabaseUrl) {
+  throw new Error("SOFIA_DATABASE_URL must be configured in production; refusing to fall back to SQLite.");
+}
+const usePostgres = Boolean(sofiaDatabaseUrl);
 const dataDir = fileURLToPath(new URL("../data/", import.meta.url));
 const databasePath = process.env.SOFIA_DB_PATH ?? path.join(dataDir, "sofia.sqlite");
-mkdirSync(path.dirname(databasePath), { recursive: true });
+if (!usePostgres) mkdirSync(path.dirname(databasePath), { recursive: true });
 
-export const sqlite = new DatabaseSync(databasePath);
+// Kept for development compatibility. In PostgreSQL mode this is deliberately
+// only a type-compatible guard: no SQLite file is opened or created.
+export const sqlite = usePostgres
+  ? ({} as DatabaseSync)
+  : new DatabaseSync(databasePath);
+export const sofiaIsPostgres = usePostgres;
+
+if (!usePostgres) {
 sqlite.exec("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
 sqlite.exec(`
   CREATE TABLE IF NOT EXISTS richieste_corso (
@@ -181,8 +193,166 @@ sqlite.exec(`
     send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    encrypted_refresh_token TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    auth_tag TEXT NOT NULL,
+    connected_at TEXT NOT NULL
+  );
 `);
+}
 
+export const sofiaPool = sofiaDatabaseUrl
+  ? createPool(sofiaDatabaseUrl, 10)
+  : null;
+
+/** SQL helper for Sofia's PostgreSQL backend. Never consults DATABASE_URL. */
+export async function sofiaQuery<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  values: unknown[] = [],
+): Promise<QueryResult<T>> {
+  if (!sofiaPool) throw new Error("Sofia PostgreSQL storage is not configured.");
+  return sofiaPool.query<T>(text, values);
+}
+
+export async function withSofiaTransaction<T>(
+  callback: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  if (!sofiaPool) throw new Error("Sofia PostgreSQL storage is not configured.");
+  const client = await sofiaPool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+  finally { client.release(); }
+}
+
+function pgSql(sql: string): string {
+  let index = 0;
+  return sql.replace(/\?/g, () => `$${++index}`);
+}
+
+export type SofiaResult = { changes: number; lastInsertRowid?: number };
+export type SofiaExecutor = {
+  get<T extends QueryResultRow = QueryResultRow>(sql: string, ...params: unknown[]): Promise<T | undefined>;
+  all<T extends QueryResultRow = QueryResultRow>(sql: string, ...params: unknown[]): Promise<T[]>;
+  run(sql: string, ...params: unknown[]): Promise<SofiaResult>;
+};
+
+function executor(client?: PoolClient): SofiaExecutor {
+  return {
+    async get<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
+      if (client) return (await client.query<T>(pgSql(sql), params)).rows[0];
+      return sqlite.prepare(sql).get(...params as any[]) as T | undefined;
+    },
+    async all<T extends QueryResultRow>(sql: string, ...params: unknown[]) {
+      if (client) return (await client.query<T>(pgSql(sql), params)).rows;
+      return sqlite.prepare(sql).all(...params as any[]) as T[];
+    },
+    async run(sql, ...params) {
+      if (client) {
+        const result = await client.query(pgSql(sql), params);
+        return { changes: result.rowCount ?? 0, lastInsertRowid: result.rows[0]?.id };
+      }
+      const result = sqlite.prepare(sql).run(...params as any[]);
+      return { changes: Number(result.changes), lastInsertRowid: Number(result.lastInsertRowid) };
+    },
+  };
+}
+
+export const sofiaStorage: SofiaExecutor = executor();
+export async function sofiaTransaction<T>(callback: (tx: SofiaExecutor) => Promise<T>): Promise<T> {
+  if (sofiaPool) return withSofiaTransaction(async (client) => callback(executor(client)));
+  sqlite.exec("BEGIN IMMEDIATE");
+  try {
+    const result = await callback(executor());
+    sqlite.exec("COMMIT");
+    return result;
+  } catch (error) {
+    sqlite.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+async function initializePostgres(): Promise<void> {
+  if (!sofiaPool) return;
+  // This is intentionally self-contained and idempotent. It is not a copy of
+  // the SQLite file: PostgreSQL gets a native schema with equivalent fields.
+  await sofiaPool.query(`
+    CREATE TABLE IF NOT EXISTS richieste_corso (
+      id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+      first_name text NOT NULL, last_name text NOT NULL, email text NOT NULL,
+      province text NOT NULL, phone text NOT NULL, university text NOT NULL,
+      course_id text NOT NULL, course_name text NOT NULL, appointment_date text,
+      appointment_time text, appointment_status text CHECK (appointment_status IN ('pending','confirmed','cancelled')),
+      google_calendar_event_id text, meet_url text, created_at text NOT NULL,
+      pipeline_status text NOT NULL DEFAULT 'new' CHECK (pipeline_status IN ('new','contacted','considering','enrolled','closed')),
+      enrollment_outcome text NOT NULL DEFAULT 'pending' CHECK (enrollment_outcome IN ('pending','enrolled','not_enrolled')),
+      admin_notes text NOT NULL DEFAULT '', follow_up_at text,
+      confirmation_email_status text NOT NULL DEFAULT 'not_configured' CHECK (confirmation_email_status IN ('sent','failed','not_configured','disabled')),
+      confirmation_email_sent_at text, confirmation_email_error text NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS prenotazioni_tour (
+      id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+      first_name text NOT NULL, last_name text NOT NULL, email text NOT NULL,
+      province text NOT NULL, phone text NOT NULL, date text NOT NULL, time text NOT NULL,
+      google_calendar_event_id text, meet_url text,
+      status text NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed','cancelled','completed')),
+      created_at text NOT NULL, admin_notes text NOT NULL DEFAULT '', follow_up_at text,
+      confirmation_email_status text NOT NULL DEFAULT 'not_configured' CHECK (confirmation_email_status IN ('sent','failed','not_configured','disabled')),
+      confirmation_email_sent_at text, confirmation_email_error text NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS appointment_slots (
+      date text NOT NULL, time text NOT NULL,
+      booking_type text NOT NULL CHECK (booking_type IN ('consultation','tour')),
+      booking_id integer NOT NULL, PRIMARY KEY (date,time),
+      UNIQUE (booking_type,booking_id)
+    );
+    CREATE TABLE IF NOT EXISTS utenti_admin (
+      id integer PRIMARY KEY CHECK (id=1), username text NOT NULL UNIQUE,
+      password_hash text NOT NULL, password_salt text NOT NULL, created_at text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS iscrizioni_universita (
+      id integer GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+      orientation_request_id integer REFERENCES richieste_corso(id) ON DELETE SET NULL,
+      first_name text NOT NULL, last_name text NOT NULL, email text NOT NULL,
+      university text NOT NULL, course_id text NOT NULL, course_name text NOT NULL,
+      enrolled_at text NOT NULL, commission_cents integer NOT NULL DEFAULT 0 CHECK (commission_cents >= 0),
+      commission_status text NOT NULL DEFAULT 'pending' CHECK (commission_status IN ('pending','paid')),
+      commission_paid_at text, status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','withdrawn')),
+      notes text NOT NULL DEFAULT '', created_at text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS impostazioni_email (
+      id integer PRIMARY KEY CHECK (id=1), sender_email text,
+      sender_name text NOT NULL DEFAULT 'Sofia',
+      send_orientation_confirmations integer NOT NULL DEFAULT 1,
+      send_tour_confirmations integer NOT NULL DEFAULT 1, updated_at text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
+      id integer PRIMARY KEY CHECK (id=1),
+      encrypted_refresh_token text NOT NULL,
+      iv text NOT NULL,
+      auth_tag text NOT NULL,
+      connected_at text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS tour_active_slot ON prenotazioni_tour(date,time) WHERE status <> 'cancelled';
+    CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot ON richieste_corso(appointment_date,appointment_time)
+      WHERE appointment_status IN ('pending','confirmed');
+    CREATE INDEX IF NOT EXISTS enrollment_date_idx ON iscrizioni_universita(enrolled_at DESC,id DESC);
+  `);
+}
+
+// Top-level initialization means importing the API cannot proceed until the
+// selected Sofia database has its schema.
+await initializePostgres();
+
+if (!usePostgres) {
 // Additive migration for existing SQLite files; it keeps all saved requests
 // and bookings while adding the new CRM and email-tracking fields.
 function ensureColumn(table: string, column: string, definition: string) {
@@ -237,6 +407,8 @@ sqlite.exec(`
       )
     )
 `);
+
+}
 
 export const courses = JSON.parse(
   readFileSync(path.join(dataDir, "courses.json"), "utf8"),

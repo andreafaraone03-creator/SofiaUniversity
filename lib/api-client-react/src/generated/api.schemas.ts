@@ -63,6 +63,7 @@ export type OrientationRequestAppointmentStatus = typeof OrientationRequestAppoi
 
 
 export const OrientationRequestAppointmentStatus = {
+  pending: 'pending',
   confirmed: 'confirmed',
   cancelled: 'cancelled',
 } as const;
@@ -197,6 +198,21 @@ export interface AdminCredentials {
 export interface AdminStatus {
   setupComplete: boolean;
   authenticated: boolean;
+}
+
+export type GoogleCalendarConnectionStatusProvider = typeof GoogleCalendarConnectionStatusProvider[keyof typeof GoogleCalendarConnectionStatusProvider];
+
+
+export const GoogleCalendarConnectionStatusProvider = {
+  replit: 'replit',
+  google_oauth: 'google_oauth',
+  not_configured: 'not_configured',
+} as const;
+
+export interface GoogleCalendarConnectionStatus {
+  provider: GoogleCalendarConnectionStatusProvider;
+  connected: boolean;
+  canConnect: boolean;
 }
 
 export interface AdminSummary {
@@ -388,5 +404,11 @@ date: string;
 
 export type ListAppointmentSlotsParams = {
 date: string;
+};
+
+export type CompleteAdminGoogleCalendarConnectionParams = {
+code?: string;
+state?: string;
+error?: string;
 };
 

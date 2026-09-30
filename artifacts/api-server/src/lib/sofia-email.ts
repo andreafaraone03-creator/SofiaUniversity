@@ -1,5 +1,4 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
-import { sqlite, type EmailSettings } from "./sofia-db";
+import { sofiaStorage, type EmailSettings } from "./sofia-db";
 
 export type EmailDeliveryStatus = "sent" | "failed" | "not_configured" | "disabled";
 
@@ -27,18 +26,16 @@ type ConfirmationDetails =
       meetUrl: string;
     };
 
-function readSettings(): EmailSettings {
-  const row = sqlite.prepare(`
+async function readSettings(): Promise<EmailSettings> {
+  const row = await sofiaStorage.get<{
+    senderEmail: string | null; senderName: string;
+    sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
+  }>(`
     SELECT sender_email AS senderEmail, sender_name AS senderName,
       send_orientation_confirmations AS sendOrientationConfirmations,
       send_tour_confirmations AS sendTourConfirmations
     FROM impostazioni_email WHERE id = 1
-  `).get() as {
-    senderEmail: string | null;
-    senderName: string;
-    sendOrientationConfirmations: number;
-    sendTourConfirmations: number;
-  } | undefined;
+  `);
 
   return {
     senderEmail: row?.senderEmail?.trim() || null,
@@ -78,12 +75,23 @@ async function sendEmail(
   if (!settings.senderEmail) {
     return { status: "not_configured", sentAt: null, error: "Imposta un indirizzo mittente verificato in Resend." };
   }
+  const resendApiKey = process.env.SOFIA_RESEND_API_KEY?.trim();
+  if (!resendApiKey) {
+    return {
+      status: "not_configured",
+      sentAt: null,
+      error: "Aggiungi la chiave API di Resend nei Secrets di questo progetto.",
+    };
+  }
 
   const safeName = settings.senderName.replace(/[\r\n<>"]/g, " ").trim() || "Sofia";
   try {
-    const response = await new ReplitConnectors().proxy("resend", "/emails", {
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         from: `${safeName} <${settings.senderEmail}>`,
         to: [to],
@@ -115,7 +123,7 @@ export async function sendAutomaticConfirmation(
   recipient: string,
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
-  const settings = readSettings();
+  const settings = await readSettings();
   const enabled = details.type === "consultation"
     ? settings.sendOrientationConfirmations
     : settings.sendTourConfirmations;
@@ -129,7 +137,7 @@ export async function sendForcedConfirmation(
   details: ConfirmationDetails,
 ): Promise<EmailDelivery> {
   const content = confirmationContent(details);
-  return sendEmail(recipient, content.subject, content.text, content.html, readSettings());
+  return sendEmail(recipient, content.subject, content.text, content.html, await readSettings());
 }
 
 function confirmationContent(details: ConfirmationDetails) {
@@ -145,6 +153,9 @@ function confirmationContent(details: ConfirmationDetails) {
   const appointment = isConsultation
     ? `la tua consulenza universitaria con Sofia è prenotata per ${date} alle ${details.time}`
     : `il tuo tour della piattaforma con Sofia è prenotato per ${date} alle ${details.time}`;
+  const htmlAppointment = isConsultation
+    ? `la tua consulenza universitaria con Sofia è prenotata per <strong>${safeDate} alle ${safeTime}</strong>.`
+    : `il tuo tour della piattaforma con Sofia è prenotato per <strong>${safeDate} alle ${safeTime}</strong>.`;
   const question = isConsultation
     ? "C’è un aspetto del corso o della scelta universitaria che vuoi approfondire? Rispondi a questa email."
     : "C’è una funzione della piattaforma che vuoi vedere durante il tour? Rispondi a questa email.";
@@ -154,16 +165,14 @@ function confirmationContent(details: ConfirmationDetails) {
   return {
     subject,
     text: `Ciao ${details.firstName},\n\n${appointment}.\n${context}\nPartecipa su Google Meet: ${details.meetUrl}\n\n${question}\n\nA presto,\nSofia`,
-    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>${appointment === "" ? "" : isConsultation
-      ? `la tua consulenza universitaria con Sofia è prenotata per <strong>${safeDate} alle ${safeTime}</strong>.`
-      : `il tuo tour della piattaforma con Sofia è prenotato per <strong>${safeDate} alle ${safeTime}</strong>.`}</p>${isConsultation
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Ciao ${firstName},</p><p>${htmlAppointment}</p>${isConsultation
         ? `<p>Ateneo: <strong>${escapeHtml(details.university)}</strong><br>Corso: <strong>${escapeHtml(details.courseName)}</strong></p>`
         : ""}<p><a href="${meetLink}">Partecipa su Google Meet</a></p><p>${escapeHtml(question)}</p><p>A presto,<br>Sofia</p></div>`,
   };
 }
 
 export async function sendTestEmail(recipient: string): Promise<EmailDelivery> {
-  const settings = readSettings();
+  const settings = await readSettings();
   return sendEmail(
     recipient,
     "Email di prova — Sofia",
@@ -173,15 +182,15 @@ export async function sendTestEmail(recipient: string): Promise<EmailDelivery> {
   );
 }
 
-export function persistEmailDelivery(
+export async function persistEmailDelivery(
   table: "richieste_corso" | "prenotazioni_tour",
   id: number,
   delivery: EmailDelivery,
 ) {
-  sqlite.prepare(`
+  await sofiaStorage.run(`
     UPDATE ${table}
     SET confirmation_email_status = ?, confirmation_email_sent_at = ?,
         confirmation_email_error = ?
     WHERE id = ?
-  `).run(delivery.status, delivery.sentAt, delivery.error, id);
+  `, delivery.status, delivery.sentAt, delivery.error, id);
 }
