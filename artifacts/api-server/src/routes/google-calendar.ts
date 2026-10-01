@@ -6,8 +6,10 @@ import {
   consumeGoogleOAuthState,
   createGoogleOAuthState,
   createGoogleAuthorizationUrl,
+  getAdminNotificationEmail,
   getGoogleCalendarConnectionStatus,
 } from "../lib/sofia-google-oauth";
+import { GoogleAccountMismatchError } from "../lib/sofia-google-identity";
 
 const router: IRouter = Router();
 
@@ -18,8 +20,9 @@ router.get("/admin/google-calendar/status", requireAdmin, async (_req, res): Pro
 
 router.get("/admin/google-calendar/connect", requireAdmin, async (_req, res): Promise<void> => {
   try {
+    const expectedAccountEmail = await getAdminNotificationEmail();
     const state = await createGoogleOAuthState();
-    const authorizationUrl = createGoogleAuthorizationUrl(state);
+    const authorizationUrl = createGoogleAuthorizationUrl(state, expectedAccountEmail);
     res.setHeader("Cache-Control", "no-store");
     res.redirect(302, authorizationUrl);
   } catch {
@@ -54,9 +57,16 @@ router.get("/admin/google-calendar/callback", async (req, res): Promise<void> =>
   }
 
   try {
-    await completeGoogleAuthorization(req.query.code);
+    await completeGoogleAuthorization(
+      req.query.code,
+      await getAdminNotificationEmail(),
+    );
     res.redirect(302, "/admin?calendar=connected");
-  } catch {
+  } catch (error) {
+    if (error instanceof GoogleAccountMismatchError) {
+      res.redirect(302, "/admin?calendar=account-mismatch");
+      return;
+    }
     req.log.warn("Google Calendar authorization callback failed");
     res.redirect(302, "/admin?calendar=error");
   }

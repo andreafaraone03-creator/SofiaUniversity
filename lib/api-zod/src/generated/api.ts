@@ -160,7 +160,8 @@ export const GetAdminStatusResponse = zod.object({
 export const GetAdminGoogleCalendarStatusResponse = zod.object({
   "provider": zod.enum(['replit', 'google_oauth', 'not_configured']),
   "connected": zod.boolean(),
-  "canConnect": zod.boolean()
+  "canConnect": zod.boolean(),
+  "connectedAccountEmail": zod.string().email().nullable().describe('Account email verificata da Google durante OAuth, se disponibile.')
 })
 
 

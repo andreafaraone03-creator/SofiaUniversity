@@ -5,6 +5,12 @@ import {
   randomBytes,
 } from "node:crypto";
 import { sofiaStorage, sofiaTransaction } from "./sofia-db";
+import {
+  buildGoogleAuthorizationUrl,
+  getVerifiedGoogleAccountEmail,
+  normalizeGoogleAccountEmail,
+  persistGoogleCredentialsForAccount,
+} from "./sofia-google-identity";
 
 const callbackPath = "/api/admin/google-calendar/callback";
 const authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -12,6 +18,8 @@ const tokenEndpoint = "https://oauth2.googleapis.com/token";
 const scopes = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
+  "openid",
+  "email",
 ];
 const oauthEnvKeys = [
   "SOFIA_GOOGLE_CLIENT_ID",
@@ -45,6 +53,7 @@ export type GoogleCalendarConnectionStatus = {
   provider: "replit" | "google_oauth" | "not_configured";
   connected: boolean;
   canConnect: boolean;
+  connectedAccountEmail: string | null;
 };
 
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
@@ -88,6 +97,15 @@ export function usesGoogleOAuth(): boolean {
     oauthEnvKeys.some((key) => Boolean(process.env[key]?.trim()));
 }
 
+export async function getAdminNotificationEmail(): Promise<string | null> {
+  const row = await sofiaStorage.get<{ adminNotificationEmail: unknown }>(`
+    SELECT admin_notification_email AS "adminNotificationEmail"
+    FROM impostazioni_email
+    WHERE id = 1
+  `);
+  return normalizeGoogleAccountEmail(row?.adminNotificationEmail);
+}
+
 function readOAuthConfig(): OAuthConfig {
   const values = oauthEnvKeys.map((key) => process.env[key]?.trim() ?? "");
   if (values.some((value) => !value)) {
@@ -112,18 +130,29 @@ function readOAuthConfig(): OAuthConfig {
 
 export async function getGoogleCalendarConnectionStatus(): Promise<GoogleCalendarConnectionStatus> {
   if (!usesGoogleOAuth()) {
-    return { provider: "replit", connected: true, canConnect: false };
+    return {
+      provider: "replit",
+      connected: true,
+      canConnect: false,
+      connectedAccountEmail: null,
+    };
   }
 
   let config: OAuthConfig;
   try {
     config = readOAuthConfig();
   } catch {
-    return { provider: "not_configured", connected: false, canConnect: false };
+    return {
+      provider: "not_configured",
+      connected: false,
+      canConnect: false,
+      connectedAccountEmail: null,
+    };
   }
 
-  const row = await sofiaStorage.get<EncryptedRefreshToken>(`
-    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv, auth_tag AS "authTag"
+  const row = await sofiaStorage.get<EncryptedRefreshToken & { accountEmail: string | null }>(`
+    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv,
+      auth_tag AS "authTag", account_email AS "accountEmail"
     FROM sofia_google_calendar_credentials
     WHERE id = 1
   `);
@@ -140,22 +169,25 @@ export async function getGoogleCalendarConnectionStatus(): Promise<GoogleCalenda
     provider: "google_oauth",
     connected,
     canConnect: true,
+    connectedAccountEmail: connected
+      ? normalizeGoogleAccountEmail(row?.accountEmail)
+      : null,
   };
 }
 
-export function createGoogleAuthorizationUrl(state: string): string {
+export function createGoogleAuthorizationUrl(
+  state: string,
+  loginHint: string | null = null,
+): string {
   const config = readOAuthConfig();
-  const params = new URLSearchParams({
-    client_id: config.clientId,
-    redirect_uri: config.redirectUri,
-    response_type: "code",
-    scope: scopes.join(" "),
-    access_type: "offline",
-    include_granted_scopes: "true",
-    prompt: "consent",
+  return buildGoogleAuthorizationUrl({
+    authorizationEndpoint,
+    clientId: config.clientId,
+    redirectUri: config.redirectUri,
     state,
+    scopes,
+    loginHint,
   });
-  return `${authorizationEndpoint}?${params.toString()}`;
 }
 
 function encryptionKey(secret: string): Buffer {
@@ -196,7 +228,10 @@ function decryptRefreshToken(
   }
 }
 
-export async function completeGoogleAuthorization(code: string): Promise<void> {
+export async function completeGoogleAuthorization(
+  code: string,
+  expectedAccountEmail: string | null = null,
+): Promise<void> {
   const config = readOAuthConfig();
   const response = await fetch(tokenEndpoint, {
     method: "POST",
@@ -214,27 +249,38 @@ export async function completeGoogleAuthorization(code: string): Promise<void> {
   if (
     !response.ok ||
     !token ||
+    typeof token.access_token !== "string" ||
+    !token.access_token ||
     typeof token.refresh_token !== "string" ||
     !token.refresh_token
   ) {
     throw new Error("Google Calendar authorization did not return a refresh token.");
   }
 
+  const authorizedEmail = await getVerifiedGoogleAccountEmail(token.access_token);
   const encrypted = encryptRefreshToken(token.refresh_token, config.encryptionKey);
-  await sofiaStorage.run(`
-    INSERT INTO sofia_google_calendar_credentials
-      (id, encrypted_refresh_token, iv, auth_tag, connected_at)
-    VALUES (1, ?, ?, ?, ?)
-    ON CONFLICT (id) DO UPDATE SET
-      encrypted_refresh_token = excluded.encrypted_refresh_token,
-      iv = excluded.iv,
-      auth_tag = excluded.auth_tag,
-      connected_at = excluded.connected_at
-  `,
-  encrypted.encryptedRefreshToken,
-  encrypted.iv,
-  encrypted.authTag,
-  new Date().toISOString(),
+  await persistGoogleCredentialsForAccount(
+    expectedAccountEmail,
+    authorizedEmail,
+    async (accountEmail) => {
+      await sofiaStorage.run(`
+        INSERT INTO sofia_google_calendar_credentials
+          (id, encrypted_refresh_token, iv, auth_tag, connected_at, account_email)
+        VALUES (1, ?, ?, ?, ?, ?)
+        ON CONFLICT (id) DO UPDATE SET
+          encrypted_refresh_token = excluded.encrypted_refresh_token,
+          iv = excluded.iv,
+          auth_tag = excluded.auth_tag,
+          connected_at = excluded.connected_at,
+          account_email = excluded.account_email
+      `,
+      encrypted.encryptedRefreshToken,
+      encrypted.iv,
+      encrypted.authTag,
+      new Date().toISOString(),
+      accountEmail,
+      );
+    },
   );
   cachedAccessToken = null;
 }

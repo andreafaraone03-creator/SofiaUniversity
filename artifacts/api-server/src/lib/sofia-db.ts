@@ -222,7 +222,8 @@ sqlite.exec(`
     encrypted_refresh_token TEXT NOT NULL,
     iv TEXT NOT NULL,
     auth_tag TEXT NOT NULL,
-    connected_at TEXT NOT NULL
+    connected_at TEXT NOT NULL,
+    account_email TEXT
   );
   CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
     state_hash TEXT PRIMARY KEY,
@@ -378,7 +379,8 @@ async function initializePostgres(): Promise<void> {
       encrypted_refresh_token text NOT NULL,
       iv text NOT NULL,
       auth_tag text NOT NULL,
-      connected_at text NOT NULL
+      connected_at text NOT NULL,
+      account_email text
     );
     CREATE TABLE IF NOT EXISTS sofia_google_calendar_oauth_states (
       state_hash text PRIMARY KEY,
@@ -387,6 +389,7 @@ async function initializePostgres(): Promise<void> {
     CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
       ON sofia_google_calendar_oauth_states(expires_at);
     ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_notification_email text;
+    ALTER TABLE sofia_google_calendar_credentials ADD COLUMN IF NOT EXISTS account_email text;
     ALTER TABLE richieste_corso ADD COLUMN IF NOT EXISTS cancellation_email_status text NOT NULL DEFAULT 'not_required';
     ALTER TABLE richieste_corso ADD COLUMN IF NOT EXISTS cancellation_email_sent_at text;
     ALTER TABLE richieste_corso ADD COLUMN IF NOT EXISTS cancellation_email_error text NOT NULL DEFAULT '';
@@ -440,6 +443,7 @@ ensureColumn("prenotazioni_tour", "cancellation_email_error", "TEXT NOT NULL DEF
 ensureColumn("prenotazioni_tour", "google_calendar_event_id", "TEXT");
 ensureColumn("prenotazioni_tour", "meet_url", "TEXT");
 ensureColumn("impostazioni_email", "admin_notification_email", "TEXT");
+ensureColumn("sofia_google_calendar_credentials", "account_email", "TEXT");
 
 sqlite.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS consultation_active_slot

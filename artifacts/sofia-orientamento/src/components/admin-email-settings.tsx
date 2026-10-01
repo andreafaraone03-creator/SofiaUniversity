@@ -88,7 +88,7 @@ export function AdminEmailSettings() {
           </div>
           <label className="block text-xs font-semibold">Email per notifiche admin
             <input className="field mt-2" type="email" maxLength={254} value={draft.adminNotificationEmail} onChange={(event) => setDraft({ ...draft, adminNotificationEmail: event.target.value })} placeholder="sofia@tuodominio.it" />
-            <span className="mt-2 block font-normal text-[hsl(var(--muted-foreground))]">Riceverà data, cliente e link Google Meet per ogni nuova consulenza o tour. Se vuoto, le notifiche admin sono disattivate.</span>
+            <span className="mt-2 block font-normal text-[hsl(var(--muted-foreground))]">Riceverà data, cliente e link Meet. È anche l’account Google atteso per Calendar e quello suggerito quando apri i Meet dalla dashboard. Deve comunque accedere a Google: l’indirizzo non assegna permessi. Se vuoto, le notifiche admin sono disattivate e i link si aprono direttamente.</span>
           </label>
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
             <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.sendOrientationConfirmations} onChange={(event) => setDraft({ ...draft, sendOrientationConfirmations: event.target.checked })} /> Invia conferme delle consulenze</label>

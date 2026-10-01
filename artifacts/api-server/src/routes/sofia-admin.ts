@@ -45,7 +45,10 @@ import {
   UpdateTourBookingStatusParams,
   UpdateTourBookingStatusResponse,
 } from "@workspace/api-zod";
-import { preserveAppointmentDateOnlyStrings } from "../lib/sofia-admin-date-response";
+import {
+  preserveAppointmentDateOnlyStrings,
+  preserveEnrollmentDateOnlyStrings,
+} from "../lib/sofia-admin-date-response";
 import {
   clearAdminSession,
   hashPassword,
@@ -698,7 +701,8 @@ router.get("/admin/enrollments", requireAdmin, async (_req, res): Promise<void> 
     SELECT ${enrollmentColumns} FROM iscrizioni_universita
     ORDER BY enrolled_at DESC, id DESC
   `);
-  res.json(ListAdminEnrollmentsResponse.parse(rows));
+  const response = ListAdminEnrollmentsResponse.parse(rows);
+  res.json(preserveEnrollmentDateOnlyStrings(response, rows));
 });
 
 router.post("/admin/enrollments", requireAdmin, async (req, res): Promise<void> => {

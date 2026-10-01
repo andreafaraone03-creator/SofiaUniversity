@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ListAdminOrientationRequestsResponse } from "../lib/api-zod/src/generated/api.ts";
-import { preserveAppointmentDateOnlyStrings } from "../artifacts/api-server/src/lib/sofia-admin-date-response.ts";
+import {
+  ListAdminEnrollmentsResponse,
+  ListAdminOrientationRequestsResponse,
+} from "../lib/api-zod/src/generated/api.ts";
+import {
+  preserveAppointmentDateOnlyStrings,
+  preserveEnrollmentDateOnlyStrings,
+} from "../artifacts/api-server/src/lib/sofia-admin-date-response.ts";
 import { formatDate } from "../artifacts/sofia-orientamento/src/lib/date-format.ts";
 
 test("orientation request validation and JSON serialization preserve YYYY-MM-DD appointment dates", () => {
@@ -44,6 +50,45 @@ test("orientation request validation and JSON serialization preserve YYYY-MM-DD 
 test("dashboard date formatter handles date-only strings and ISO timestamps as dd/mm/yyyy", () => {
   assert.equal(formatDate("2026-03-20"), "20/03/2026");
   assert.equal(formatDate("2026-03-20T23:45:00.000Z"), "20/03/2026");
+});
+
+test("enrollment date stays a calendar date from API validation through display in other time zones", () => {
+  const storedEnrollment = {
+    id: 22,
+    orientationRequestId: null,
+    firstName: "Ada",
+    lastName: "Lovelace",
+    email: "ada@example.com",
+    university: "Università di Roma",
+    courseId: "informatica",
+    courseName: "Informatica",
+    enrolledAt: "2026-03-20",
+    commissionCents: 18000,
+    commissionStatus: "paid",
+    commissionPaidAt: null,
+    status: "active",
+    notes: "",
+    createdAt: "2026-03-20T12:00:00.000Z",
+  };
+  const validated = ListAdminEnrollmentsResponse.parse([storedEnrollment]);
+  assert.ok(validated[0].enrolledAt instanceof Date);
+
+  const response = JSON.parse(JSON.stringify(
+    preserveEnrollmentDateOnlyStrings(validated, [storedEnrollment]),
+  ));
+  assert.equal(response[0].enrolledAt, "2026-03-20");
+
+  const previousTimezone = process.env.TZ;
+  try {
+    for (const timezone of ["America/Los_Angeles", "Pacific/Honolulu", "Europe/Rome"]) {
+      process.env.TZ = timezone;
+      assert.equal(formatDate(response[0].enrolledAt), "20/03/2026", timezone);
+      assert.equal(formatDate(validated[0].enrolledAt), "20/03/2026", timezone);
+    }
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
 });
 
 test("dashboard date formatter safely returns an em dash for invalid dates", () => {

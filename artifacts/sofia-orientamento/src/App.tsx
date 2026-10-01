@@ -26,6 +26,7 @@ import {
   useCancelOrientationAppointment,
   useCreateOrientationRequest,
   useCreateTourBooking,
+  useGetAdminEmailSettings,
   useGetAdminStatus,
   useGetAdminSummary,
   useListAdminOrientationRequests,
@@ -55,6 +56,7 @@ import { AdminEmailSettings } from '@/components/admin-email-settings';
 import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
 import { OrientationRequestDateCell } from '@/components/orientation-request-date-cell';
 import { formatDate, formatDateTime } from '@/lib/date-format';
+import { createMeetAccountChooserUrl } from '@/lib/meet-account-link';
 import NotFound from '@/pages/not-found';
 
 const queryClient = new QueryClient();
@@ -457,6 +459,8 @@ function Dashboard() {
   const client = useQueryClient();
   const [tab, setTab] = useState<"orientation" | "not_concluded" | "tours" | "enrollments">("orientation");
   const [enrollmentPrefill, setEnrollmentPrefill] = useState<EnrollmentPrefill | null>(null);
+  const emailSettings = useGetAdminEmailSettings();
+  const adminNotificationEmail = emailSettings.data?.adminNotificationEmail ?? null;
   const { data: summary, isLoading: summaryLoading } = useGetAdminSummary({
     query: { refetchInterval: 15_000, queryKey: getGetAdminSummaryQueryKey() },
   });
@@ -518,6 +522,7 @@ function Dashboard() {
         </nav>
         {tab === "orientation" && <OrientationTable
           data={pendingRequests}
+          adminNotificationEmail={adminNotificationEmail}
           loading={requests.isLoading}
           error={requests.isError}
           view="requests"
@@ -530,6 +535,7 @@ function Dashboard() {
         />}
         {tab === "not_concluded" && <OrientationTable
           data={notConcludedRequests}
+          adminNotificationEmail={adminNotificationEmail}
           loading={requests.isLoading}
           error={requests.isError}
           view="not_concluded"
@@ -540,7 +546,7 @@ function Dashboard() {
           onEnrollmentRecorded={() => setTab("enrollments")}
           onMarkedNotEnrolled={() => setTab("not_concluded")}
         />}
-        {tab === "tours" && <ToursTable data={bookings.data} loading={bookings.isLoading} error={bookings.isError} onStatus={statusUpdate} updating={update.isPending} />}
+        {tab === "tours" && <ToursTable data={bookings.data} adminNotificationEmail={adminNotificationEmail} loading={bookings.isLoading} error={bookings.isError} onStatus={statusUpdate} updating={update.isPending} />}
         {tab === "enrollments" && <EnrollmentPanel prefill={enrollmentPrefill} onPrefillConsumed={() => setEnrollmentPrefill(null)} />}
       </section>
     </main>
@@ -559,6 +565,7 @@ function TableState({ loading, error }: { loading: boolean; error: boolean }) {
 
 function OrientationTable({
   data,
+  adminNotificationEmail,
   loading,
   error,
   view,
@@ -567,6 +574,7 @@ function OrientationTable({
   onMarkedNotEnrolled,
 }: {
   data?: OrientationRequest[];
+  adminNotificationEmail: string | null;
   loading: boolean;
   error: boolean;
   view: "requests" | "not_concluded";
@@ -615,6 +623,7 @@ function OrientationTable({
         <tbody>{visible.map((item) => <OrientationRow
           key={item.id}
           item={item}
+          adminNotificationEmail={adminNotificationEmail}
           onRecordEnrollment={onRecordEnrollment}
           onEnrollmentRecorded={onEnrollmentRecorded}
           onMarkedNotEnrolled={onMarkedNotEnrolled}
@@ -634,11 +643,13 @@ const leadStatusLabels: Record<OrientationRequest["pipelineStatus"], string> = {
 
 function OrientationRow({
   item,
+  adminNotificationEmail,
   onRecordEnrollment,
   onEnrollmentRecorded,
   onMarkedNotEnrolled,
 }: {
   item: OrientationRequest;
+  adminNotificationEmail: string | null;
   onRecordEnrollment: (item: OrientationRequest) => void;
   onEnrollmentRecorded: () => void;
   onMarkedNotEnrolled: () => void;
@@ -681,7 +692,7 @@ function OrientationRow({
   });
   return <>
     <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
-      <OrientationRequestDateCell item={item} />
+      <OrientationRequestDateCell item={item} adminNotificationEmail={adminNotificationEmail} />
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>
       <td className="px-4 py-4 font-semibold">{item.lastName}</td>
       <td className="px-4 py-4">{item.email}</td>
@@ -709,7 +720,7 @@ function OrientationRow({
   </>;
 }
 
-function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourBooking[]; loading: boolean; error: boolean; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
+function ToursTable({ data, adminNotificationEmail, loading, error, onStatus, updating }: { data?: TourBooking[]; adminNotificationEmail: string | null; loading: boolean; error: boolean; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | BookingStatus | "due">("all");
   const visible = useMemo(() => (data ?? []).filter((item) => {
@@ -729,13 +740,13 @@ function ToursTable({ data, loading, error, onStatus, updating }: { data?: TourB
     {visible.length === 0 ? <div className="p-10 text-center text-sm text-[hsl(var(--muted-foreground))]">Nessuna prenotazione corrisponde ai filtri.</div> : <div className="overflow-x-auto">
       <table className="w-full min-w-[1400px] text-left text-sm">
         <thead className="border-b border-[hsl(var(--border))] text-[.68rem] uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]"><tr>{["Data / ora appuntamento", "Nome", "Cognome", "Email", "Provincia", "Telefono", "Stato", "Contatta", "Promemoria", "Ricevuta", "Gestione"].map((heading) => <th key={heading} scope="col" className="px-4 py-4">{heading}</th>)}</tr></thead>
-        <tbody>{visible.map((item) => <TourRow key={item.id} item={item} onStatus={onStatus} updating={updating} />)}</tbody>
+        <tbody>{visible.map((item) => <TourRow key={item.id} item={item} adminNotificationEmail={adminNotificationEmail} onStatus={onStatus} updating={updating} />)}</tbody>
       </table>
     </div>}
   </div>;
 }
 
-function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
+function TourRow({ item, adminNotificationEmail, onStatus, updating }: { item: TourBooking; adminNotificationEmail: string | null; onStatus: (id: number, status: BookingStatus) => void; updating: boolean }) {
   const client = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
@@ -762,7 +773,7 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
     <tr data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
       <td className="px-4 py-4">
         <span className="whitespace-nowrap">{formatDate(item.date)} · {item.time}</span>
-        {item.meetUrl && <a className="mt-1 block whitespace-nowrap text-xs font-semibold underline underline-offset-4" href={item.meetUrl} target="_blank" rel="noreferrer">Apri Google Meet</a>}
+        {item.meetUrl && <a className="mt-1 block whitespace-nowrap text-xs font-semibold underline underline-offset-4" href={createMeetAccountChooserUrl(item.meetUrl, adminNotificationEmail)} target="_blank" rel="noopener noreferrer" data-testid={`link-meet-tour-${item.id}`}>Apri Google Meet</a>}
         {!item.meetUrl && item.status !== "cancelled" && <span className="mt-1 block text-xs text-[hsl(var(--muted-foreground))]">Link non disponibile</span>}
       </td>
       <td className="px-4 py-4 font-semibold">{item.firstName}</td>

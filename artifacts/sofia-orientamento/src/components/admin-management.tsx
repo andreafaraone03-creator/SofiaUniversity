@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Save, Search, X } from "lucide-react";
+import { formatDate } from "../lib/date-format";
 import {
   getGetAdminSummaryQueryKey,
   getListAdminEnrollmentsQueryKey,
@@ -55,7 +56,7 @@ function euro(cents: number) {
 }
 
 function dateLabel(value: string | Date) {
-  return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+  return formatDate(value);
 }
 
 function invalidateCRM(client: ReturnType<typeof useQueryClient>) {

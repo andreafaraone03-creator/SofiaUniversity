@@ -817,7 +817,11 @@ components:
           enum: [replit, google_oauth, not_configured]
         connected: { type: boolean }
         canConnect: { type: boolean }
-      required: [provider, connected, canConnect]
+        connectedAccountEmail:
+          type: [string, "null"]
+          format: email
+          description: Account email verificata da Google durante OAuth, se disponibile.
+      required: [provider, connected, canConnect, connectedAccountEmail]
     AdminSummary:
       type: object
       properties:

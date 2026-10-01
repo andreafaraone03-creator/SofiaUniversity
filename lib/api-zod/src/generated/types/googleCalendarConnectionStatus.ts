@@ -11,4 +11,9 @@ export interface GoogleCalendarConnectionStatus {
   provider: GoogleCalendarConnectionStatusProvider;
   connected: boolean;
   canConnect: boolean;
+  /**
+     * Account email verificata da Google durante OAuth, se disponibile.
+     * @nullable
+     */
+  connectedAccountEmail: string | null;
 }

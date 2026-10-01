@@ -1,7 +1,18 @@
-import { useGetAdminGoogleCalendarStatus } from "@workspace/api-client-react";
+import {
+  useGetAdminEmailSettings,
+  useGetAdminGoogleCalendarStatus,
+} from "@workspace/api-client-react";
 
 export function AdminGoogleCalendarSettings() {
   const { data, isLoading, isError } = useGetAdminGoogleCalendarStatus();
+  const { data: emailSettings } = useGetAdminEmailSettings();
+  const expectedEmail = emailSettings?.adminNotificationEmail?.trim() ?? "";
+  const connectedEmail = data?.connectedAccountEmail ?? null;
+  const accountMatches = Boolean(
+    expectedEmail &&
+      connectedEmail &&
+      expectedEmail.toLowerCase() === connectedEmail.toLowerCase(),
+  );
   const callbackResult = new URLSearchParams(window.location.search).get("calendar");
   const connectUrl = "/api/admin/google-calendar/connect";
 
@@ -18,6 +29,11 @@ export function AdminGoogleCalendarSettings() {
       {callbackResult === "error" && (
         <p className="mt-3 text-sm text-destructive" role="alert">
           Non è stato possibile collegare Google Calendar. Verifica la configurazione OAuth e riprova.
+        </p>
+      )}
+      {callbackResult === "account-mismatch" && (
+        <p className="mt-3 text-sm text-destructive" role="alert" data-testid="calendar-account-mismatch">
+          L’account Google autorizzato non coincide con l’email per le notifiche admin. La connessione precedente è rimasta attiva; riprova selezionando l’account corretto.
         </p>
       )}
 
@@ -39,21 +55,49 @@ export function AdminGoogleCalendarSettings() {
         </p>
       )}
       {data?.provider === "google_oauth" && (
-        <div className="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-          <p className="text-sm text-muted-foreground" role="status">
+        <>
+          <p className="mt-3 text-sm text-muted-foreground" role="status">
             {data.connected
-              ? "Google Calendar è collegato per le prenotazioni e la creazione dei link Meet."
-              : "Collega l'account Google di Sofia per attivare le prenotazioni su Render."}
+              ? "Google Calendar è collegato e crea i nuovi eventi Meet con questo account."
+              : "Collega l’account Google da usare per Calendar e per creare i nuovi Meet."}
+          </p>
+          {data.connected && connectedEmail && (
+            <p className="mt-2 text-sm" data-testid="text-calendar-account">
+              Account Google collegato: <strong>{connectedEmail}</strong>
+            </p>
+          )}
+          {data.connected && !connectedEmail && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              La connessione è attiva, ma la sua identità non è stata verificata. Ricollega l’account per verificarla.
+            </p>
+          )}
+          {data.connected && expectedEmail && connectedEmail && accountMatches && (
+            <p className="mt-2 text-sm text-emerald-700" role="status" data-testid="text-calendar-account-match">
+              L’account collegato coincide con l’email per le notifiche admin ({expectedEmail}).
+            </p>
+          )}
+          {data.connected && expectedEmail && connectedEmail && !accountMatches && (
+            <p className="mt-2 text-sm text-destructive" role="alert" data-testid="text-calendar-account-mismatch">
+              L’account collegato non coincide con l’email admin ({expectedEmail}). I nuovi eventi usano ancora l’account collegato; ricollega Calendar per allinearli.
+            </p>
+          )}
+          {!expectedEmail && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Configura l’email per le notifiche admin: viene usata come account atteso e suggerita quando apri un link Meet. Senza questo indirizzo il Meet si apre direttamente.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Devi comunque accedere a Google e avere i permessi richiesti. L’email e la selezione dell’account non trasferiscono i Meet già creati né i relativi permessi.
           </p>
           {data.canConnect && (
             <a
               href={connectUrl}
-              className="inline-flex min-h-10 items-center justify-center border border-[hsl(var(--border))] px-4 text-sm font-medium transition-colors hover:bg-[hsl(var(--muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+              className="mt-3 inline-flex min-h-10 items-center justify-center border border-[hsl(var(--border))] px-4 text-sm font-medium transition-colors hover:bg-[hsl(var(--muted))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
             >
               {data.connected ? "Ricollega account" : "Collega Google Calendar"}
             </a>
           )}
-        </div>
+        </>
       )}
     </section>
   );
