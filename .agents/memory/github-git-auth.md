@@ -7,4 +7,4 @@ The Replit GitHub connector authenticates REST API requests through its proxy; i
 
 **Why:** A connected GitHub integration can work for API access while a normal Git push still fails authentication.
 
-**How to apply:** Verify the repository URL and branch first. If Git transport authentication fails, use the workspace secret flow for a repository-scoped token; never print or paste the token, and do not work around the failure by creating a different commit history through the API.
+**How to apply:** Verify the repository URL and branch first. If Git transport authentication fails, use a repository-scoped workspace secret through a one-command credential helper that passes it directly to Git; do not print it, save it in the remote URL/config, or work around the failure by creating a different commit history through the API.
