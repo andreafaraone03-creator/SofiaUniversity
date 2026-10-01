@@ -1,0 +1,27 @@
+#24 - Allinea account Meet admin
+What & Why
+Fai sì che l’indirizzo impostato per le notifiche admin sia anche l’identità Google attesa per organizzare i nuovi Meet e aprire i link dalla dashboard. Oggi quell’indirizzo riceve solo email, mentre i Meet sono creati dall’account OAuth collegato e i link si aprono nella sessione Google corrente; rendi esplicita e verificabile la corrispondenza senza fingere che un indirizzo email conceda autorizzazioni Google.
+Done looks like
+L’area admin mostra quale account Google è collegato e segnala quando non corrisponde all’indirizzo per le notifiche.
+L’amministratore può ricollegare Calendar con l’indirizzo configurato, verificare l’identità autorizzata e impedire che un account diverso sostituisca silenziosamente quello attivo.
+Dopo il collegamento corretto, i nuovi Meet sono creati dall’account Google desiderato e i link aperti dalla dashboard indirizzano alla selezione/accesso di quell’account, mantenendo intatto il link Meet originale.
+È chiaro che l’utente deve comunque autenticarsi e che i Meet già creati restano di proprietà dell’organizzatore originale; l’email di notifica o la selezione dell’account non trasferiscono permessi.
+La mancata configurazione dell’indirizzo o del collegamento Google conserva un’apertura sicura del Meet e mostra indicazioni comprensibili.
+Out of scope
+Trasferire a posteriori la proprietà o i permessi degli eventi Meet già creati.
+Bypassare l’accesso Google, le policy di ammissione di Meet o il consenso OAuth.
+Cambiare destinatari o contenuti delle email di conferma e notifica, salvo le indicazioni necessarie a chiarire il ruolo dell’indirizzo configurato.
+Steps
+Identità Google collegata — Acquisisci e persisti in modo sicuro l’indirizzo dell’account Google restituito durante OAuth, esponendolo nello stato integrazione admin. Confrontalo con l’indirizzo delle notifiche e conserva la connessione attuale se il nuovo consenso proviene da un account diverso da quello atteso, mostrando un esito chiaro.
+Ricollegamento dell’organizzatore — Usa l’indirizzo admin come suggerimento nel flusso OAuth e consenti di completare il collegamento solo dopo aver verificato l’account autorizzato; aggiorna l’interfaccia per mostrare corrispondenza, mancata corrispondenza e istruzioni. I nuovi eventi devono continuare a usare l’account Calendar collegato, senza alterare gli eventi esistenti.
+Apertura guidata dei Meet — Nei collegamenti Meet dell’area admin, indirizza l’apertura tramite il flusso/selettore account Google supportato, preselezionando l’indirizzo configurato e continuando al link originale. Se manca un indirizzo utilizzabile, conserva il link diretto; non presentare la preselezione come garanzia di accesso o di ruolo organizzatore.
+Verifica dei casi principali — Aggiungi test per l’account OAuth corrispondente e non corrispondente, la conservazione della connessione in caso di mismatch, gli indirizzi e i link codificati correttamente, il fallback senza impostazioni e la distinzione tra nuovi ed esistenti Meet. Esegui i controlli di build e typecheck dei pacchetti interessati.
+Relevant files
+artifacts/sofia-orientamento/src/components/admin-email-settings.tsx
+artifacts/sofia-orientamento/src/components/admin-google-calendar-settings.tsx
+artifacts/sofia-orientamento/src/components/orientation-request-date-cell.ts
+artifacts/sofia-orientamento/src/App.tsx
+artifacts/api-server/src/lib/sofia-google-oauth.ts
+artifacts/api-server/src/lib/sofia-calendar.ts
+artifacts/api-server/src/lib/sofia-db.ts
+artifacts/api-server/src/routes/google-calendar.ts
