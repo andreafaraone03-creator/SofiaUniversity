@@ -20,6 +20,10 @@ import {
   LogoutAdminResponse,
   ResendOrientationConfirmationParams,
   ResendOrientationConfirmationResponse,
+  ResendOrientationCancellationEmailParams,
+  ResendOrientationCancellationEmailResponse,
+  ResendTourCancellationEmailParams,
+  ResendTourCancellationEmailResponse,
   ResendTourConfirmationParams,
   ResendTourConfirmationResponse,
   SendAdminTestEmailBody,
@@ -65,11 +69,14 @@ import {
   type TourBooking,
 } from "../lib/sofia-db";
 import {
+  persistCancellationEmailDelivery,
   persistEmailDelivery,
   sendAdminBookingNotification,
   sendAutomaticConfirmation,
+  sendCancellationNotice,
   sendForcedConfirmation,
   sendTestEmail,
+  type EmailDelivery,
 } from "../lib/sofia-email";
 import {
   createMeetEvent,
@@ -110,6 +117,31 @@ async function readEmailSettings(): Promise<EmailSettings> {
 
 async function setupComplete(): Promise<boolean> {
   return Boolean(await sofiaStorage.get("SELECT id FROM utenti_admin WHERE id = 1"));
+}
+
+async function sendAndPersistCancellationEmail(
+  table: "richieste_corso" | "prenotazioni_tour",
+  id: number,
+  recipient: string,
+  details: Parameters<typeof sendCancellationNotice>[1],
+): Promise<{ delivery: EmailDelivery; persisted: boolean }> {
+  let delivery: EmailDelivery;
+  try {
+    delivery = await sendCancellationNotice(recipient, details);
+  } catch {
+    delivery = {
+      status: "failed",
+      sentAt: null,
+      error: "Non è stato possibile inviare l'avviso. Riprova.",
+    };
+  }
+
+  try {
+    await persistCancellationEmailDelivery(table, id, delivery);
+    return { delivery, persisted: true };
+  } catch {
+    return { delivery, persisted: false };
+  }
 }
 
 router.get("/admin/status", async (req, res): Promise<void> => {
@@ -242,9 +274,8 @@ router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async
     res.status(400).json({ error: "Appuntamento non valido." });
     return;
   }
-  const appointment = await sofiaStorage.get<{ appointmentStatus: string | null; googleCalendarEventId: string | null }>(`
-    SELECT appointment_status AS appointmentStatus,
-      google_calendar_event_id AS googleCalendarEventId
+  const appointment = await sofiaStorage.get<OrientationRequest & { googleCalendarEventId: string | null }>(`
+    SELECT ${orientationColumns}, google_calendar_event_id AS googleCalendarEventId
     FROM richieste_corso WHERE id = ?
   `, id);
   if (!appointment) {
@@ -252,7 +283,15 @@ router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async
     return;
   }
   if (appointment.appointmentStatus === "cancelled") {
-    res.json(CancelOrientationAppointmentResponse.parse({ success: true }));
+    res.json(CancelOrientationAppointmentResponse.parse({
+      success: true,
+      cancellationEmailStatus: appointment.cancellationEmailStatus,
+      cancellationEmailError: appointment.cancellationEmailError,
+    }));
+    return;
+  }
+  if (!appointment.appointmentDate || !appointment.appointmentTime) {
+    res.status(409).json({ error: "La richiesta non contiene un appuntamento valido da annullare." });
     return;
   }
 
@@ -270,12 +309,39 @@ router.delete("/admin/orientation-requests/:id/appointment", requireAdmin, async
       UPDATE richieste_corso
       SET appointment_status = 'cancelled',
           google_calendar_event_id = NULL,
-          meet_url = NULL
+          meet_url = NULL,
+          cancellation_email_status = 'pending',
+          cancellation_email_sent_at = NULL,
+          cancellation_email_error = ''
       WHERE id = ?
     `, id);
     await tx.run("DELETE FROM appointment_slots WHERE booking_type = 'consultation' AND booking_id = ?", id);
   });
-  res.json(CancelOrientationAppointmentResponse.parse({ success: true }));
+
+  const outcome = await sendAndPersistCancellationEmail("richieste_corso", id, appointment.email, {
+    type: "consultation",
+    firstName: appointment.firstName,
+    university: appointment.university,
+    courseName: appointment.courseName,
+    date: appointment.appointmentDate,
+    time: appointment.appointmentTime,
+  });
+  if (!outcome.persisted) {
+    req.log.error({ requestId: id }, "Orientation cancellation email result could not be saved");
+  }
+  if (outcome.delivery.status !== "sent") {
+    req.log.warn(
+      { requestId: id, status: outcome.delivery.status, error: outcome.delivery.error },
+      "Orientation cancellation email not delivered",
+    );
+  }
+  res.json(CancelOrientationAppointmentResponse.parse({
+    success: true,
+    cancellationEmailStatus: outcome.persisted ? outcome.delivery.status : "pending",
+    cancellationEmailError: outcome.persisted
+      ? outcome.delivery.error
+      : "Non è stato possibile salvare l'esito dell'invio. Riprova.",
+  }));
 });
 
 router.get("/admin/tour-bookings", requireAdmin, async (_req, res): Promise<void> => {
@@ -314,11 +380,36 @@ router.patch("/admin/tour-bookings/:id", requireAdmin, async (req, res): Promise
     await sofiaTransaction(async (tx) => {
       await tx.run(`
         UPDATE prenotazioni_tour
-        SET status = 'cancelled', google_calendar_event_id = NULL, meet_url = NULL
+        SET status = 'cancelled',
+            google_calendar_event_id = NULL,
+            meet_url = NULL,
+            cancellation_email_status = 'pending',
+            cancellation_email_sent_at = NULL,
+            cancellation_email_error = ''
         WHERE id = ?
       `, params.data.id);
       await tx.run("DELETE FROM appointment_slots WHERE booking_type = 'tour' AND booking_id = ?", params.data.id);
     });
+    const outcome = await sendAndPersistCancellationEmail(
+      "prenotazioni_tour",
+      params.data.id,
+      current.email,
+      {
+        type: "tour",
+        firstName: current.firstName,
+        date: current.date,
+        time: current.time,
+      },
+    );
+    if (!outcome.persisted) {
+      req.log.error({ bookingId: params.data.id }, "Tour cancellation email result could not be saved");
+    }
+    if (outcome.delivery.status !== "sent") {
+      req.log.warn(
+        { bookingId: params.data.id, status: outcome.delivery.status, error: outcome.delivery.error },
+        "Tour cancellation email not delivered",
+      );
+    }
   } else if (body.data.status === "confirmed" && current.status === "cancelled") {
     if (!isBookable(current.date, current.time)) {
       res.status(409).json({ error: "Questo appuntamento non può essere riattivato perché l'orario è passato." });
@@ -837,6 +928,76 @@ router.post("/admin/orientation-requests/:id/send-confirmation", requireAdmin, a
   res.status(delivery.status === "sent" ? 200 : 503).json(result);
 });
 
+router.post("/admin/orientation-requests/:id/send-cancellation-email", requireAdmin, async (req, res): Promise<void> => {
+  const id = positivePathId(req.params.id);
+  const params = ResendOrientationCancellationEmailParams.safeParse({ id });
+  if (!id || !params.success) {
+    res.status(400).json({ error: "Richiesta non valida." });
+    return;
+  }
+
+  const request = await sofiaStorage.get<OrientationRequest>(
+    `SELECT ${orientationColumns} FROM richieste_corso WHERE id = ?`,
+    params.data.id,
+  );
+  if (!request) {
+    res.status(404).json({ error: "Richiesta non trovata." });
+    return;
+  }
+  if (request.appointmentStatus !== "cancelled") {
+    res.status(409).json({ error: "La consulenza deve essere annullata prima di inviare l'avviso." });
+    return;
+  }
+  if (request.cancellationEmailStatus === "sent") {
+    res.json(ResendOrientationCancellationEmailResponse.parse({
+      success: true,
+      status: "sent",
+      message: "L'avviso di annullamento è già stato inviato.",
+    }));
+    return;
+  }
+  if (!request.appointmentDate || !request.appointmentTime) {
+    res.status(409).json({ error: "La richiesta non contiene i dati dell'appuntamento annullato." });
+    return;
+  }
+
+  await sofiaStorage.run(`
+    UPDATE richieste_corso
+    SET cancellation_email_status = 'pending',
+        cancellation_email_sent_at = NULL,
+        cancellation_email_error = ''
+    WHERE id = ? AND appointment_status = 'cancelled'
+  `, request.id);
+  const outcome = await sendAndPersistCancellationEmail("richieste_corso", request.id, request.email, {
+    type: "consultation",
+    firstName: request.firstName,
+    university: request.university,
+    courseName: request.courseName,
+    date: request.appointmentDate,
+    time: request.appointmentTime,
+  });
+  if (!outcome.persisted) {
+    req.log.error({ requestId: request.id }, "Orientation cancellation email retry result could not be saved");
+  }
+  if (outcome.delivery.status !== "sent") {
+    req.log.warn(
+      { requestId: request.id, status: outcome.delivery.status, error: outcome.delivery.error },
+      "Orientation cancellation email retry failed",
+    );
+  }
+
+  const result = ResendOrientationCancellationEmailResponse.parse({
+    success: outcome.delivery.status === "sent" && outcome.persisted,
+    status: outcome.delivery.status === "sent" && !outcome.persisted ? "failed" : outcome.delivery.status,
+    message: !outcome.persisted
+      ? "L'esito dell'invio non è stato salvato. Verifica prima di ritentare."
+      : outcome.delivery.status === "sent"
+        ? "Avviso di annullamento inviato."
+        : outcome.delivery.error,
+  });
+  res.status(result.success ? 200 : 503).json(result);
+});
+
 router.post("/admin/tour-bookings/:id/send-confirmation", requireAdmin, async (req, res): Promise<void> => {
   const id = positivePathId(req.params.id);
   const params = ResendTourConfirmationParams.safeParse({ id });
@@ -870,6 +1031,70 @@ router.post("/admin/tour-bookings/:id/send-confirmation", requireAdmin, async (r
     message: delivery.status === "sent" ? "Email inviata." : delivery.error,
   });
   res.status(delivery.status === "sent" ? 200 : 503).json(result);
+});
+
+router.post("/admin/tour-bookings/:id/send-cancellation-email", requireAdmin, async (req, res): Promise<void> => {
+  const id = positivePathId(req.params.id);
+  const params = ResendTourCancellationEmailParams.safeParse({ id });
+  if (!id || !params.success) {
+    res.status(400).json({ error: "Prenotazione non valida." });
+    return;
+  }
+
+  const booking = await sofiaStorage.get<TourBooking>(
+    `SELECT ${bookingColumns} FROM prenotazioni_tour WHERE id = ?`,
+    params.data.id,
+  );
+  if (!booking) {
+    res.status(404).json({ error: "Prenotazione non trovata." });
+    return;
+  }
+  if (booking.status !== "cancelled") {
+    res.status(409).json({ error: "Il tour deve essere annullato prima di inviare l'avviso." });
+    return;
+  }
+  if (booking.cancellationEmailStatus === "sent") {
+    res.json(ResendTourCancellationEmailResponse.parse({
+      success: true,
+      status: "sent",
+      message: "L'avviso di annullamento è già stato inviato.",
+    }));
+    return;
+  }
+
+  await sofiaStorage.run(`
+    UPDATE prenotazioni_tour
+    SET cancellation_email_status = 'pending',
+        cancellation_email_sent_at = NULL,
+        cancellation_email_error = ''
+    WHERE id = ? AND status = 'cancelled'
+  `, booking.id);
+  const outcome = await sendAndPersistCancellationEmail("prenotazioni_tour", booking.id, booking.email, {
+    type: "tour",
+    firstName: booking.firstName,
+    date: booking.date,
+    time: booking.time,
+  });
+  if (!outcome.persisted) {
+    req.log.error({ bookingId: booking.id }, "Tour cancellation email retry result could not be saved");
+  }
+  if (outcome.delivery.status !== "sent") {
+    req.log.warn(
+      { bookingId: booking.id, status: outcome.delivery.status, error: outcome.delivery.error },
+      "Tour cancellation email retry failed",
+    );
+  }
+
+  const result = ResendTourCancellationEmailResponse.parse({
+    success: outcome.delivery.status === "sent" && outcome.persisted,
+    status: outcome.delivery.status === "sent" && !outcome.persisted ? "failed" : outcome.delivery.status,
+    message: !outcome.persisted
+      ? "L'esito dell'invio non è stato salvato. Verifica prima di ritentare."
+      : outcome.delivery.status === "sent"
+        ? "Avviso di annullamento inviato."
+        : outcome.delivery.error,
+  });
+  res.status(result.success ? 200 : 503).json(result);
 });
 
 export default router;

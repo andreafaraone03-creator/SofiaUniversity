@@ -27,6 +27,9 @@ test("orientation request validation and JSON serialization preserve YYYY-MM-DD 
     confirmationEmailStatus: "not_configured",
     confirmationEmailSentAt: null,
     confirmationEmailError: "",
+    cancellationEmailStatus: "not_required",
+    cancellationEmailSentAt: null,
+    cancellationEmailError: "",
   };
 
   const validated = ListAdminOrientationRequestsResponse.parse([storedRequest]);

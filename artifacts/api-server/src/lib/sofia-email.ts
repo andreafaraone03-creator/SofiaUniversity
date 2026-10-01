@@ -1,4 +1,10 @@
 import { sofiaStorage, type EmailSettings } from "./sofia-db";
+import {
+  cancellationContent,
+  escapeHtml,
+  formatTourDate,
+  type CancellationEmailDetails,
+} from "./sofia-email-content";
 
 export type EmailDeliveryStatus = "sent" | "failed" | "not_configured" | "disabled";
 
@@ -50,26 +56,6 @@ async function readSettings(): Promise<EmailSettings> {
     sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
     sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
   };
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  })[character] ?? character);
-}
-
-function formatTourDate(value: string): string {
-  const date = new Date(`${value}T00:00:00Z`);
-  return new Intl.DateTimeFormat("it-IT", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
 }
 
 async function sendEmail(
@@ -171,6 +157,14 @@ export async function sendForcedConfirmation(
   return sendEmail(recipient, content.subject, content.text, content.html, await readSettings());
 }
 
+export async function sendCancellationNotice(
+  recipient: string,
+  details: CancellationEmailDetails,
+): Promise<EmailDelivery> {
+  const content = cancellationContent(details);
+  return sendEmail(recipient, content.subject, content.text, content.html, await readSettings());
+}
+
 function confirmationContent(details: ConfirmationDetails) {
   const date = formatTourDate(details.date);
   const firstName = escapeHtml(details.firstName);
@@ -222,6 +216,19 @@ export async function persistEmailDelivery(
     UPDATE ${table}
     SET confirmation_email_status = ?, confirmation_email_sent_at = ?,
         confirmation_email_error = ?
+    WHERE id = ?
+  `, delivery.status, delivery.sentAt, delivery.error, id);
+}
+
+export async function persistCancellationEmailDelivery(
+  table: "richieste_corso" | "prenotazioni_tour",
+  id: number,
+  delivery: EmailDelivery,
+) {
+  await sofiaStorage.run(`
+    UPDATE ${table}
+    SET cancellation_email_status = ?, cancellation_email_sent_at = ?,
+        cancellation_email_error = ?
     WHERE id = ?
   `, delivery.status, delivery.sentAt, delivery.error, id);
 }

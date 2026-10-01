@@ -543,6 +543,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailActionResult"
+  /admin/orientation-requests/{id}/send-cancellation-email:
+    post:
+      operationId: resendOrientationCancellationEmail
+      tags: [admin]
+      summary: Reinvia l'avviso di annullamento di una consulenza
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Esito dell'invio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+        "404":
+          description: Richiesta non trovata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: La consulenza non è annullata o l'avviso è già stato inviato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Invio non riuscito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
   /admin/orientation-requests/{id}/appointment:
     delete:
       operationId: cancelOrientationAppointment
@@ -559,9 +594,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Success"
+                $ref: "#/components/schemas/CancelOrientationAppointmentResult"
         "404":
           description: Appuntamento non trovato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: La richiesta non contiene un appuntamento valido da annullare
           content:
             application/json:
               schema:
@@ -589,6 +630,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailActionResult"
+        "503":
+          description: Invio non riuscito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+  /admin/tour-bookings/{id}/send-cancellation-email:
+    post:
+      operationId: resendTourCancellationEmail
+      tags: [admin]
+      summary: Reinvia l'avviso di annullamento di un tour
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Esito dell'invio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailActionResult"
+        "404":
+          description: Prenotazione non trovata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Il tour non è annullato o l'avviso è già stato inviato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "503":
           description: Invio non riuscito
           content:
@@ -658,7 +734,10 @@ components:
             confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
             confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
             confirmationEmailError: { type: string }
-          required: [id, university, courseId, courseName, appointmentDate, appointmentTime, appointmentStatus, meetUrl, createdAt, pipelineStatus, enrollmentOutcome, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+            cancellationEmailStatus: { $ref: "#/components/schemas/CancellationEmailStatus" }
+            cancellationEmailSentAt: { type: ["string", "null"], format: date-time }
+            cancellationEmailError: { type: string }
+          required: [id, university, courseId, courseName, appointmentDate, appointmentTime, appointmentStatus, meetUrl, createdAt, pipelineStatus, enrollmentOutcome, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError, cancellationEmailStatus, cancellationEmailSentAt, cancellationEmailError]
     OrientationRequestReceipt:
       type: object
       properties:
@@ -693,7 +772,10 @@ components:
             confirmationEmailStatus: { $ref: "#/components/schemas/ConfirmationEmailStatus" }
             confirmationEmailSentAt: { type: ["string", "null"], format: date-time }
             confirmationEmailError: { type: string }
-          required: [id, date, time, meetUrl, status, createdAt, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError]
+            cancellationEmailStatus: { $ref: "#/components/schemas/CancellationEmailStatus" }
+            cancellationEmailSentAt: { type: ["string", "null"], format: date-time }
+            cancellationEmailError: { type: string }
+          required: [id, date, time, meetUrl, status, createdAt, adminNotes, followUpAt, confirmationEmailStatus, confirmationEmailSentAt, confirmationEmailError, cancellationEmailStatus, cancellationEmailSentAt, cancellationEmailError]
     TourBookingReceipt:
       type: object
       properties:
@@ -760,6 +842,16 @@ components:
     ConfirmationEmailStatus:
       type: string
       enum: [sent, failed, not_configured, disabled]
+    CancellationEmailStatus:
+      type: string
+      enum: [not_required, pending, sent, failed, not_configured, disabled]
+    CancelOrientationAppointmentResult:
+      type: object
+      properties:
+        success: { type: boolean }
+        cancellationEmailStatus: { $ref: "#/components/schemas/CancellationEmailStatus" }
+        cancellationEmailError: { type: string }
+      required: [success, cancellationEmailStatus, cancellationEmailError]
     OrientationManagementUpdate:
       type: object
       properties:

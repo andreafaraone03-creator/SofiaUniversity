@@ -5,6 +5,7 @@
  * API per il portale di orientamento universitario di Sofia
  * OpenAPI spec version: 0.1.0
  */
+import type { CancellationEmailStatus } from './cancellationEmailStatus';
 import type { ConfirmationEmailStatus } from './confirmationEmailStatus';
 import type { ContactInput } from './contactInput';
 import type { EnrollmentOutcome } from './enrollmentOutcome';
@@ -34,4 +35,8 @@ export type OrientationRequest = ContactInput & ({
   /** @nullable */
   confirmationEmailSentAt: Date | null;
   confirmationEmailError: string;
+  cancellationEmailStatus: CancellationEmailStatus;
+  /** @nullable */
+  cancellationEmailSentAt: Date | null;
+  cancellationEmailError: string;
 });

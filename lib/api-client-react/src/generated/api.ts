@@ -24,6 +24,7 @@ import type {
   AdminStatus,
   AdminSummary,
   AppointmentSlot,
+  CancelOrientationAppointmentResult,
   CompleteAdminGoogleCalendarConnectionParams,
   Course,
   EmailActionResult,
@@ -2377,6 +2378,80 @@ export const useResendOrientationConfirmation = <TError = ErrorType<EmailActionR
       return useMutation(getResendOrientationConfirmationMutationOptions(options));
     }
 
+export const getResendOrientationCancellationEmailUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/orientation-requests/${id}/send-cancellation-email`
+}
+
+/**
+ * @summary Reinvia l'avviso di annullamento di una consulenza
+ */
+export const resendOrientationCancellationEmail = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailActionResult> => {
+
+  return customFetch<EmailActionResult>(getResendOrientationCancellationEmailUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendOrientationCancellationEmailMutationKey = () => ['resendOrientationCancellationEmail'] as const;
+
+export const getResendOrientationCancellationEmailMutationOptions = <TError = ErrorType<Error | EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrientationCancellationEmail>>, TError,ResendOrientationCancellationEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendOrientationCancellationEmail>>, TError,ResendOrientationCancellationEmailMutationVariables, TContext> => {
+
+const mutationKey = getResendOrientationCancellationEmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendOrientationCancellationEmail>>, ResendOrientationCancellationEmailMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendOrientationCancellationEmail(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendOrientationCancellationEmailMutationResult = NonNullable<Awaited<ReturnType<typeof resendOrientationCancellationEmail>>>
+
+    export type ResendOrientationCancellationEmailMutationError = ErrorType<Error | EmailActionResult>
+    export type ResendOrientationCancellationEmailMutationVariables = {id: number}
+
+    /**
+ * @summary Reinvia l'avviso di annullamento di una consulenza
+ */
+export const useResendOrientationCancellationEmail = <TError = ErrorType<Error | EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendOrientationCancellationEmail>>, TError,ResendOrientationCancellationEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendOrientationCancellationEmail>>,
+        TError,
+        ResendOrientationCancellationEmailMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendOrientationCancellationEmailMutationOptions(options));
+    }
+
 export const getCancelOrientationAppointmentUrl = (id: number,) => {
 
 
@@ -2388,9 +2463,9 @@ export const getCancelOrientationAppointmentUrl = (id: number,) => {
 /**
  * @summary Annulla l'appuntamento e libera l'orario
  */
-export const cancelOrientationAppointment = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Success> => {
+export const cancelOrientationAppointment = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<CancelOrientationAppointmentResult> => {
 
-  return customFetch<Success>(getCancelOrientationAppointmentUrl(id),
+  return customFetch<CancelOrientationAppointmentResult>(getCancelOrientationAppointmentUrl(id),
   {
     ...options,
     method: 'DELETE'
@@ -2523,5 +2598,79 @@ export const useResendTourConfirmation = <TError = ErrorType<EmailActionResult>,
         TContext
       > => {
       return useMutation(getResendTourConfirmationMutationOptions(options));
+    }
+
+export const getResendTourCancellationEmailUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/tour-bookings/${id}/send-cancellation-email`
+}
+
+/**
+ * @summary Reinvia l'avviso di annullamento di un tour
+ */
+export const resendTourCancellationEmail = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailActionResult> => {
+
+  return customFetch<EmailActionResult>(getResendTourCancellationEmailUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getResendTourCancellationEmailMutationKey = () => ['resendTourCancellationEmail'] as const;
+
+export const getResendTourCancellationEmailMutationOptions = <TError = ErrorType<Error | EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendTourCancellationEmail>>, TError,ResendTourCancellationEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resendTourCancellationEmail>>, TError,ResendTourCancellationEmailMutationVariables, TContext> => {
+
+const mutationKey = getResendTourCancellationEmailMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resendTourCancellationEmail>>, ResendTourCancellationEmailMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  resendTourCancellationEmail(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResendTourCancellationEmailMutationResult = NonNullable<Awaited<ReturnType<typeof resendTourCancellationEmail>>>
+
+    export type ResendTourCancellationEmailMutationError = ErrorType<Error | EmailActionResult>
+    export type ResendTourCancellationEmailMutationVariables = {id: number}
+
+    /**
+ * @summary Reinvia l'avviso di annullamento di un tour
+ */
+export const useResendTourCancellationEmail = <TError = ErrorType<Error | EmailActionResult>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resendTourCancellationEmail>>, TError,ResendTourCancellationEmailMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resendTourCancellationEmail>>,
+        TError,
+        ResendTourCancellationEmailMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResendTourCancellationEmailMutationOptions(options));
     }
 

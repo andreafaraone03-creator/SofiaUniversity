@@ -35,7 +35,9 @@ import {
   useLoginAdmin,
   useLogoutAdmin,
   useResendOrientationConfirmation,
+  useResendOrientationCancellationEmail,
   useResendTourConfirmation,
+  useResendTourCancellationEmail,
   useSetupAdmin,
   useUpdateTourBookingStatus,
 } from '@workspace/api-client-react';
@@ -73,6 +75,10 @@ type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error) return error.message;
   return fallback;
+}
+
+function cancellationEmailCanRetry(status: OrientationRequest["cancellationEmailStatus"]) {
+  return status === "pending" || status === "failed" || status === "not_configured" || status === "disabled";
 }
 
 function SiteHeader() {
@@ -642,12 +648,15 @@ function OrientationRow({
   const [actionMessage, setActionMessage] = useState("");
   const cancelAppointment = useCancelOrientationAppointment();
   const resendConfirmation = useResendOrientationConfirmation();
+  const resendCancellationEmail = useResendOrientationCancellationEmail();
   const activeAppointment = item.appointmentStatus === "confirmed";
   const cancel = () => {
-    if (!window.confirm("Annullare l’appuntamento? L’evento Google Calendar verrà rimosso e l’orario liberato.")) return;
+    if (!window.confirm("Annullare l’appuntamento? L’evento Google Calendar verrà rimosso, l’orario liberato e il cliente riceverà un avviso email.")) return;
     cancelAppointment.mutate({ id: item.id }, {
-      onSuccess: async () => {
-        setActionMessage("Appuntamento annullato.");
+      onSuccess: async (result) => {
+        setActionMessage(result.cancellationEmailStatus === "sent"
+          ? "Appuntamento annullato. Avviso email inviato."
+          : result.cancellationEmailError || "Appuntamento annullato. Puoi ritentare l’invio dell’avviso.");
         await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
       },
       onError: (error) => setActionMessage(getErrorMessage(error, "Non riesco ad annullare l’appuntamento.")),
@@ -659,6 +668,16 @@ function OrientationRow({
       await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
     },
     onError: (error) => setActionMessage(getErrorMessage(error, "Non riesco a inviare la conferma.")),
+  });
+  const resendCancellation = () => resendCancellationEmail.mutate({ id: item.id }, {
+    onSuccess: async (result) => {
+      setActionMessage(result.message);
+      await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
+    },
+    onError: async (error) => {
+      setActionMessage(getErrorMessage(error, "Non riesco a inviare l’avviso di annullamento."));
+      await client.invalidateQueries({ queryKey: getListAdminOrientationRequestsQueryKey() });
+    },
   });
   return <>
     <tr data-testid={`row-orientation-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
@@ -678,8 +697,11 @@ function OrientationRow({
         <div className="flex flex-wrap gap-3">
           {activeAppointment && item.confirmationEmailStatus !== "sent" && <button type="button" disabled={resendConfirmation.isPending} onClick={resend} className="text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendConfirmation.isPending ? "Invio…" : "Reinvia email"}</button>}
           {activeAppointment && <button type="button" disabled={cancelAppointment.isPending} onClick={cancel} className="text-xs font-semibold text-[hsl(var(--destructive))] underline underline-offset-4 disabled:opacity-50">{cancelAppointment.isPending ? "Annullamento…" : "Annulla appuntamento"}</button>}
+          {item.appointmentStatus === "cancelled" && cancellationEmailCanRetry(item.cancellationEmailStatus) && <button type="button" disabled={resendCancellationEmail.isPending} onClick={resendCancellation} className="text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendCancellationEmail.isPending ? "Invio avviso…" : item.cancellationEmailStatus === "failed" ? "Riprova avviso email" : "Invia avviso email"}</button>}
+          {item.appointmentStatus === "cancelled" && item.cancellationEmailStatus === "sent" && <span className="text-xs text-[hsl(var(--muted-foreground))]">Avviso email inviato{item.cancellationEmailSentAt ? ` · ${formatDateTime(item.cancellationEmailSentAt)}` : ""}</span>}
           <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button>
         </div>
+        {item.appointmentStatus === "cancelled" && cancellationEmailCanRetry(item.cancellationEmailStatus) && item.cancellationEmailError && <span className="max-w-64 whitespace-normal text-xs text-[hsl(var(--destructive))]">{item.cancellationEmailError}</span>}
         {actionMessage && <span role="status" className="max-w-64 whitespace-normal text-xs text-[hsl(var(--muted-foreground))]">{actionMessage}</span>}
       </div></td>
     </tr>
@@ -718,12 +740,23 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
   const [expanded, setExpanded] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
   const resendConfirmation = useResendTourConfirmation();
+  const resendCancellationEmail = useResendTourCancellationEmail();
   const resend = () => resendConfirmation.mutate({ id: item.id }, {
     onSuccess: async (result) => {
       setEmailMessage(result.message);
       await client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
     },
     onError: (error) => setEmailMessage(getErrorMessage(error, "Non riesco a inviare la conferma.")),
+  });
+  const resendCancellation = () => resendCancellationEmail.mutate({ id: item.id }, {
+    onSuccess: async (result) => {
+      setEmailMessage(result.message);
+      await client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
+    },
+    onError: async (error) => {
+      setEmailMessage(getErrorMessage(error, "Non riesco a inviare l’avviso di annullamento."));
+      await client.invalidateQueries({ queryKey: getListAdminTourBookingsQueryKey() });
+    },
   });
   return <>
     <tr data-testid={`row-tour-${item.id}`} className="border-b border-[hsl(var(--border)/.65)]">
@@ -743,6 +776,9 @@ function TourRow({ item, onStatus, updating }: { item: TourBooking; onStatus: (i
       <td className="whitespace-nowrap px-4 py-4 text-xs text-[hsl(var(--muted-foreground))]">{formatDateTime(item.createdAt)}</td>
       <td className="px-4 py-4"><div className="flex flex-col items-start gap-2">
         {item.status === "confirmed" && item.meetUrl && item.confirmationEmailStatus !== "sent" && <button type="button" disabled={resendConfirmation.isPending} onClick={resend} className="whitespace-nowrap text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendConfirmation.isPending ? "Invio…" : "Reinvia email"}</button>}
+        {item.status === "cancelled" && cancellationEmailCanRetry(item.cancellationEmailStatus) && <button type="button" disabled={resendCancellationEmail.isPending} onClick={resendCancellation} className="whitespace-nowrap text-xs font-semibold underline underline-offset-4 disabled:opacity-50">{resendCancellationEmail.isPending ? "Invio avviso…" : item.cancellationEmailStatus === "failed" ? "Riprova avviso email" : "Invia avviso email"}</button>}
+        {item.status === "cancelled" && cancellationEmailCanRetry(item.cancellationEmailStatus) && item.cancellationEmailError && <span className="max-w-56 whitespace-normal text-xs text-[hsl(var(--destructive))]">{item.cancellationEmailError}</span>}
+        {item.status === "cancelled" && item.cancellationEmailStatus === "sent" && <span className="text-xs text-[hsl(var(--muted-foreground))]">Avviso email inviato{item.cancellationEmailSentAt ? ` · ${formatDateTime(item.cancellationEmailSentAt)}` : ""}</span>}
         <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold underline underline-offset-4">{expanded ? "Chiudi" : "Gestisci"}</button>
         {emailMessage && <span role="status" className="max-w-56 whitespace-normal text-xs text-[hsl(var(--muted-foreground))]">{emailMessage}</span>}
       </div></td>

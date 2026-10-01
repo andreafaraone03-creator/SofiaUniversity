@@ -276,7 +276,10 @@ export const GetAdminSummaryResponse = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 })),zod.null()])
 })
 
@@ -320,7 +323,10 @@ export const ListAdminOrientationRequestsResponseItem = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 export const ListAdminOrientationRequestsResponse = zod.array(ListAdminOrientationRequestsResponseItem)
 
@@ -359,7 +365,10 @@ export const ListAdminTourBookingsResponseItem = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 export const ListAdminTourBookingsResponse = zod.array(ListAdminTourBookingsResponseItem)
 
@@ -406,7 +415,10 @@ export const UpdateTourBookingStatusResponse = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 
 
@@ -463,7 +475,10 @@ export const UpdateOrientationRequestManagementResponse = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 
 
@@ -540,7 +555,10 @@ export const MarkOrientationRequestNotEnrolledResponse = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 
 
@@ -591,7 +609,10 @@ export const UpdateTourBookingManagementResponse = zod.object({
   "followUpAt": zod.coerce.date().nullable(),
   "confirmationEmailStatus": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "confirmationEmailSentAt": zod.coerce.date().nullable(),
-  "confirmationEmailError": zod.string()
+  "confirmationEmailError": zod.string(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailSentAt": zod.coerce.date().nullable(),
+  "cancellationEmailError": zod.string()
 }))
 
 
@@ -799,6 +820,20 @@ export const ResendOrientationConfirmationResponse = zod.object({
 
 
 /**
+ * @summary Reinvia l'avviso di annullamento di una consulenza
+ */
+export const ResendOrientationCancellationEmailParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ResendOrientationCancellationEmailResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Annulla l'appuntamento e libera l'orario
  */
 export const CancelOrientationAppointmentParams = zod.object({
@@ -806,7 +841,9 @@ export const CancelOrientationAppointmentParams = zod.object({
 })
 
 export const CancelOrientationAppointmentResponse = zod.object({
-  "success": zod.boolean()
+  "success": zod.boolean(),
+  "cancellationEmailStatus": zod.enum(['not_required', 'pending', 'sent', 'failed', 'not_configured', 'disabled']),
+  "cancellationEmailError": zod.string()
 })
 
 
@@ -818,6 +855,20 @@ export const ResendTourConfirmationParams = zod.object({
 })
 
 export const ResendTourConfirmationResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Reinvia l'avviso di annullamento di un tour
+ */
+export const ResendTourCancellationEmailParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ResendTourCancellationEmailResponse = zod.object({
   "success": zod.boolean(),
   "status": zod.enum(['sent', 'failed', 'not_configured', 'disabled']),
   "message": zod.string()

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { ReplitConnectors } from "@replit/connectors-sdk";
 import { getGoogleAccessToken, usesGoogleOAuth } from "./sofia-google-oauth";
+import { calendarDeleteEventPath } from "./sofia-calendar-paths";
 
 const calendarId = "primary";
 const timezone = "Europe/Rome";
@@ -217,7 +218,7 @@ export async function createMeetEvent(appointment: AppointmentDetails): Promise<
 
 export async function deleteMeetEvent(eventId: string): Promise<void> {
   const response = await calendarRequest(
-    `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=all`,
+    calendarDeleteEventPath(calendarId, eventId),
     { method: "DELETE" },
   );
   if (!response.ok && response.status !== 404 && response.status !== 410) {

@@ -98,6 +98,18 @@ export const ConfirmationEmailStatus = {
   disabled: 'disabled',
 } as const;
 
+export type CancellationEmailStatus = typeof CancellationEmailStatus[keyof typeof CancellationEmailStatus];
+
+
+export const CancellationEmailStatus = {
+  not_required: 'not_required',
+  pending: 'pending',
+  sent: 'sent',
+  failed: 'failed',
+  not_configured: 'not_configured',
+  disabled: 'disabled',
+} as const;
+
 export type OrientationRequest = ContactInput & ({
   id: number;
   university: string;
@@ -121,6 +133,10 @@ export type OrientationRequest = ContactInput & ({
   /** @nullable */
   confirmationEmailSentAt: string | null;
   confirmationEmailError: string;
+  cancellationEmailStatus: CancellationEmailStatus;
+  /** @nullable */
+  cancellationEmailSentAt: string | null;
+  cancellationEmailError: string;
 });
 
 export interface OrientationRequestReceipt {
@@ -162,6 +178,10 @@ export type TourBooking = ContactInput & ({
   /** @nullable */
   confirmationEmailSentAt: string | null;
   confirmationEmailError: string;
+  cancellationEmailStatus: CancellationEmailStatus;
+  /** @nullable */
+  cancellationEmailSentAt: string | null;
+  cancellationEmailError: string;
 });
 
 export interface TourBookingReceipt {
@@ -224,6 +244,12 @@ export interface AdminSummary {
   commissionsPaidCents: number;
   followUpsDue: number;
   nextBooking: TourBooking | null;
+}
+
+export interface CancelOrientationAppointmentResult {
+  success: boolean;
+  cancellationEmailStatus: CancellationEmailStatus;
+  cancellationEmailError: string;
 }
 
 export interface OrientationManagementUpdate {

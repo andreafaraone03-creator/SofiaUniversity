@@ -10,6 +10,8 @@ export * from './adminCredentials';
 export * from './adminStatus';
 export * from './adminSummary';
 export * from './appointmentSlot';
+export * from './cancellationEmailStatus';
+export * from './cancelOrientationAppointmentResult';
 export * from './completeAdminGoogleCalendarConnectionParams';
 export * from './confirmationEmailStatus';
 export * from './contactInput';
