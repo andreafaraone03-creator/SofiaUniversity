@@ -436,23 +436,23 @@ export const courses = JSON.parse(
 ) as Course[];
 
 export const orientationColumns = `
-  id, first_name AS firstName, last_name AS lastName, email, province, phone,
-  university, course_id AS courseId, course_name AS courseName, created_at AS createdAt,
-  appointment_date AS appointmentDate, appointment_time AS appointmentTime,
-  appointment_status AS appointmentStatus, meet_url AS meetUrl,
-  pipeline_status AS pipelineStatus, enrollment_outcome AS enrollmentOutcome,
-  admin_notes AS adminNotes, follow_up_at AS followUpAt,
-  confirmation_email_status AS confirmationEmailStatus,
-  confirmation_email_sent_at AS confirmationEmailSentAt,
-  confirmation_email_error AS confirmationEmailError
+  id, first_name AS "firstName", last_name AS "lastName", email, province, phone,
+  university, course_id AS "courseId", course_name AS "courseName", created_at AS "createdAt",
+  appointment_date AS "appointmentDate", appointment_time AS "appointmentTime",
+  appointment_status AS "appointmentStatus", meet_url AS "meetUrl",
+  pipeline_status AS "pipelineStatus", enrollment_outcome AS "enrollmentOutcome",
+  admin_notes AS "adminNotes", follow_up_at AS "followUpAt",
+  confirmation_email_status AS "confirmationEmailStatus",
+  confirmation_email_sent_at AS "confirmationEmailSentAt",
+  confirmation_email_error AS "confirmationEmailError"
 `;
 
 export const bookingColumns = `
-  id, first_name AS firstName, last_name AS lastName, email, province, phone,
-  date, time, meet_url AS meetUrl, status, created_at AS createdAt, admin_notes AS adminNotes,
-  follow_up_at AS followUpAt, confirmation_email_status AS confirmationEmailStatus,
-  confirmation_email_sent_at AS confirmationEmailSentAt,
-  confirmation_email_error AS confirmationEmailError
+  id, first_name AS "firstName", last_name AS "lastName", email, province, phone,
+  date, time, meet_url AS "meetUrl", status, created_at AS "createdAt", admin_notes AS "adminNotes",
+  follow_up_at AS "followUpAt", confirmation_email_status AS "confirmationEmailStatus",
+  confirmation_email_sent_at AS "confirmationEmailSentAt",
+  confirmation_email_error AS "confirmationEmailError"
 `;
 
 export const enrollmentColumns = `

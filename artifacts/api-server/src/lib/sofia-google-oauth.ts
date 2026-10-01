@@ -4,7 +4,7 @@ import {
   createHash,
   randomBytes,
 } from "node:crypto";
-import { sofiaStorage } from "./sofia-db";
+import { sofiaStorage, sofiaTransaction } from "./sofia-db";
 
 const callbackPath = "/api/admin/google-calendar/callback";
 const authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -19,6 +19,7 @@ const oauthEnvKeys = [
   "SOFIA_GOOGLE_REDIRECT_URI",
   "SOFIA_GOOGLE_TOKEN_ENCRYPTION_KEY",
 ] as const;
+const oauthStateLifetimeMs = 10 * 60 * 1000;
 
 type OAuthConfig = {
   clientId: string;
@@ -47,6 +48,40 @@ export type GoogleCalendarConnectionStatus = {
 };
 
 let cachedAccessToken: { value: string; expiresAt: number } | null = null;
+
+export async function createGoogleOAuthState(): Promise<string> {
+  const state = randomBytes(32).toString("base64url");
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + oauthStateLifetimeMs).toISOString();
+  await sofiaTransaction(async (tx) => {
+    await tx.run(
+      "DELETE FROM sofia_google_calendar_oauth_states WHERE expires_at <= ?",
+      now.toISOString(),
+    );
+    await tx.run(
+      "INSERT INTO sofia_google_calendar_oauth_states (state_hash, expires_at) VALUES (?, ?)",
+      createHash("sha256").update(state, "utf8").digest("hex"),
+      expiresAt,
+    );
+  });
+  return state;
+}
+
+export async function consumeGoogleOAuthState(value: unknown): Promise<boolean> {
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(value)) {
+    return false;
+  }
+  const now = new Date().toISOString();
+  const result = await sofiaTransaction((tx) =>
+    tx.run(
+      `DELETE FROM sofia_google_calendar_oauth_states
+       WHERE state_hash = ? AND expires_at > ?`,
+      createHash("sha256").update(value, "utf8").digest("hex"),
+      now,
+    ),
+  );
+  return result.changes === 1;
+}
 
 export function usesGoogleOAuth(): boolean {
   return process.env.NODE_ENV === "production" ||
@@ -88,7 +123,7 @@ export async function getGoogleCalendarConnectionStatus(): Promise<GoogleCalenda
   }
 
   const row = await sofiaStorage.get<EncryptedRefreshToken>(`
-    SELECT encrypted_refresh_token AS encryptedRefreshToken, iv, auth_tag AS authTag
+    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv, auth_tag AS "authTag"
     FROM sofia_google_calendar_credentials
     WHERE id = 1
   `);
@@ -212,7 +247,7 @@ export async function getGoogleAccessToken(): Promise<string> {
   }
 
   const record = await sofiaStorage.get<EncryptedRefreshToken>(`
-    SELECT encrypted_refresh_token AS encryptedRefreshToken, iv, auth_tag AS authTag
+    SELECT encrypted_refresh_token AS "encryptedRefreshToken", iv, auth_tag AS "authTag"
     FROM sofia_google_calendar_credentials
     WHERE id = 1
   `);
