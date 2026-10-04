@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useGetRecaptchaConfig } from "@workspace/api-client-react";
 
 type GoogleRecaptchaApi = {
+  ready: (callback: () => void) => void;
   render: (
     container: HTMLElement,
     options: {
@@ -15,6 +16,10 @@ type GoogleRecaptchaApi = {
   reset: (widgetId?: number) => void;
 };
 
+type GoogleRecaptchaWindow = Window & {
+  __sofiaRecaptchaOnload?: () => void;
+};
+
 declare global {
   interface Window {
     grecaptcha?: GoogleRecaptchaApi;
@@ -22,39 +27,75 @@ declare global {
 }
 
 let recaptchaScriptPromise: Promise<void> | null = null;
+const recaptchaCallbackName = "__sofiaRecaptchaOnload";
 
 function loadRecaptchaScript(): Promise<void> {
   if (window.grecaptcha?.render) return Promise.resolve();
   if (recaptchaScriptPromise) return recaptchaScriptPromise;
 
   recaptchaScriptPromise = new Promise<void>((resolve, reject) => {
+    const recaptchaWindow = window as GoogleRecaptchaWindow;
     const existing = document.querySelector<HTMLScriptElement>("script[data-sofia-recaptcha]");
     const script = existing ?? document.createElement("script");
-    const onLoad = () => {
-      if (window.grecaptcha?.render) resolve();
-      else {
-        script.remove();
-        reject(new Error("Google reCAPTCHA non disponibile."));
-      }
+    let timeout: number;
+    let settled = false;
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      delete recaptchaWindow[recaptchaCallbackName];
     };
-    const onError = () => {
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       script.remove();
-      reject(new Error("Impossibile caricare Google reCAPTCHA."));
+      reject(error);
+    };
+    const checkReady = () => {
+      const api = window.grecaptcha;
+      if (api?.render) {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          resolve();
+        }
+        return;
+      }
+      if (api?.ready) {
+        api.ready(() => {
+          if (window.grecaptcha?.render) {
+            if (!settled) {
+              settled = true;
+              cleanup();
+              resolve();
+            }
+          } else {
+            fail(new Error("Google reCAPTCHA ha caricato lo script ma non l'API della checkbox."));
+          }
+        });
+        return;
+      }
+      fail(new Error("Google reCAPTCHA non ha reso disponibile l'API della checkbox."));
     };
 
+    recaptchaWindow[recaptchaCallbackName] = checkReady;
+    timeout = window.setTimeout(
+      () => fail(new Error("Timeout durante il caricamento di Google reCAPTCHA.")),
+      15000,
+    );
     if (!existing) {
-      script.src = "https://www.google.com/recaptcha/api.js?render=explicit&hl=it";
+      script.src = `https://www.google.com/recaptcha/api.js?onload=${recaptchaCallbackName}&render=explicit&hl=it`;
       script.async = true;
       script.defer = true;
       script.dataset.sofiaRecaptcha = "true";
-      script.addEventListener("load", onLoad, { once: true });
-      script.addEventListener("error", onError, { once: true });
+      script.addEventListener("load", checkReady, { once: true });
+      script.addEventListener("error", () => fail(new Error("Impossibile raggiungere Google reCAPTCHA.")), { once: true });
       document.head.append(script);
-    } else if (window.grecaptcha?.render) {
-      onLoad();
+    } else if (window.grecaptcha?.ready) {
+      window.grecaptcha.ready(checkReady);
     } else {
-      script.addEventListener("load", onLoad, { once: true });
-      script.addEventListener("error", onError, { once: true });
+      script.addEventListener("load", checkReady, { once: true });
+      script.addEventListener("error", () => fail(new Error("Impossibile raggiungere Google reCAPTCHA.")), { once: true });
     }
   }).catch((error: unknown) => {
     recaptchaScriptPromise = null;
@@ -107,10 +148,12 @@ export function RecaptchaCheckbox({ onTokenChange, resetKey }: RecaptchaCheckbox
           },
         });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!active) return;
         onTokenChangeRef.current(null);
-        setLoadError("Impossibile caricare la verifica anti-spam. Ricarica la pagina e riprova.");
+        setLoadError(error instanceof Error
+          ? `${error.message} Ricarica la pagina e riprova.`
+          : "Impossibile caricare la verifica anti-spam. Ricarica la pagina e riprova.");
       });
 
     return () => {
