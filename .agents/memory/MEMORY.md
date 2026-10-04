@@ -5,3 +5,4 @@
 - [Render deployment verification](render-deployment-verification.md) — a successful push does not prove Render is live; verify the service URL and health response.
 - [Sofia Resend isolation](sofia-resend-isolation.md) — use a project-scoped secret for Sofia email delivery; do not change the Personal Resend connector shared with another app.
 - [Sofia Calendar OAuth and PostgreSQL](sofia-calendar-oauth.md) — verify OAuth identity, keep state browser-independent, and treat Meet account selection as a hint only.
+- [Sofia HTTP route tests](sofia-http-route-tests.md) — bundle routers into the expected artifact context and isolate storage when testing authenticated HTTP paths.
