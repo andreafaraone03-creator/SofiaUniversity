@@ -1,9 +1,10 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   CreateOrientationRequestBody,
   CreateOrientationRequestResponse,
   CreateTourBookingBody,
   CreateTourBookingResponse,
+  GetRecaptchaConfigResponse,
   ListAppointmentSlotsQueryParams,
   ListAppointmentSlotsResponse,
   ListCoursesQueryParams,
@@ -35,14 +36,37 @@ import {
   intervalIsBusy,
   type AppointmentDetails,
 } from "../lib/sofia-calendar";
+import { verifyRecaptchaToken } from "../lib/sofia-recaptcha";
 
 const router: IRouter = Router();
+
+async function verifyBookingCaptcha(token: string, res: Response): Promise<boolean> {
+  const result = await verifyRecaptchaToken(token);
+  if (result === "verified") return true;
+
+  if (result === "invalid") {
+    res.status(403).json({ error: "Completa la verifica «Non sono un robot» e riprova." });
+  } else {
+    res.status(503).json({ error: "La verifica anti-spam non è disponibile. Riprova tra poco." });
+  }
+  return false;
+}
 
 function validDateString(rawDate: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(rawDate) &&
     !Number.isNaN(Date.parse(`${rawDate}T00:00:00Z`)) &&
     new Date(`${rawDate}T00:00:00Z`).toISOString().slice(0, 10) === rawDate;
 }
+
+router.get("/recaptcha-config", (_req, res): void => {
+  const siteKey = process.env.SOFIA_RECAPTCHA_SITE_KEY?.trim() || null;
+  const secretKey = process.env.SOFIA_RECAPTCHA_SECRET_KEY?.trim();
+  const enabled = Boolean(siteKey && secretKey);
+  res.json(GetRecaptchaConfigResponse.parse({
+    enabled,
+    siteKey: enabled ? siteKey : null,
+  }));
+});
 
 async function listAvailableSlots(date: string) {
   const [busyRanges, reserved] = await Promise.all([
@@ -153,6 +177,7 @@ router.post("/orientation-requests", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Controlla i dati della prenotazione e riprova." });
     return;
   }
+  if (!await verifyBookingCaptcha(parsed.data.captchaToken, res)) return;
 
   const {
     university, courseId, firstName, lastName, email, province, phone, time,
@@ -293,6 +318,7 @@ router.post("/tour-bookings", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Controlla i dati della prenotazione e riprova." });
     return;
   }
+  if (!await verifyBookingCaptcha(parsed.data.captchaToken, res)) return;
 
   const { date, time, firstName, lastName, email, province, phone } = parsed.data;
   const dateString = date.toISOString().slice(0, 10);

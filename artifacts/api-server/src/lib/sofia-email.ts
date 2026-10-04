@@ -5,6 +5,10 @@ import {
   formatTourDate,
   type CancellationEmailDetails,
 } from "./sofia-email-content";
+import {
+  DEFAULT_ADMIN_EMAIL_TEMPLATES,
+  renderAdminEmailTemplate,
+} from "./sofia-admin-email-templates";
 
 export type EmailDeliveryStatus = "sent" | "failed" | "not_configured" | "disabled";
 
@@ -41,11 +45,17 @@ async function readSettings(): Promise<EmailSettings> {
   const row = await sofiaStorage.get<{
     senderEmail: string | null; adminNotificationEmail: string | null; senderName: string;
     sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
+    adminTourEmailSubject: string | null; adminTourEmailBody: string | null;
+    adminConsultationEmailSubject: string | null; adminConsultationEmailBody: string | null;
   }>(`
     SELECT sender_email AS "senderEmail", admin_notification_email AS "adminNotificationEmail",
       sender_name AS "senderName",
       send_orientation_confirmations AS "sendOrientationConfirmations",
-      send_tour_confirmations AS "sendTourConfirmations"
+      send_tour_confirmations AS "sendTourConfirmations",
+      admin_tour_email_subject AS "adminTourEmailSubject",
+      admin_tour_email_body AS "adminTourEmailBody",
+      admin_consultation_email_subject AS "adminConsultationEmailSubject",
+      admin_consultation_email_body AS "adminConsultationEmailBody"
     FROM impostazioni_email WHERE id = 1
   `);
 
@@ -55,6 +65,10 @@ async function readSettings(): Promise<EmailSettings> {
     senderName: row?.senderName?.trim() || "Sofia",
     sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
     sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
+    adminTourEmailSubject: row?.adminTourEmailSubject?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.tour.subject,
+    adminTourEmailBody: row?.adminTourEmailBody?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.tour.body,
+    adminConsultationEmailSubject: row?.adminConsultationEmailSubject?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.consultation.subject,
+    adminConsultationEmailBody: row?.adminConsultationEmailBody?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.consultation.body,
   };
 }
 
@@ -130,21 +144,31 @@ export async function sendAdminBookingNotification(details: AdminBookingDetails)
   if (!settings.adminNotificationEmail) {
     return { status: "disabled", sentAt: null, error: "" };
   }
-  const isConsultation = details.type === "consultation";
-  const label = isConsultation ? "consulenza universitaria" : "tour della piattaforma";
-  const date = formatTourDate(details.date);
-  const customerName = `${details.firstName} ${details.lastName}`.trim();
-  const context = isConsultation
-    ? `Ateneo: ${details.university}\nCorso: ${details.courseName}\n`
-    : "";
-  const htmlContext = isConsultation
-    ? `<p>Ateneo: <strong>${escapeHtml(details.university)}</strong><br>Corso: <strong>${escapeHtml(details.courseName)}</strong></p>`
-    : "";
+  const template = details.type === "consultation"
+    ? {
+        subject: settings.adminConsultationEmailSubject,
+        body: settings.adminConsultationEmailBody,
+      }
+    : {
+        subject: settings.adminTourEmailSubject,
+        body: settings.adminTourEmailBody,
+      };
+  const content = renderAdminEmailTemplate(template, {
+    firstName: details.firstName,
+    lastName: details.lastName,
+    customerEmail: details.customerEmail,
+    date: formatTourDate(details.date),
+    time: details.time,
+    meetUrl: details.meetUrl,
+    ...details.type === "consultation"
+      ? { university: details.university, courseName: details.courseName }
+      : {},
+  });
   return sendEmail(
     settings.adminNotificationEmail,
-    `Nuova prenotazione: ${label}`,
-    `Nuova prenotazione per ${label}.\n\nCliente: ${customerName}\nEmail: ${details.customerEmail}\nData: ${date} alle ${details.time}\n${context}\nPartecipa su Google Meet: ${details.meetUrl}\n`,
-    `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#24211f"><p>Nuova prenotazione per ${escapeHtml(label)}.</p><p>Cliente: <strong>${escapeHtml(customerName)}</strong><br>Email: ${escapeHtml(details.customerEmail)}<br>Data: <strong>${escapeHtml(date)} alle ${escapeHtml(details.time)}</strong></p>${htmlContext}<p><a href="${escapeHtml(details.meetUrl)}">Partecipa su Google Meet</a></p></div>`,
+    content.subject,
+    content.text,
+    content.html,
     settings,
   );
 }

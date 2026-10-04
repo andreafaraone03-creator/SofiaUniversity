@@ -94,6 +94,10 @@ export type EmailSettings = {
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
+  adminTourEmailSubject: string;
+  adminTourEmailBody: string;
+  adminConsultationEmailSubject: string;
+  adminConsultationEmailBody: string;
 };
 
 const sofiaDatabaseUrl = process.env.SOFIA_DATABASE_URL?.trim();
@@ -215,6 +219,10 @@ sqlite.exec(`
     sender_name TEXT NOT NULL DEFAULT 'Sofia',
     send_orientation_confirmations INTEGER NOT NULL DEFAULT 1,
     send_tour_confirmations INTEGER NOT NULL DEFAULT 1,
+    admin_tour_email_subject TEXT NOT NULL DEFAULT '',
+    admin_tour_email_body TEXT NOT NULL DEFAULT '',
+    admin_consultation_email_subject TEXT NOT NULL DEFAULT '',
+    admin_consultation_email_body TEXT NOT NULL DEFAULT '',
     updated_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
@@ -372,7 +380,12 @@ async function initializePostgres(): Promise<void> {
       id integer PRIMARY KEY CHECK (id=1), sender_email text, admin_notification_email text,
       sender_name text NOT NULL DEFAULT 'Sofia',
       send_orientation_confirmations integer NOT NULL DEFAULT 1,
-      send_tour_confirmations integer NOT NULL DEFAULT 1, updated_at text NOT NULL
+      send_tour_confirmations integer NOT NULL DEFAULT 1,
+      admin_tour_email_subject text NOT NULL DEFAULT '',
+      admin_tour_email_body text NOT NULL DEFAULT '',
+      admin_consultation_email_subject text NOT NULL DEFAULT '',
+      admin_consultation_email_body text NOT NULL DEFAULT '',
+      updated_at text NOT NULL
     );
     CREATE TABLE IF NOT EXISTS sofia_google_calendar_credentials (
       id integer PRIMARY KEY CHECK (id=1),
@@ -389,6 +402,10 @@ async function initializePostgres(): Promise<void> {
     CREATE INDEX IF NOT EXISTS google_oauth_state_expiration
       ON sofia_google_calendar_oauth_states(expires_at);
     ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_notification_email text;
+    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_tour_email_subject text NOT NULL DEFAULT '';
+    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_tour_email_body text NOT NULL DEFAULT '';
+    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_consultation_email_subject text NOT NULL DEFAULT '';
+    ALTER TABLE impostazioni_email ADD COLUMN IF NOT EXISTS admin_consultation_email_body text NOT NULL DEFAULT '';
     ALTER TABLE sofia_google_calendar_credentials ADD COLUMN IF NOT EXISTS account_email text;
     ALTER TABLE richieste_corso ADD COLUMN IF NOT EXISTS cancellation_email_status text NOT NULL DEFAULT 'not_required';
     ALTER TABLE richieste_corso ADD COLUMN IF NOT EXISTS cancellation_email_sent_at text;
@@ -443,6 +460,10 @@ ensureColumn("prenotazioni_tour", "cancellation_email_error", "TEXT NOT NULL DEF
 ensureColumn("prenotazioni_tour", "google_calendar_event_id", "TEXT");
 ensureColumn("prenotazioni_tour", "meet_url", "TEXT");
 ensureColumn("impostazioni_email", "admin_notification_email", "TEXT");
+ensureColumn("impostazioni_email", "admin_tour_email_subject", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("impostazioni_email", "admin_tour_email_body", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("impostazioni_email", "admin_consultation_email_subject", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("impostazioni_email", "admin_consultation_email_body", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("sofia_google_calendar_credentials", "account_email", "TEXT");
 
 sqlite.exec(`

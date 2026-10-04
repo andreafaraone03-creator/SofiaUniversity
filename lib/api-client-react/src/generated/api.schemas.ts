@@ -54,6 +54,11 @@ export type OrientationRequestInput = ContactInput & {
   date: string;
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   time: string;
+  /**
+     * @minLength 1
+     * @maxLength 4096
+     */
+  captchaToken: string;
 };
 
 /**
@@ -152,6 +157,11 @@ export type TourBookingInput = ContactInput & {
   date: string;
   /** @pattern ^[0-2][0-9]:[0-5][0-9]$ */
   time: string;
+  /**
+     * @minLength 1
+     * @maxLength 4096
+     */
+  captchaToken: string;
 };
 
 export type TourBookingStatus = typeof TourBookingStatus[keyof typeof TourBookingStatus];
@@ -375,6 +385,12 @@ export interface EnrollmentUpdate {
   notes?: string;
 }
 
+export interface RecaptchaConfig {
+  enabled: boolean;
+  /** @nullable */
+  siteKey: string | null;
+}
+
 export interface EmailSettings {
   /** @nullable */
   senderEmail: string | null;
@@ -386,6 +402,26 @@ export interface EmailSettings {
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminTourEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminTourEmailBody: string;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminConsultationEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminConsultationEmailBody: string;
 }
 
 export interface EmailSettingsInput {
@@ -403,6 +439,26 @@ export interface EmailSettingsInput {
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminTourEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminTourEmailBody: string;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminConsultationEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminConsultationEmailBody: string;
 }
 
 export interface TestEmailInput {

@@ -13,6 +13,10 @@ type SettingsDraft = {
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
+  adminTourEmailSubject: string;
+  adminTourEmailBody: string;
+  adminConsultationEmailSubject: string;
+  adminConsultationEmailBody: string;
 };
 
 const defaultSettings: SettingsDraft = {
@@ -21,6 +25,10 @@ const defaultSettings: SettingsDraft = {
   senderName: "Sofia",
   sendOrientationConfirmations: true,
   sendTourConfirmations: true,
+  adminTourEmailSubject: "",
+  adminTourEmailBody: "",
+  adminConsultationEmailSubject: "",
+  adminConsultationEmailBody: "",
 };
 
 export function AdminEmailSettings() {
@@ -40,6 +48,10 @@ export function AdminEmailSettings() {
       senderName: settingsQuery.data.senderName,
       sendOrientationConfirmations: settingsQuery.data.sendOrientationConfirmations,
       sendTourConfirmations: settingsQuery.data.sendTourConfirmations,
+      adminTourEmailSubject: settingsQuery.data.adminTourEmailSubject,
+      adminTourEmailBody: settingsQuery.data.adminTourEmailBody,
+      adminConsultationEmailSubject: settingsQuery.data.adminConsultationEmailSubject,
+      adminConsultationEmailBody: settingsQuery.data.adminConsultationEmailBody,
     });
   }, [settingsQuery.data]);
 
@@ -53,6 +65,10 @@ export function AdminEmailSettings() {
         senderName: draft.senderName.trim() || "Sofia",
         sendOrientationConfirmations: draft.sendOrientationConfirmations,
         sendTourConfirmations: draft.sendTourConfirmations,
+        adminTourEmailSubject: draft.adminTourEmailSubject.trim(),
+        adminTourEmailBody: draft.adminTourEmailBody.trim(),
+        adminConsultationEmailSubject: draft.adminConsultationEmailSubject.trim(),
+        adminConsultationEmailBody: draft.adminConsultationEmailBody.trim(),
       },
     }, {
       onSuccess: async () => {
@@ -90,6 +106,34 @@ export function AdminEmailSettings() {
             <input className="field mt-2" type="email" maxLength={254} value={draft.adminNotificationEmail} onChange={(event) => setDraft({ ...draft, adminNotificationEmail: event.target.value })} placeholder="sofia@tuodominio.it" />
             <span className="mt-2 block font-normal text-[hsl(var(--muted-foreground))]">Riceverà data, cliente e link Meet. È anche l’account Google atteso per Calendar e quello suggerito quando apri i Meet dalla dashboard. Deve comunque accedere a Google: l’indirizzo non assegna permessi. Se vuoto, le notifiche admin sono disattivate e i link si aprono direttamente.</span>
           </label>
+          <section className="space-y-4 border border-[hsl(var(--border))] p-4">
+            <div>
+              <h3 className="text-sm font-semibold">Contenuto delle notifiche admin</h3>
+              <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Oggetto e testo sono indipendenti per consulenze e tour. Puoi usare: {"{{firstName}}"}, {"{{lastName}}"}, {"{{customerEmail}}"}, {"{{date}}"}, {"{{time}}"}, {"{{meetUrl}}"}, {"{{university}}"}, {"{{courseName}}"}.
+              </p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide">Consulenze</h4>
+                <label className="block text-xs font-semibold">Oggetto
+                  <input className="field mt-2" required maxLength={250} value={draft.adminConsultationEmailSubject} onChange={(event) => setDraft({ ...draft, adminConsultationEmailSubject: event.target.value })} />
+                </label>
+                <label className="block text-xs font-semibold">Testo
+                  <textarea className="field mt-2 min-h-40 resize-y" required maxLength={12000} value={draft.adminConsultationEmailBody} onChange={(event) => setDraft({ ...draft, adminConsultationEmailBody: event.target.value })} />
+                </label>
+              </div>
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wide">Tour</h4>
+                <label className="block text-xs font-semibold">Oggetto
+                  <input className="field mt-2" required maxLength={250} value={draft.adminTourEmailSubject} onChange={(event) => setDraft({ ...draft, adminTourEmailSubject: event.target.value })} />
+                </label>
+                <label className="block text-xs font-semibold">Testo
+                  <textarea className="field mt-2 min-h-40 resize-y" required maxLength={12000} value={draft.adminTourEmailBody} onChange={(event) => setDraft({ ...draft, adminTourEmailBody: event.target.value })} />
+                </label>
+              </div>
+            </div>
+          </section>
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
             <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.sendOrientationConfirmations} onChange={(event) => setDraft({ ...draft, sendOrientationConfirmations: event.target.checked })} /> Invia conferme delle consulenze</label>
             <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.sendTourConfirmations} onChange={(event) => setDraft({ ...draft, sendTourConfirmations: event.target.checked })} /> Invia conferme dei tour</label>

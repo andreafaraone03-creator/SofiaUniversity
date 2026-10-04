@@ -28,6 +28,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /recaptcha-config:
+    get:
+      operationId: getRecaptchaConfig
+      tags: [public]
+      summary: Legge la configurazione pubblica del controllo reCAPTCHA
+      responses:
+        "200":
+          description: Stato e site key pubblica reCAPTCHA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecaptchaConfig"
   /courses:
     get:
       operationId: listCourses
@@ -712,7 +724,8 @@ components:
             courseId: { type: string, minLength: 1 }
             date: { type: string, format: date }
             time: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
-          required: [university, courseId, date, time]
+            captchaToken: { type: string, minLength: 1, maxLength: 4096 }
+          required: [university, courseId, date, time, captchaToken]
     OrientationRequest:
       allOf:
         - $ref: "#/components/schemas/ContactInput"
@@ -755,7 +768,8 @@ components:
           properties:
             date: { type: string, format: date }
             time: { type: string, pattern: "^[0-2][0-9]:[0-5][0-9]$" }
-          required: [date, time]
+            captchaToken: { type: string, minLength: 1, maxLength: 4096 }
+          required: [date, time, captchaToken]
     TourBooking:
       allOf:
         - $ref: "#/components/schemas/ContactInput"
@@ -907,6 +921,12 @@ components:
         commissionStatus: { type: string, enum: [pending, paid] }
         status: { type: string, enum: [active, withdrawn] }
         notes: { type: string, maxLength: 5000 }
+    RecaptchaConfig:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        siteKey: { type: ["string", "null"] }
+      required: [enabled, siteKey]
     EmailSettings:
       type: object
       properties:
@@ -915,7 +935,11 @@ components:
         senderName: { type: string }
         sendOrientationConfirmations: { type: boolean }
         sendTourConfirmations: { type: boolean }
-      required: [senderEmail, adminNotificationEmail, senderName, sendOrientationConfirmations, sendTourConfirmations]
+        adminTourEmailSubject: { type: string, minLength: 1, maxLength: 250 }
+        adminTourEmailBody: { type: string, minLength: 1, maxLength: 12000 }
+        adminConsultationEmailSubject: { type: string, minLength: 1, maxLength: 250 }
+        adminConsultationEmailBody: { type: string, minLength: 1, maxLength: 12000 }
+      required: [senderEmail, adminNotificationEmail, senderName, sendOrientationConfirmations, sendTourConfirmations, adminTourEmailSubject, adminTourEmailBody, adminConsultationEmailSubject, adminConsultationEmailBody]
     EmailSettingsInput:
       type: object
       properties:
@@ -924,7 +948,11 @@ components:
         senderName: { type: string, minLength: 1, maxLength: 80 }
         sendOrientationConfirmations: { type: boolean }
         sendTourConfirmations: { type: boolean }
-      required: [senderEmail, adminNotificationEmail, senderName, sendOrientationConfirmations, sendTourConfirmations]
+        adminTourEmailSubject: { type: string, minLength: 1, maxLength: 250 }
+        adminTourEmailBody: { type: string, minLength: 1, maxLength: 12000 }
+        adminConsultationEmailSubject: { type: string, minLength: 1, maxLength: 250 }
+        adminConsultationEmailBody: { type: string, minLength: 1, maxLength: 12000 }
+      required: [senderEmail, adminNotificationEmail, senderName, sendOrientationConfirmations, sendTourConfirmations, adminTourEmailSubject, adminTourEmailBody, adminConsultationEmailSubject, adminConsultationEmailBody]
     TestEmailInput:
       type: object
       properties:

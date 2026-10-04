@@ -43,6 +43,7 @@ import type {
   OrientationRequest,
   OrientationRequestInput,
   OrientationRequestReceipt,
+  RecaptchaConfig,
   Success,
   TestEmailInput,
   TourBooking,
@@ -146,6 +147,83 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetRecaptchaConfigUrl = () => {
+
+
+
+
+  return `/api/recaptcha-config`
+}
+
+/**
+ * @summary Legge la configurazione pubblica del controllo reCAPTCHA
+ */
+export const getRecaptchaConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<RecaptchaConfig> => {
+
+  return customFetch<RecaptchaConfig>(getGetRecaptchaConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRecaptchaConfigQueryKey = () => {
+    return [
+    `/api/recaptcha-config`
+    ] as const;
+    }
+
+
+export const getGetRecaptchaConfigQueryOptions = <TData = Awaited<ReturnType<typeof getRecaptchaConfig>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecaptchaConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRecaptchaConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRecaptchaConfig>>> = ({ signal }) => getRecaptchaConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRecaptchaConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRecaptchaConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getRecaptchaConfig>>>
+export type GetRecaptchaConfigQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Legge la configurazione pubblica del controllo reCAPTCHA
+ */
+
+export function useGetRecaptchaConfig<TData = Awaited<ReturnType<typeof getRecaptchaConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRecaptchaConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRecaptchaConfigQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

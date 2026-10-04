@@ -57,6 +57,7 @@ import {
   requireAdmin,
   setAdminSession,
 } from "../lib/sofia-auth";
+import { DEFAULT_ADMIN_EMAIL_TEMPLATES } from "../lib/sofia-admin-email-templates";
 import {
   bookingColumns,
   courses,
@@ -101,11 +102,17 @@ async function readEmailSettings(): Promise<EmailSettings> {
   const row = await sofiaStorage.get<{
     senderEmail: string | null; adminNotificationEmail: string | null; senderName: string;
     sendOrientationConfirmations: number | boolean; sendTourConfirmations: number | boolean;
+    adminTourEmailSubject: string | null; adminTourEmailBody: string | null;
+    adminConsultationEmailSubject: string | null; adminConsultationEmailBody: string | null;
   }>(`
     SELECT sender_email AS "senderEmail", admin_notification_email AS "adminNotificationEmail",
       sender_name AS "senderName",
       send_orientation_confirmations AS "sendOrientationConfirmations",
-      send_tour_confirmations AS "sendTourConfirmations"
+      send_tour_confirmations AS "sendTourConfirmations",
+      admin_tour_email_subject AS "adminTourEmailSubject",
+      admin_tour_email_body AS "adminTourEmailBody",
+      admin_consultation_email_subject AS "adminConsultationEmailSubject",
+      admin_consultation_email_body AS "adminConsultationEmailBody"
     FROM impostazioni_email WHERE id = 1
   `);
 
@@ -115,6 +122,10 @@ async function readEmailSettings(): Promise<EmailSettings> {
     senderName: row?.senderName?.trim() || "Sofia",
     sendOrientationConfirmations: row ? Boolean(row.sendOrientationConfirmations) : true,
     sendTourConfirmations: row ? Boolean(row.sendTourConfirmations) : true,
+    adminTourEmailSubject: row?.adminTourEmailSubject?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.tour.subject,
+    adminTourEmailBody: row?.adminTourEmailBody?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.tour.body,
+    adminConsultationEmailSubject: row?.adminConsultationEmailSubject?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.consultation.subject,
+    adminConsultationEmailBody: row?.adminConsultationEmailBody?.trim() || DEFAULT_ADMIN_EMAIL_TEMPLATES.consultation.body,
   };
 }
 
@@ -855,14 +866,19 @@ router.put("/admin/email-settings", requireAdmin, async (req, res): Promise<void
   await sofiaStorage.run(`
     INSERT INTO impostazioni_email
       (id, sender_email, admin_notification_email, sender_name, send_orientation_confirmations,
-       send_tour_confirmations, updated_at)
-    VALUES (1, ?, ?, ?, ?, ?, ?)
+       send_tour_confirmations, admin_tour_email_subject, admin_tour_email_body,
+       admin_consultation_email_subject, admin_consultation_email_body, updated_at)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       sender_email = excluded.sender_email,
       admin_notification_email = excluded.admin_notification_email,
       sender_name = excluded.sender_name,
       send_orientation_confirmations = excluded.send_orientation_confirmations,
       send_tour_confirmations = excluded.send_tour_confirmations,
+      admin_tour_email_subject = excluded.admin_tour_email_subject,
+      admin_tour_email_body = excluded.admin_tour_email_body,
+      admin_consultation_email_subject = excluded.admin_consultation_email_subject,
+      admin_consultation_email_body = excluded.admin_consultation_email_body,
       updated_at = excluded.updated_at
   `,
     senderEmail,
@@ -870,6 +886,10 @@ router.put("/admin/email-settings", requireAdmin, async (req, res): Promise<void
     parsed.data.senderName.trim(),
     Number(parsed.data.sendOrientationConfirmations),
     Number(parsed.data.sendTourConfirmations),
+    parsed.data.adminTourEmailSubject.trim(),
+    parsed.data.adminTourEmailBody.trim(),
+    parsed.data.adminConsultationEmailSubject.trim(),
+    parsed.data.adminConsultationEmailBody.trim(),
     new Date().toISOString(),
   );
   res.json(UpdateAdminEmailSettingsResponse.parse(await readEmailSettings()));

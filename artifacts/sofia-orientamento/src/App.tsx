@@ -54,6 +54,7 @@ import {
 } from '@/components/admin-management';
 import { AdminEmailSettings } from '@/components/admin-email-settings';
 import { AdminGoogleCalendarSettings } from '@/components/admin-google-calendar-settings';
+import { RecaptchaCheckbox } from '@/components/recaptcha-checkbox';
 import { OrientationRequestDateCell } from '@/components/orientation-request-date-cell';
 import { formatDate, formatDateTime } from '@/lib/date-format';
 import { createMeetAccountChooserUrl } from '@/lib/meet-account-link';
@@ -195,6 +196,8 @@ function OrientationForm() {
   const [courseId, setCourseId] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [meetUrl, setMeetUrl] = useState('');
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const sortedCourses = useMemo(() => (courses ?? []).filter((course) => !university || course.university === university), [courses, university]);
@@ -210,7 +213,9 @@ function OrientationForm() {
     if (!university || !courseId) { setMessage({ kind: 'error', text: 'Scegli un ateneo e un corso per continuare.' }); return; }
     if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli una data e un orario disponibile.' }); return; }
     if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
-    create.mutate({ data: { ...values, university, courseId, date, time } }, {
+    const verifiedToken = captchaToken;
+    if (!verifiedToken) { setMessage({ kind: 'error', text: 'Spunta «Non sono un robot» per confermare la prenotazione.' }); return; }
+    create.mutate({ data: { ...values, university, courseId, date, time, captchaToken: verifiedToken } }, {
       onSuccess: (receipt) => {
         setMeetUrl(receipt.meetUrl);
         setMessage({
@@ -223,6 +228,7 @@ function OrientationForm() {
         setValues(contactDefaults); setUniversity(''); setCourseId(''); setDate(''); setTime('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile inviare la richiesta. Riprova tra poco.') }),
+      onSettled: () => { setCaptchaToken(null); setCaptchaResetKey((key) => key + 1); },
     });
   };
   return <form onSubmit={submit} className="space-y-6" data-testid="form-orientation">
@@ -240,9 +246,10 @@ function OrientationForm() {
     <p className="text-xs text-[hsl(var(--muted-foreground))]">L’incontro dura un’ora. Gli orari già occupati nel calendario non sono selezionabili.</p>
     {isError && <div className="flex items-center justify-between border border-[hsl(var(--destructive)/.3)] bg-[hsl(var(--destructive)/.06)] p-3 text-sm"><span>Non riesco a caricare i corsi.</span><button type="button" onClick={() => refetch()} className="font-semibold underline" data-testid="button-retry-courses">Riprova</button></div>}
     <div className="border-t border-[hsl(var(--border))] pt-6"><p className="mb-4 text-sm text-[hsl(var(--muted-foreground))]">Lasciami i tuoi recapiti: partiremo da qui, senza impegno.</p><ContactFields values={values} setValues={setValues} /></div>
+    <RecaptchaCheckbox onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
     {message && <Alert kind={message.kind}>{message.text}</Alert>}
     {meetUrl && <a className="inline-flex border border-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold underline underline-offset-4" href={meetUrl} target="_blank" rel="noreferrer">Apri il link Google Meet</a>}
-    <button type="submit" disabled={create.isPending} className="btn-primary w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-orientation">{create.isPending ? 'Invio in corso…' : <>Invia la richiesta <ArrowRight size={16} /></>}</button>
+    <button type="submit" disabled={create.isPending || !captchaToken} className="btn-primary w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-orientation">{create.isPending ? 'Invio in corso…' : <>Invia la richiesta <ArrowRight size={16} /></>}</button>
   </form>;
 }
 
@@ -250,6 +257,8 @@ function TourForm() {
   const client = useQueryClient();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [meetUrl, setMeetUrl] = useState('');
   const [values, setValues] = useState<ContactValues>(contactDefaults);
   const [message, setMessage] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
@@ -262,7 +271,9 @@ function TourForm() {
     setMeetUrl('');
     if (!date || !time) { setMessage({ kind: 'error', text: 'Scegli prima una data e un orario disponibile.' }); return; }
     if (date < romeToday()) { setMessage({ kind: 'error', text: 'La data scelta è passata. Seleziona una nuova data.' }); return; }
-    create.mutate({ data: { ...values, date, time } }, {
+    const verifiedToken = captchaToken;
+    if (!verifiedToken) { setMessage({ kind: 'error', text: 'Spunta «Non sono un robot» per confermare la prenotazione.' }); return; }
+    create.mutate({ data: { ...values, date, time, captchaToken: verifiedToken } }, {
       onSuccess: (receipt) => {
         void client.invalidateQueries({ queryKey: getListAppointmentSlotsQueryKey({ date }) });
         setMeetUrl(receipt.meetUrl);
@@ -275,6 +286,7 @@ function TourForm() {
         setValues(contactDefaults); setDate(''); setTime('');
       },
       onError: (error) => setMessage({ kind: 'error', text: getErrorMessage(error, 'Non è stato possibile prenotare il tour. Riprova tra poco.') }),
+      onSettled: () => { setCaptchaToken(null); setCaptchaResetKey((key) => key + 1); },
     });
   };
   return <form onSubmit={submit} className="space-y-6" data-testid="form-tour">
@@ -284,9 +296,10 @@ function TourForm() {
     </div>
     <p className="text-xs text-[hsl(var(--muted-foreground))]">Gli appuntamenti durano un’ora e iniziano ogni ora dalle 09:00 alle 20:00.</p>
     <div className="border-t border-[hsl(var(--border))] pt-6"><p className="mb-4 text-sm text-[hsl(var(--muted-foreground))]">Un incontro concreto, dal tuo computer, con tutto il tempo per le tue domande.</p><ContactFields values={values} setValues={setValues} /></div>
+    <RecaptchaCheckbox onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
     {message && <Alert kind={message.kind}>{message.text}</Alert>}
     {meetUrl && <a className="inline-flex border border-[hsl(var(--foreground))] px-4 py-3 text-sm font-semibold underline underline-offset-4" href={meetUrl} target="_blank" rel="noreferrer">Apri il link Google Meet</a>}
-    <button type="submit" disabled={create.isPending} className="btn-rose w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-tour">{create.isPending ? 'Prenotazione in corso…' : <>Prenota il tuo Meet <CalendarDays size={16} /></>}</button>
+    <button type="submit" disabled={create.isPending || !captchaToken} className="btn-rose w-full disabled:cursor-wait disabled:opacity-60" data-testid="button-submit-tour">{create.isPending ? 'Prenotazione in corso…' : <>Prenota il tuo Meet <CalendarDays size={16} /></>}</button>
   </form>;
 }
 

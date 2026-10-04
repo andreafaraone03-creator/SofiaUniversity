@@ -18,6 +18,15 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Legge la configurazione pubblica del controllo reCAPTCHA
+ */
+export const GetRecaptchaConfigResponse = zod.object({
+  "enabled": zod.boolean(),
+  "siteKey": zod.string().nullable()
+})
+
+
+/**
  * @summary Elenco dei corsi di laurea
  */
 export const ListCoursesQueryParams = zod.object({
@@ -54,6 +63,8 @@ export const createOrientationRequestBodyOnePhoneMax = 30;
 
 
 export const createOrientationRequestBodyTwoTimeRegExp = new RegExp('^[0-2][0-9]:[0-5][0-9]$');
+export const createOrientationRequestBodyTwoCaptchaTokenMax = 4096;
+
 
 
 export const CreateOrientationRequestBody = zod.object({
@@ -66,7 +77,8 @@ export const CreateOrientationRequestBody = zod.object({
   "university": zod.string().min(1),
   "courseId": zod.string().min(1),
   "date": zod.coerce.date(),
-  "time": zod.string().regex(createOrientationRequestBodyTwoTimeRegExp)
+  "time": zod.string().regex(createOrientationRequestBodyTwoTimeRegExp),
+  "captchaToken": zod.string().min(1).max(createOrientationRequestBodyTwoCaptchaTokenMax)
 }))
 
 export const CreateOrientationRequestResponse = zod.object({
@@ -123,6 +135,8 @@ export const createTourBookingBodyOnePhoneMin = 6;
 export const createTourBookingBodyOnePhoneMax = 30;
 
 export const createTourBookingBodyTwoTimeRegExp = new RegExp('^[0-2][0-9]:[0-5][0-9]$');
+export const createTourBookingBodyTwoCaptchaTokenMax = 4096;
+
 
 
 export const CreateTourBookingBody = zod.object({
@@ -133,7 +147,8 @@ export const CreateTourBookingBody = zod.object({
   "phone": zod.string().min(createTourBookingBodyOnePhoneMin).max(createTourBookingBodyOnePhoneMax)
 }).and(zod.object({
   "date": zod.coerce.date(),
-  "time": zod.string().regex(createTourBookingBodyTwoTimeRegExp)
+  "time": zod.string().regex(createTourBookingBodyTwoTimeRegExp),
+  "captchaToken": zod.string().min(1).max(createTourBookingBodyTwoCaptchaTokenMax)
 }))
 
 export const CreateTourBookingResponse = zod.object({
@@ -747,6 +762,14 @@ export const UpdateAdminEnrollmentResponse = zod.object({
  */
 export const getAdminEmailSettingsResponseAdminNotificationEmailMax = 254;
 
+export const getAdminEmailSettingsResponseAdminTourEmailSubjectMax = 250;
+
+export const getAdminEmailSettingsResponseAdminTourEmailBodyMax = 12000;
+
+export const getAdminEmailSettingsResponseAdminConsultationEmailSubjectMax = 250;
+
+export const getAdminEmailSettingsResponseAdminConsultationEmailBodyMax = 12000;
+
 
 
 export const GetAdminEmailSettingsResponse = zod.object({
@@ -754,7 +777,11 @@ export const GetAdminEmailSettingsResponse = zod.object({
   "adminNotificationEmail": zod.string().email().max(getAdminEmailSettingsResponseAdminNotificationEmailMax).nullable(),
   "senderName": zod.string(),
   "sendOrientationConfirmations": zod.boolean(),
-  "sendTourConfirmations": zod.boolean()
+  "sendTourConfirmations": zod.boolean(),
+  "adminTourEmailSubject": zod.string().min(1).max(getAdminEmailSettingsResponseAdminTourEmailSubjectMax),
+  "adminTourEmailBody": zod.string().min(1).max(getAdminEmailSettingsResponseAdminTourEmailBodyMax),
+  "adminConsultationEmailSubject": zod.string().min(1).max(getAdminEmailSettingsResponseAdminConsultationEmailSubjectMax),
+  "adminConsultationEmailBody": zod.string().min(1).max(getAdminEmailSettingsResponseAdminConsultationEmailBodyMax)
 })
 
 
@@ -765,6 +792,14 @@ export const updateAdminEmailSettingsBodyAdminNotificationEmailMax = 254;
 
 export const updateAdminEmailSettingsBodySenderNameMax = 80;
 
+export const updateAdminEmailSettingsBodyAdminTourEmailSubjectMax = 250;
+
+export const updateAdminEmailSettingsBodyAdminTourEmailBodyMax = 12000;
+
+export const updateAdminEmailSettingsBodyAdminConsultationEmailSubjectMax = 250;
+
+export const updateAdminEmailSettingsBodyAdminConsultationEmailBodyMax = 12000;
+
 
 
 export const UpdateAdminEmailSettingsBody = zod.object({
@@ -772,10 +807,22 @@ export const UpdateAdminEmailSettingsBody = zod.object({
   "adminNotificationEmail": zod.string().email().max(updateAdminEmailSettingsBodyAdminNotificationEmailMax).nullable(),
   "senderName": zod.string().min(1).max(updateAdminEmailSettingsBodySenderNameMax),
   "sendOrientationConfirmations": zod.boolean(),
-  "sendTourConfirmations": zod.boolean()
+  "sendTourConfirmations": zod.boolean(),
+  "adminTourEmailSubject": zod.string().min(1).max(updateAdminEmailSettingsBodyAdminTourEmailSubjectMax),
+  "adminTourEmailBody": zod.string().min(1).max(updateAdminEmailSettingsBodyAdminTourEmailBodyMax),
+  "adminConsultationEmailSubject": zod.string().min(1).max(updateAdminEmailSettingsBodyAdminConsultationEmailSubjectMax),
+  "adminConsultationEmailBody": zod.string().min(1).max(updateAdminEmailSettingsBodyAdminConsultationEmailBodyMax)
 })
 
 export const updateAdminEmailSettingsResponseAdminNotificationEmailMax = 254;
+
+export const updateAdminEmailSettingsResponseAdminTourEmailSubjectMax = 250;
+
+export const updateAdminEmailSettingsResponseAdminTourEmailBodyMax = 12000;
+
+export const updateAdminEmailSettingsResponseAdminConsultationEmailSubjectMax = 250;
+
+export const updateAdminEmailSettingsResponseAdminConsultationEmailBodyMax = 12000;
 
 
 
@@ -784,7 +831,11 @@ export const UpdateAdminEmailSettingsResponse = zod.object({
   "adminNotificationEmail": zod.string().email().max(updateAdminEmailSettingsResponseAdminNotificationEmailMax).nullable(),
   "senderName": zod.string(),
   "sendOrientationConfirmations": zod.boolean(),
-  "sendTourConfirmations": zod.boolean()
+  "sendTourConfirmations": zod.boolean(),
+  "adminTourEmailSubject": zod.string().min(1).max(updateAdminEmailSettingsResponseAdminTourEmailSubjectMax),
+  "adminTourEmailBody": zod.string().min(1).max(updateAdminEmailSettingsResponseAdminTourEmailBodyMax),
+  "adminConsultationEmailSubject": zod.string().min(1).max(updateAdminEmailSettingsResponseAdminConsultationEmailSubjectMax),
+  "adminConsultationEmailBody": zod.string().min(1).max(updateAdminEmailSettingsResponseAdminConsultationEmailBodyMax)
 })
 
 

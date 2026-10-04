@@ -17,4 +17,24 @@ export interface EmailSettings {
   senderName: string;
   sendOrientationConfirmations: boolean;
   sendTourConfirmations: boolean;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminTourEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminTourEmailBody: string;
+  /**
+     * @minLength 1
+     * @maxLength 250
+     */
+  adminConsultationEmailSubject: string;
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  adminConsultationEmailBody: string;
 }

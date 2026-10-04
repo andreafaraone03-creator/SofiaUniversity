@@ -41,6 +41,7 @@ export * from './orientationRequest';
 export * from './orientationRequestAppointmentStatus';
 export * from './orientationRequestInput';
 export * from './orientationRequestReceipt';
+export * from './recaptchaConfig';
 export * from './success';
 export * from './testEmailInput';
 export * from './tourBooking';
